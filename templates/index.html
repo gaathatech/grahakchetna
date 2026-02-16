@@ -401,13 +401,27 @@
             }
         }
 
-        function downloadVideo(filename, headline) {
-            const a = document.createElement('a');
-            a.href = `/video/${filename}`;
-            a.download = `${headline.substring(0, 30)}_${filename}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        async function downloadVideo(filename, headline) {
+            try {
+                const response = await fetch(`/video/${filename}`);
+                if (!response.ok) {
+                    alert('Failed to download video: ' + response.statusText);
+                    return;
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${headline.substring(0, 30)}_${filename}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Error downloading video: ' + error.message);
+            }
         }
 
         async function deleteVideo(filename) {

@@ -4,9 +4,9 @@ import re
 import time
 
 VOICE_MAP = {
-    "english": "en-IN-PrabhatNeural",
-    "hindi": "hi-IN-SwaraNeural",  # Female voice (clearer for Hindi)
-    "gujarati": "gu-IN-DhwaniNeural",  # Female voice (clearer for Gujarati)
+    "english": "en-US-AriaNeural",            # Professional female news anchor voice (confirmed female)
+    "hindi": "hi-IN-SwaraNeural",            # Female voice (professional news tone)
+    "gujarati": "gu-IN-DhwaniNeural",        # Female voice (professional news tone)
 }
 
 OUTPUT_PATH = "output/voice.mp3"
@@ -22,7 +22,7 @@ async def _generate(text, voice):
     communicate = edge_tts.Communicate(
         text=text,
         voice=voice,
-        rate="-10%",        # Slightly slower for clarity
+        rate="+5%",         # Faster speech for professional news reading tone
         pitch="+0Hz"
     )
     await communicate.save(OUTPUT_PATH)
@@ -30,7 +30,7 @@ async def _generate(text, voice):
 
 def generate_voice(text, language="english"):
 
-    voice = VOICE_MAP.get(language, "en-IN-PrabhatNeural")
+    voice = VOICE_MAP.get(language, "en-US-AriaNeural")
 
     cleaned = clean_text(text)
     

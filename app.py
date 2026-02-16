@@ -64,9 +64,18 @@ def list_videos():
 @app.route("/video/<filename>", methods=["GET"])
 def get_video(filename):
     """Download a specific video"""
+    # Validate filename to prevent path traversal
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return jsonify({"error": "Invalid filename"}), 400
+    
     video_path = os.path.join(VIDEOS_DIR, filename)
     if os.path.exists(video_path):
-        return send_file(video_path, as_attachment=True, download_name=filename)
+        return send_file(
+            video_path, 
+            as_attachment=True,
+            download_name=filename,
+            mimetype='video/mp4'
+        )
     return jsonify({"error": "Video not found"}), 404
 
 @app.route("/video/<filename>", methods=["DELETE"])
