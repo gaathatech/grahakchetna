@@ -2,12 +2,22 @@ from flask import Flask, render_template, request, send_file, jsonify
 from script_service import generate_script
 from tts_service import generate_voice
 from video_service import generate_video
+from facebook_uploader import upload_reel, FacebookReelUploadError
 import os
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create videos directory for storing all generated videos
 VIDEOS_DIR = "videos"
@@ -129,6 +139,104 @@ def generate():
         "video": entry,
         "download_url": f"/video/{video_filename}"
     })
+
+
+@app.route("/generate-and-post", methods=["POST"])
+def generate_and_post():
+    """Generate video and auto-post to Facebook"""
+    try:
+        headline = request.form["headline"]
+        description = request.form["description"]
+        language = request.form["language"]
+        auto_post = request.form.get("auto_post", "false").lower() == "true"
+
+        # 1️⃣ Generate Script
+        script = generate_script(headline, description, language)
+        if not script:
+            return jsonify({"error": "Script generation failed"}), 400
+
+        # 2️⃣ Generate Voice
+        audio_path = generate_voice(script, language)
+        if not audio_path:
+            return jsonify({"error": "Voice generation failed"}), 400
+
+        # 3️⃣ Generate unique video filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        video_filename = f"video_{timestamp}.mp4"
+        output_video_path = os.path.join(VIDEOS_DIR, video_filename)
+        
+        # 4️⃣ Generate Video
+        video_path = generate_video(
+            headline, description, audio_path, 
+            language=language, output_path=output_video_path
+        )
+        if not video_path:
+            return jsonify({"error": "Video generation failed"}), 400
+
+        # 5️⃣ Add to manifest
+        entry = add_to_manifest(video_path, headline, description, language)
+        
+        # 6️⃣ Auto-post to Facebook if enabled
+        facebook_response = None
+        reel_id = None
+        
+        if auto_post:
+            try:
+                page_id = os.getenv("PAGE_ID")
+                page_access_token = os.getenv("PAGE_ACCESS_TOKEN")
+                
+                if not page_id or not page_access_token:
+                    logger.warning("Facebook credentials not configured. Skipping auto-post.")
+                else:
+                    logger.info(f"Auto-posting to Facebook page {page_id}...")
+                    facebook_response = upload_reel(
+                        video_path=video_path,
+                        caption=f"{headline}\n\n{description}",
+                        page_id=page_id,
+                        page_access_token=page_access_token,
+                        timeout=600  # 10 minutes for large files
+                    )
+                    reel_id = facebook_response.get("id")
+                    logger.info(f"✓ Successfully posted to Facebook! Reel ID: {reel_id}")
+                    
+            except FacebookReelUploadError as e:
+                logger.error(f"Facebook upload failed: {e}")
+                # Return success for video generation but note the Facebook error
+                return jsonify({
+                    "status": "success",
+                    "video": entry,
+                    "download_url": f"/video/{video_filename}",
+                    "facebook": {
+                        "status": "failed",
+                        "error": str(e)
+                    }
+                }), 200
+            except Exception as e:
+                logger.error(f"Unexpected error during Facebook upload: {e}")
+                return jsonify({
+                    "status": "success",
+                    "video": entry,
+                    "download_url": f"/video/{video_filename}",
+                    "facebook": {
+                        "status": "error",
+                        "error": str(e)
+                    }
+                }), 200
+        
+        return jsonify({
+            "status": "success",
+            "video": entry,
+            "download_url": f"/video/{video_filename}",
+            "facebook": {
+                "status": "posted" if auto_post else "skipped",
+                "reel_id": reel_id,
+                "response": facebook_response if auto_post else None
+            } if auto_post else None
+        })
+
+    except Exception as e:
+        logger.error(f"Generate and post failed: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
