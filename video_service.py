@@ -10,6 +10,13 @@ Image.ANTIALIAS = Image.Resampling.LANCZOS
 WIDTH = 1080
 HEIGHT = 1920
 
+# Enhanced professional colors
+COLOR_ACCENT_RED = (220, 20, 60)     # Crimson red for better contrast
+COLOR_ACCENT_DARK_RED = (139, 0, 0)  # Dark red
+COLOR_TEXT_WHITE = (255, 255, 255)
+COLOR_SHADOW = (0, 0, 0)
+COLOR_OVERLAY_BG = (0, 0, 0)
+
 # Try to find fonts on common Linux locations
 FONT_PATHS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -45,8 +52,14 @@ FONT_BOLD = get_font(bold=True)
 FONT_GUJARATI = get_font(bold=False, language="gujarati")
 FONT_GUJARATI_BOLD = get_font(bold=True, language="gujarati")
 
-def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_width=620, language="en"):
-    """Create text image using PIL instead of ImageMagick"""
+def add_text_shadow(draw, text, position, font, shadow_offset=3):
+    """Helper to add text shadow for better readability"""
+    x, y = position
+    # Draw shadow
+    draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(*COLOR_SHADOW, 200))
+
+def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_width=620, language="en", add_shadow=True):
+    """Create text image using PIL instead of ImageMagick with optional shadow"""
     if language in ["gujarati", "hindi"]:
         font_path = FONT_GUJARATI_BOLD if bold else FONT_GUJARATI
     else:
@@ -80,17 +93,20 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
         lines.append(current_line.strip())
     
     # Calculate image size with proper spacing
-    line_height = fontsize + 8
-    img_height = len(lines) * line_height + 20
-    img_width = max_width + 40
+    line_height = fontsize + 10
+    shadow_offset = 3 if add_shadow else 0
+    img_height = len(lines) * line_height + 20 + shadow_offset
+    img_width = max_width + 40 + shadow_offset
     
-    # Create image
+    # Create image with transparency
     img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    # Draw text
+    # Draw text with shadow
     y = 10
     for line in lines:
+        if add_shadow:
+            draw.text((10 + shadow_offset, y + shadow_offset), line, font=font, fill=(*COLOR_SHADOW, 180))
         draw.text((10, y), line, font=font, fill=(*color, 255))
         y += line_height
     
@@ -103,7 +119,7 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
 
 
 def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True, language="en"):
-    """Create a single-line text image for ticker scrolling"""
+    """Create a single-line text image for ticker scrolling with shadow"""
     if language in ["gujarati", "hindi"]:
         font_path = FONT_GUJARATI_BOLD if bold else FONT_GUJARATI
     else:
@@ -118,15 +134,18 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
         font = ImageFont.load_default()
     
     # Create image with extra width for scrolling
-    img_height = fontsize + 20
+    img_height = fontsize + 30
     img_width = max(1200, len(text) * 20)  # Extra width for scrolling
+    shadow_offset = 3
     
     # Create image
-    img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
+    img = Image.new("RGBA", (img_width + shadow_offset, img_height + shadow_offset), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
+    # Draw shadow
+    draw.text((20 + shadow_offset, 15 + shadow_offset), text, font=font, fill=(*COLOR_SHADOW, 180))
     # Draw text
-    draw.text((20, 10), text, font=font, fill=(*color, 255))
+    draw.text((20, 15), text, font=font, fill=(*color, 255))
     
     # Save to temp file
     temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
@@ -136,7 +155,13 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
     return temp_file.name, img_height
 
 
-def generate_video(title, description, audio_path, language="en", use_female_anchor=True):
+def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None):
+
+    if output_path is None:
+        output_path = "static/final_video.mp4"
+    
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     voice = AudioFileClip(audio_path)
     duration = voice.duration
@@ -149,8 +174,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     )
 
     overlay = (
-        ColorClip((WIDTH, HEIGHT), color=(0, 0, 0))
-        .set_opacity(0.5)
+        ColorClip((WIDTH, HEIGHT), color=COLOR_OVERLAY_BG)
+        .set_opacity(0.4)
         .set_duration(duration)
     )
 
@@ -174,10 +199,17 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     headline_bar_height = 120
     headline_bar_y = 150
     
-    # Red background bar
+    # Red background bar with gradient effect (simulated with darker red border)
     headline_bar = (
-        ColorClip((WIDTH, headline_bar_height), color=(200, 0, 0))
+        ColorClip((WIDTH, headline_bar_height), color=COLOR_ACCENT_RED)
         .set_position(("center", headline_bar_y))
+        .set_duration(duration)
+    )
+    
+    # Add dark red border effect (creates depth)
+    headline_bar_border = (
+        ColorClip((WIDTH, 3), color=COLOR_ACCENT_DARK_RED)
+        .set_position(("center", headline_bar_y + headline_bar_height - 3))
         .set_duration(duration)
     )
 
@@ -233,7 +265,14 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     breaking_bar_y = HEIGHT - 220
 
     breaking_bar = (
-        ColorClip((WIDTH, 130), color=(200, 0, 0))
+        ColorClip((WIDTH, 130), color=COLOR_ACCENT_RED)
+        .set_position(("center", breaking_bar_y))
+        .set_duration(duration)
+    )
+    
+    # Add dark red border for depth
+    breaking_bar_border = (
+        ColorClip((WIDTH, 3), color=COLOR_ACCENT_DARK_RED)
         .set_position(("center", breaking_bar_y))
         .set_duration(duration)
     )
@@ -286,9 +325,11 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
             anchor,
             logo,
             headline_bar,
+            headline_bar_border,
             ticker_clip,
             desc_clip,
             breaking_bar,
+            breaking_bar_border,
             breaking_text,
             ai_label,
         ]
@@ -322,7 +363,9 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     final = concatenate_videoclips([main_video, ending_clip])
 
-    output_path = "static/final_video.mp4"
+    # Use the provided output_path or default to static/final_video.mp4
+    if not output_path:
+        output_path = "static/final_video.mp4"
 
     final.write_videofile(
         output_path,
