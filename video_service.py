@@ -5,10 +5,15 @@ import textwrap
 import tempfile
 import os
 import json
+import logging
 from datetime import datetime
 import subprocess
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 WIDTH = 1080
 HEIGHT = 1920
@@ -142,7 +147,78 @@ def add_text_shadow(draw, text, position, font, shadow_offset=3):
     # Draw shadow
     draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(*COLOR_SHADOW, 200))
 
-def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_width=620, language="en", add_shadow=True):
+def create_boxed_text_image(text, fontsize=40, color=(255, 255, 255), bold=True, box_width=600, box_height=1100, language="en"):
+    """Create a text image clipped to a fixed box size (600×1100).
+    
+    If text exceeds box height, the image will be taller (for scrolling).
+    If text is shorter, it's positioned at the top.
+    """
+    if language in ["gujarati", "hindi"]:
+        font_path = FONT_GUJARATI_BOLD if bold else FONT_GUJARATI
+    else:
+        font_path = FONT_BOLD if bold else FONT_REGULAR
+    
+    try:
+        if font_path:
+            font = ImageFont.truetype(font_path, fontsize)
+        else:
+            font = ImageFont.load_default()
+    except Exception:
+        font = ImageFont.load_default()
+
+    # Ensure font can render text
+    try:
+        font.getbbox(text)
+    except Exception:
+        found = _find_working_font_for_text(text, fontsize)
+        if found:
+            font = found
+    
+    # Wrap text to fit within box_width
+    lines = []
+    words = text.split()
+    current_line = ""
+    
+    for word in words:
+        test_line = current_line + word + " "
+        bbox = font.getbbox(test_line)
+        line_width = bbox[2] - bbox[0]
+        
+        if line_width > box_width - 40 and current_line:
+            lines.append(current_line.strip())
+            current_line = word + " "
+        else:
+            current_line = test_line
+    
+    if current_line:
+        lines.append(current_line.strip())
+    
+    # Calculate actual height needed
+    line_height = fontsize + 10
+    img_height = max(len(lines) * line_height + 20, box_height)  # At least box_height
+    img_width = box_width + 40
+    shadow_offset = 3
+    
+    # Create image with transparency
+    img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    
+    # Draw text with shadow
+    y = 10
+    for line in lines:
+        draw.text((10 + shadow_offset, y + shadow_offset), line, font=font, fill=(*COLOR_SHADOW, 180))
+        draw.text((10, y), line, font=font, fill=(*color, 255))
+        y += line_height
+    
+    # Save to temp file
+    temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    img.save(temp_file.name)
+    temp_file.close()
+    
+    return temp_file.name, img_height
+
+
+
     """Create text image using PIL instead of ImageMagick with optional shadow"""
     if language in ["gujarati", "hindi"]:
         font_path = FONT_GUJARATI_BOLD if bold else FONT_GUJARATI
@@ -275,19 +351,28 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     duration = voice.duration
 
     # Try to use shorts background image if available, otherwise fall back to bg.mp4
-    bg_path = "assets/shorts background.png" if os.path.exists("assets/shorts background.png") else "assets/bg.mp4"
+    shorts_bg_path = "assets/shorts background.png"
     
     # Background
-    if bg_path.endswith(".png"):
-        # Static image background
-        bg_img = ImageClip(bg_path)
-        bg = bg_img.resize((WIDTH, HEIGHT)).set_duration(duration)
-    else:
-        # Video background
+    try:
+        if os.path.exists(shorts_bg_path):
+            logger.info(f"Loading shorts background: {shorts_bg_path}")
+            bg_img = ImageClip(shorts_bg_path)
+            bg = bg_img.resize((WIDTH, HEIGHT)).set_duration(duration)
+            logger.info("✓ Shorts background loaded")
+        else:
+            logger.warning(f"Shorts background not found: {shorts_bg_path}, using bg.mp4")
+            bg = (
+                VideoFileClip("assets/bg.mp4")
+                .resize((WIDTH, HEIGHT))
+                .subclip(0, duration)
+            )
+    except Exception as e:
+        logger.error(f"Failed to load background: {e}. Falling back to bg.mp4")
         bg = (
-            VideoFileClip(bg_path)
+            VideoFileClip("assets/bg.mp4")
             .resize((WIDTH, HEIGHT))
-            .subclip(0, min(duration, VideoFileClip(bg_path).duration))
+            .subclip(0, duration)
         )
 
     overlay = (
@@ -356,42 +441,49 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     desc_x = 430  # Right side, opposite anchor
     desc_start_y = 350
     desc_width = 600
-    # Fixed box height: 1100px for consistent layout
-    max_text_height = 1100
-
-    # Description (dynamic positioning) - smaller font to fit better
-    desc_img_path, desc_height = create_text_image(
+    desc_box_height = 1100  # Fixed box height
+    
+    # Create description text clipped to box
+    desc_img_path, desc_height = create_boxed_text_image(
         description,
         fontsize=40,
         color=(255, 255, 255),
         bold=False,
-        max_width=desc_width,
+        box_width=desc_width,
+        box_height=desc_box_height,
         language=language
     )
     
+    logger.info(f"Description text height: {desc_height}, box height: {desc_box_height}")
+    
+    # Load description text clip
+    desc_base_clip = ImageClip(desc_img_path).set_duration(duration)
+    
     # If text is too tall for the box, create scrolling animation
-    if desc_height > max_text_height:
-        # Text scrolls vertically when it exceeds box height
-        desc_clip = ImageClip(desc_img_path).set_duration(duration)
-        
+    if desc_height > desc_box_height:
+        logger.info(f"Description scrolling enabled (height {desc_height} > box {desc_box_height})")
         # Animation function for vertical scrolling
         def make_desc_scroll_position(t):
             # Scroll speed: complete scroll in 60% of duration, then pause
             scroll_duration = duration * 0.6
             if t < scroll_duration:
                 # Scroll from bottom to top
-                scroll_distance = desc_height + max_text_height
-                y_pos = desc_start_y + max_text_height - (t / scroll_duration) * scroll_distance
+                scroll_distance = desc_height + desc_box_height
+                y_pos = desc_start_y + desc_box_height - (t / scroll_duration) * scroll_distance
             else:
                 # Pause at top after scrolling
-                y_pos = desc_start_y + max_text_height - desc_height
+                y_pos = desc_start_y + desc_box_height - desc_height
             return (desc_x, y_pos)
         
-        desc_clip = desc_clip.set_position(make_desc_scroll_position)
+        desc_clip = desc_base_clip.set_position(make_desc_scroll_position)
     else:
         # No scrolling needed, static position
-        desc_clip = ImageClip(desc_img_path).set_duration(duration)
-        desc_clip = desc_clip.set_position((desc_x, desc_start_y))
+        logger.info("Description static (fits in box)")
+        desc_clip = desc_base_clip.set_position((desc_x, desc_start_y))
+    
+    # Apply a mask to clip text to the box region
+    desc_mask = ColorClip((desc_width, desc_box_height), color=(255, 255, 255)).set_duration(duration)
+    desc_clip = CompositeVideoClip([desc_clip.set_mask(desc_mask)])
 
     # ============= BOTTOM BREAKING NEWS BAR =============
     breaking_bar_y = HEIGHT - 220
