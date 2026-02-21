@@ -351,7 +351,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     duration = voice.duration
 
     # Try to use shorts background image if available, otherwise fall back to bg.mp4
-    shorts_bg_path = "assets/shorts background.png"
+    shorts_bg_path = "shorts background.png"  # In root directory
     
     # Background
     try:
@@ -480,10 +480,6 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         # No scrolling needed, static position
         logger.info("Description static (fits in box)")
         desc_clip = desc_base_clip.set_position((desc_x, desc_start_y))
-    
-    # Apply a mask to clip text to the box region
-    desc_mask = ColorClip((desc_width, desc_box_height), color=(255, 255, 255)).set_duration(duration)
-    desc_clip = CompositeVideoClip([desc_clip.set_mask(desc_mask)])
 
     # ============= BOTTOM BREAKING NEWS BAR =============
     breaking_bar_y = HEIGHT - 220
