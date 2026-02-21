@@ -10,8 +10,8 @@ import subprocess
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
 
-WIDTH = 1080
-HEIGHT = 1920
+WIDTH = 720
+HEIGHT = 1280
 
 VIDEOS_DIR = "videos"
 VIDEO_MANIFEST = os.path.join(VIDEOS_DIR, "manifest.json")
