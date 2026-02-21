@@ -256,8 +256,11 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
     return temp_file.name, img_height
 
 
-def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None):
+def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None):
+    """Generate a video from provided audio and assets.
 
+    max_duration: optional float (seconds). If provided, audio will be trimmed to this length.
+    """
     if output_path is None:
         output_path = "static/final_video.mp4"
     
@@ -265,6 +268,10 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     voice = AudioFileClip(audio_path)
+    # Trim audio if a maximum duration is requested
+    if max_duration and voice.duration > float(max_duration):
+        voice = voice.subclip(0, float(max_duration))
+
     duration = voice.duration
 
     # Background

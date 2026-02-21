@@ -16,6 +16,31 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Register uploader blueprints
+try:
+    from wordpress_blueprint import wordpress_bp
+    app.register_blueprint(wordpress_bp)
+except Exception:
+    pass
+
+try:
+    from facebook_blueprint import facebook_bp
+    app.register_blueprint(facebook_bp)
+except Exception:
+    pass
+
+try:
+    from instagram_blueprint import instagram_bp
+    app.register_blueprint(instagram_bp)
+except Exception:
+    pass
+
+try:
+    from youtube_blueprint import youtube_bp
+    app.register_blueprint(youtube_bp)
+except Exception:
+    pass
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -111,6 +136,7 @@ def generate():
     female_voice = request.form.get("female_voice", "false").lower() == "true"
     voice_provider = request.form.get("voice_provider", "auto")
     voice_model = request.form.get("voice_model", "auto")
+    video_length = request.form.get("video_length", "full")
 
     # 1️⃣ Generate Script
     script = generate_script(headline, description, language)
@@ -130,7 +156,14 @@ def generate():
     output_video_path = os.path.join(VIDEOS_DIR, video_filename)
     
     # 4️⃣ Generate Video with custom output path
-    video_path = generate_video(headline, description, audio_path, language=language, output_path=output_video_path)
+    # Map video_length to max_duration (seconds)
+    max_duration = None
+    if video_length == "short":
+        max_duration = 15
+    elif video_length == "long":
+        max_duration = 120
+
+    video_path = generate_video(headline, description, audio_path, language=language, output_path=output_video_path, max_duration=max_duration)
 
     if not video_path:
         return jsonify({"error": "Video generation failed"}), 400
@@ -155,6 +188,7 @@ def generate_and_post():
         female_voice = request.form.get("female_voice", "false").lower() == "true"
         voice_provider = request.form.get("voice_provider", "auto")
         voice_model = request.form.get("voice_model", "auto")
+        video_length = request.form.get("video_length", "full")
         auto_post = request.form.get("auto_post", "false").lower() == "true"
 
         # 1️⃣ Generate Script
@@ -173,9 +207,16 @@ def generate_and_post():
         output_video_path = os.path.join(VIDEOS_DIR, video_filename)
         
         # 4️⃣ Generate Video
+        # Map video_length to max_duration (seconds)
+        max_duration = None
+        if video_length == "short":
+            max_duration = 15
+        elif video_length == "long":
+            max_duration = 120
+
         video_path = generate_video(
             headline, description, audio_path, 
-            language=language, output_path=output_video_path
+            language=language, output_path=output_video_path, max_duration=max_duration
         )
         if not video_path:
             return jsonify({"error": "Video generation failed"}), 400
