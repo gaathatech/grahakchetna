@@ -190,6 +190,7 @@ async def generate_voice_async(
     language: str = "english",
     output_path: Optional[str] = None,
     female_voice: bool = False,
+    voice_model: Optional[str] = None,
 ) -> Optional[str]:
 
     if output_path is None:
@@ -215,49 +216,87 @@ async def generate_voice_async(
         return output_path
 
     # ======================
-    # 1️⃣ ELEVENLABS
-    # ======================
-    logger.info("Trying ElevenLabs")
-    success = await _elevenlabs_tts(formatted, output_path)
-    if success and os.path.exists(output_path):
-        os.replace(output_path, cache_path)
-        os.replace(cache_path, output_path)
-        logger.info("✓ ElevenLabs success")
-        return output_path
+    # Provider selection: respect `voice_model` if provided; otherwise use default order
+    model = (voice_model or "auto").lower()
 
-    # ======================
-    # 2️⃣ EDGE
-    # ======================
-    logger.info("Trying Edge TTS")
+    async def _try_eleven():
+        logger.info("Trying ElevenLabs")
+        success = await _elevenlabs_tts(formatted, output_path)
+        if success and os.path.exists(output_path):
+            os.replace(output_path, cache_path)
+            os.replace(cache_path, output_path)
+            logger.info("✓ ElevenLabs success")
+            return True
+        return False
 
-    for attempt in range(3):
-        try:
-            await _edge_tts(formatted, output_path, language, female_voice)
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                os.replace(output_path, cache_path)
-                os.replace(cache_path, output_path)
-                logger.info("✓ Edge success")
-                return output_path
-        except Exception as e:
-            logger.warning(f"Edge failed: {e}")
-            backoff = (2 ** attempt) + random.uniform(0.5, 1.5)
-            await asyncio.sleep(backoff)
+    async def _try_edge():
+        logger.info("Trying Edge TTS")
+        for attempt in range(3):
+            try:
+                await _edge_tts(formatted, output_path, language, female_voice)
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                    os.replace(output_path, cache_path)
+                    os.replace(cache_path, output_path)
+                    logger.info("✓ Edge success")
+                    return True
+            except Exception as e:
+                logger.warning(f"Edge failed: {e}")
+                backoff = (2 ** attempt) + random.uniform(0.5, 1.5)
+                await asyncio.sleep(backoff)
+        return False
 
-    # ======================
-    # 3️⃣ gTTS
-    # ======================
-    logger.info("Trying gTTS")
-    success = await _gtts_fallback(formatted, output_path, language)
-    if success:
-        return output_path
+    async def _try_gtts():
+        logger.info("Trying gTTS")
+        success = await _gtts_fallback(formatted, output_path, language)
+        return bool(success)
 
-    # ======================
-    # 4️⃣ Offline
-    # ======================
-    logger.info("Trying Offline")
-    success = await _offline_fallback(formatted, output_path)
-    if success:
-        return output_path
+    async def _try_offline():
+        logger.info("Trying Offline")
+        success = await _offline_fallback(formatted, output_path)
+        return bool(success)
+
+    # Preferred flow based on selected model
+    if model.startswith("eleven"):
+        if await _try_eleven():
+            return output_path
+        # fallback chain
+        if await _try_edge():
+            return output_path
+        if await _try_gtts():
+            return output_path
+        if await _try_offline():
+            return output_path
+
+    elif model.startswith("edge"):
+        if await _try_edge():
+            return output_path
+        if await _try_eleven():
+            return output_path
+        if await _try_gtts():
+            return output_path
+        if await _try_offline():
+            return output_path
+
+    elif model.startswith("gtts"):
+        if await _try_gtts():
+            return output_path
+        if await _try_edge():
+            return output_path
+        if await _try_eleven():
+            return output_path
+        if await _try_offline():
+            return output_path
+
+    else:
+        # auto/default: Eleven -> Edge -> gTTS -> Offline
+        if await _try_eleven():
+            return output_path
+        if await _try_edge():
+            return output_path
+        if await _try_gtts():
+            return output_path
+        if await _try_offline():
+            return output_path
 
     logger.error("All TTS engines failed")
     return None

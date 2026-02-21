@@ -3,6 +3,7 @@ from script_service import generate_script
 from tts_service import generate_voice
 from video_service import generate_video
 from facebook_uploader import upload_reel, FacebookReelUploadError
+from wordpress_uploader import publish_video_as_post, WordPressUploadError
 import os
 import json
 import logging
@@ -107,6 +108,8 @@ def generate():
     headline = request.form["headline"]
     description = request.form["description"]
     language = request.form["language"]
+    female_voice = request.form.get("female_voice", "false").lower() == "true"
+    voice_model = request.form.get("voice_model", "auto")
 
     # 1️⃣ Generate Script
     script = generate_script(headline, description, language)
@@ -115,7 +118,7 @@ def generate():
         return jsonify({"error": "Script generation failed"}), 400
 
     # 2️⃣ Generate Voice
-    audio_path = generate_voice(script, language)
+    audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model)
 
     if not audio_path:
         return jsonify({"error": "Voice generation failed"}), 400
@@ -148,6 +151,8 @@ def generate_and_post():
         headline = request.form["headline"]
         description = request.form["description"]
         language = request.form["language"]
+        female_voice = request.form.get("female_voice", "false").lower() == "true"
+        voice_model = request.form.get("voice_model", "auto")
         auto_post = request.form.get("auto_post", "false").lower() == "true"
 
         # 1️⃣ Generate Script
@@ -156,7 +161,7 @@ def generate_and_post():
             return jsonify({"error": "Script generation failed"}), 400
 
         # 2️⃣ Generate Voice
-        audio_path = generate_voice(script, language)
+        audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model)
         if not audio_path:
             return jsonify({"error": "Voice generation failed"}), 400
 
@@ -236,6 +241,47 @@ def generate_and_post():
 
     except Exception as e:
         logger.error(f"Generate and post failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/post-to-wordpress", methods=["POST"])
+def post_to_wordpress():
+    """Create a WordPress post using the generated video.
+
+    Expects form-data: `filename`, `headline` (optional)
+    """
+    try:
+        filename = request.form.get("filename")
+        headline = request.form.get("headline") or filename
+
+        if not filename:
+            return jsonify({"error": "filename required"}), 400
+
+        page_url = os.getenv("WORDPRESS_URL")
+        wp_user = os.getenv("WORDPRESS_USERNAME")
+        wp_app_pass = os.getenv("WORDPRESS_APP_PASSWORD")
+
+        if not page_url or not wp_user or not wp_app_pass:
+            logger.warning("WordPress credentials not configured")
+            return jsonify({"error": "WordPress credentials not configured"}), 400
+
+        video_path = os.path.join(VIDEOS_DIR, filename)
+        if not os.path.exists(video_path):
+            return jsonify({"error": "Video file not found"}), 404
+
+        media_resp, post_resp = publish_video_as_post(video_path, headline, page_url, wp_user, wp_app_pass)
+
+        return jsonify({
+            "status": "published",
+            "media": media_resp,
+            "post": post_resp
+        })
+
+    except WordPressUploadError as e:
+        logger.error(f"WordPress publish failed: {e}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in post-to-wordpress: {e}")
         return jsonify({"error": str(e)}), 500
 
 

@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 import textwrap
 import tempfile
 import os
+import subprocess
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
 
@@ -23,6 +24,10 @@ FONT_PATHS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/data/data/com.termux/files/usr/share/fonts/TTF/DejaVuSans.ttf",
     "/data/data/com.termux/files/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
 ]
 
 # Gujarati and Indian script fonts
@@ -30,6 +35,13 @@ INDIC_FONT_PATHS = [
     "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
     "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf",
     "/usr/share/fonts/truetype/droid/DroidSans.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansGujarati-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSerifDevanagari-Regular.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSerifGujarati-Regular.ttf",
+    "/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf",
+    "/usr/share/fonts/truetype/lohit-gujarati/Lohit-Gujarati.ttf",
+    "/usr/share/fonts/truetype/mangal.ttf",
 ]
 
 # Map language to font paths
@@ -41,10 +53,37 @@ LANGUAGE_FONT_MAP = {
 
 def get_font(bold=False, language="default"):
     """Get available font, fallback to default if not found"""
+    # Try configured paths first
     font_paths = LANGUAGE_FONT_MAP.get(language, FONT_PATHS)
     for path in font_paths:
         if os.path.exists(path):
             return path
+
+    # If not found, try system font listing via fc-list (if available)
+    try:
+        fc_list = subprocess.check_output(["fc-list", "--format", "%{file}\n"]).decode(errors="ignore")
+        lines = [l.strip() for l in fc_list.splitlines() if l.strip()]
+
+        # Language-specific keywords to look for in font file paths
+        keywords = []
+        lang = (language or "").lower()
+        if "gujarati" in lang:
+            keywords = ["gujarati", "noto", "lohit", "guj", "gujr"]
+        elif "hindi" in lang or "devanagari" in lang:
+            keywords = ["devanagari", "noto", "mangal", "lohit", "dev"]
+        else:
+            keywords = ["noto", "dejavu", "liberation", "freefont"]
+
+        for l in lines:
+            low = l.lower()
+            for kw in keywords:
+                if kw in low:
+                    if os.path.exists(l):
+                        return l
+    except Exception:
+        # fc-list not available or failed — ignore
+        pass
+
     return None  # Use default PIL font if no font file found
 
 FONT_REGULAR = get_font(bold=False)

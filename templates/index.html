@@ -27,7 +27,7 @@
         
         .section {
             background: rgba(20, 20, 20, 0.8);
-            border: 1px solid rgba(200, 0, 0, 0.3);
+            border: 1px solid rgba(30, 144, 255, 0.12);
             border-radius: 10px;
             padding: 30px;
             backdrop-filter: blur(10px);
@@ -38,7 +38,7 @@
             text-align: center;
             font-size: 2.5em;
             margin-bottom: 10px;
-            background: linear-gradient(135deg, #ff6b6b, #ff0000);
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -53,7 +53,7 @@
         }
         
         h2 {
-            color: #ff6b6b;
+            color: #66b2ff;
             margin-bottom: 20px;
             font-size: 1.5em;
             text-transform: uppercase;
@@ -73,7 +73,7 @@
             padding: 12px;
             margin: 0 0 20px 0;
             border-radius: 5px;
-            border: 1px solid rgba(200, 0, 0, 0.2);
+            border: 1px solid rgba(70, 130, 180, 0.15);
             background: rgba(40, 40, 40, 0.8);
             color: #fff;
             font-family: inherit;
@@ -82,8 +82,8 @@
         
         input:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: #ff6b6b;
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+            border-color: #66b2ff;
+            box-shadow: 0 0 10px rgba(102, 178, 255, 0.25);
         }
         
         textarea {
@@ -93,7 +93,7 @@
         
         button {
             padding: 12px 30px;
-            background: linear-gradient(135deg, #ff6b6b, #c00);
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
             color: white;
             border: none;
             border-radius: 5px;
@@ -108,7 +108,7 @@
         
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+            box-shadow: 0 5px 20px rgba(102, 178, 255, 0.28);
         }
         
         button:active {
@@ -138,9 +138,9 @@
         }
         
         .status.error {
-            background: rgba(200, 0, 0, 0.2);
-            border: 1px solid rgba(255, 0, 0, 0.5);
-            color: #ff6b6b;
+            background: rgba(30, 144, 255, 0.08);
+            border: 1px solid rgba(30, 144, 255, 0.18);
+            color: #66b2ff;
         }
         
         .status.loading {
@@ -174,7 +174,7 @@
         
         .video-card {
             background: rgba(30, 30, 30, 0.8);
-            border: 1px solid rgba(200, 0, 0, 0.3);
+            border: 1px solid rgba(30, 144, 255, 0.12);
             border-radius: 8px;
             padding: 15px;
             transition: all 0.3s ease;
@@ -182,12 +182,12 @@
         }
         
         .video-card:hover {
-            border-color: #ff6b6b;
-            box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+            border-color: #66b2ff;
+            box-shadow: 0 0 15px rgba(102, 178, 255, 0.16);
         }
         
         .video-title {
-            color: #ff6b6b;
+            color: #66b2ff;
             font-weight: 600;
             margin-bottom: 8px;
             word-break: break-word;
@@ -218,7 +218,16 @@
         }
         
         .video-actions .delete-btn {
-            background: linear-gradient(135deg, #c00, #600);
+            background: linear-gradient(135deg, #0044aa, #002244);
+        }
+        .video-actions .share-fb {
+            background: linear-gradient(135deg, #1877f2, #0052cc);
+        }
+        .video-actions .share-ig {
+            background: linear-gradient(135deg, #7a4fe3, #ff7a59);
+        }
+        .video-actions .share-wp {
+            background: linear-gradient(135deg, #21759b, #0b6a83);
         }
         
         .video-actions .download-btn {
@@ -234,12 +243,29 @@
         
         .language-badge {
             display: inline-block;
-            background: rgba(200, 0, 0, 0.5);
+            background: rgba(30, 144, 255, 0.6);
             color: #fff;
             padding: 3px 8px;
             border-radius: 3px;
             font-size: 0.75em;
             margin-top: 8px;
+        }
+        .post-info {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #cfeefe;
+        }
+        .post-info a {
+            color: #bfe4ff;
+            text-decoration: underline;
+        }
+        .post-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
         }
         
         .size-badge {
@@ -281,6 +307,20 @@
                     <option value="english">🇬🇧 English</option>
                     <option value="hindi">🇮🇳 Hindi</option>
                     <option value="gujarati">🇮🇳 Gujarati</option>
+                </select>
+
+                <label for="voice_gender">Voice</label>
+                <select id="voice_gender" name="female_voice" required>
+                    <option value="false">Male</option>
+                    <option value="true">Female</option>
+                </select>
+
+                <label for="voice_model">Voice Model</label>
+                <select id="voice_model" name="voice_model">
+                    <option value="auto">Auto (recommended)</option>
+                    <option value="edge">Edge TTS (preferred)</option>
+                    <option value="eleven">ElevenLabs</option>
+                    <option value="gtts">gTTS (fallback)</option>
                 </select>
 
                 <button type="submit" id="submitBtn">Generate Video</button>
@@ -393,7 +433,11 @@
                         <div class="video-actions">
                             <button class="download-btn" onclick="downloadVideo('${video.filename}', '${escapeHtml(video.headline)}')">⬇ Download</button>
                             <button class="delete-btn" onclick="deleteVideo('${video.filename}')">🗑 Delete</button>
+                            <button class="share-fb" onclick="shareFacebook('${video.filename}', '${escapeHtml(video.headline)}')">f Share</button>
+                            <button class="share-ig" onclick="shareInstagram('${video.filename}', '${escapeHtml(video.headline)}')">📸 IG</button>
+                            <button class="share-wp" onclick="shareWordpress('${video.filename}', '${escapeHtml(video.headline)}')">W Publish</button>
                         </div>
+                        <div class="post-info" id="post-info-${video.filename}"></div>
                     </div>
                 `).join('');
             } catch (error) {
@@ -401,27 +445,13 @@
             }
         }
 
-        async function downloadVideo(filename, headline) {
-            try {
-                const response = await fetch(`/video/${filename}`);
-                if (!response.ok) {
-                    alert('Failed to download video: ' + response.statusText);
-                    return;
-                }
-                
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${headline.substring(0, 30)}_${filename}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            } catch (error) {
-                console.error('Download error:', error);
-                alert('Error downloading video: ' + error.message);
-            }
+        function downloadVideo(filename, headline) {
+            const a = document.createElement('a');
+            a.href = `/video/${filename}`;
+            a.download = `${headline.substring(0, 30)}_${filename}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         async function deleteVideo(filename) {
@@ -448,6 +478,121 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Social sharing helpers
+        function shareFacebook(filename, headline) {
+            const videoUrl = window.location.origin + `/video/${filename}`;
+            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`;
+            window.open(shareUrl, '_blank', 'noopener');
+        }
+
+        async function shareInstagram(filename, headline) {
+            const videoUrl = window.location.origin + `/video/${filename}`;
+
+            // Try Web Share API first (mobile browsers)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: headline,
+                        text: headline,
+                        url: videoUrl
+                    });
+                    return;
+                } catch (e) {
+                    console.warn('Web Share failed:', e);
+                }
+            }
+
+            // Fallback: prompt user to download and upload to Instagram
+            const msg = `Instagram requires native upload.\n\nOpen this link to download the video:\n${videoUrl}\n\nOr copy the link to clipboard.`;
+            if (confirm(msg + '\n\nPress OK to copy link to clipboard.')) {
+                try {
+                    await navigator.clipboard.writeText(videoUrl);
+                    alert('Link copied to clipboard. Download the video and post to Instagram.');
+                } catch (e) {
+                    prompt('Copy this link to clipboard:', videoUrl);
+                }
+            }
+        }
+
+        async function shareWordpress(filename, headline) {
+            // Sends a request to backend to create a WordPress post from the generated video
+            const postInfoId = `post-info-${filename}`;
+            const postInfo = document.getElementById(postInfoId);
+            const maxAttempts = 3;
+
+            async function attemptPublish(attempt = 1) {
+                // local UI feedback
+                postInfo.innerHTML = `<div class="status loading show"><span class="spinner"></span> Publishing to WordPress... (attempt ${attempt}/${maxAttempts})</div>`;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('filename', filename);
+                    formData.append('headline', headline);
+
+                    const res = await fetch('/post-to-wordpress', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    if (res.ok && data.post) {
+                        const postLink = data.post.link || data.post.guid?.rendered || data.post.url || '';
+                        let html = `<div class="status success show">✓ Published to WordPress</div>`;
+                        if (postLink) {
+                            html += `<div style="margin-top:8px">Post: <a href="${postLink}" target="_blank" rel="noopener">${postLink}</a></div>`;
+                            html += `<div class="post-actions">`;
+                            html += `<button onclick="window.open('${postLink}','_blank')">Open</button>`;
+                            html += `<button onclick="embedPost('${postInfoId}','${postLink}')">Embed</button>`;
+                            html += `</div>`;
+                        } else {
+                            html += `<div style="margin-top:8px">Post created (ID: ${data.post.id || 'unknown'})</div>`;
+                        }
+
+                        postInfo.innerHTML = html;
+                        setTimeout(() => { if (postInfo) postInfo.querySelector('.status')?.classList.remove('show'); }, 3000);
+                    } else {
+                        const err = data.error || res.statusText || 'Unknown error';
+                        if (attempt < maxAttempts) {
+                            postInfo.innerHTML = `<div class="status error show">✗ WordPress publish failed: ${err} — retrying...</div>`;
+                            await new Promise(r => setTimeout(r, 1200));
+                            return attemptPublish(attempt + 1);
+                        } else {
+                            postInfo.innerHTML = `<div class="status error show">✗ WordPress publish failed: ${err}</div><div class="post-actions"><button onclick="shareWordpress('${filename}','${headline}')">Retry</button></div>`;
+                        }
+                    }
+                } catch (e) {
+                    if (attempt < maxAttempts) {
+                        postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message} — retrying...</div>`;
+                        await new Promise(r => setTimeout(r, 1200));
+                        return attemptPublish(attempt + 1);
+                    }
+                    postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message}</div><div class="post-actions"><button onclick="shareWordpress('${filename}','${headline}')">Retry</button></div>`;
+                }
+            }
+
+            attemptPublish();
+        }
+
+        function embedPost(containerId, url) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            // Remove existing embed if any
+            const existing = container.querySelector('iframe.embed-preview');
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            const iframe = document.createElement('iframe');
+            iframe.className = 'embed-preview';
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '400px';
+            iframe.style.border = '1px solid rgba(255,255,255,0.06)';
+            container.appendChild(iframe);
         }
     </script>
 
