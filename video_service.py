@@ -148,7 +148,7 @@ def add_text_shadow(draw, text, position, font, shadow_offset=3):
     draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(*COLOR_SHADOW, 200))
 
 def create_boxed_text_image(text, fontsize=40, color=(255, 255, 255), bold=True, box_width=600, box_height=1100, language="en"):
-    """Create a text image clipped to a fixed box size (600×1100).
+    """Create a text image clipped to a fixed box size (600×1100) with visible border.
     
     If text exceeds box height, the image will be taller (for scrolling).
     If text is shorter, it's positioned at the top.
@@ -198,13 +198,18 @@ def create_boxed_text_image(text, fontsize=40, color=(255, 255, 255), bold=True,
     img_height = max(len(lines) * line_height + 20, box_height)  # At least box_height
     img_width = box_width + 40
     shadow_offset = 3
+    padding = 15
     
     # Create image with transparency
     img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
+    # Draw semi-transparent background box for visibility
+    box_coords = [(5, 5), (img_width - 5, min(box_height, img_height) - 5)]
+    draw.rectangle(box_coords, fill=(0, 0, 0, 60), outline=(255, 215, 0, 200), width=3)
+    
     # Draw text with shadow
-    y = 10
+    y = padding
     for line in lines:
         draw.text((10 + shadow_offset, y + shadow_offset), line, font=font, fill=(*COLOR_SHADOW, 180))
         draw.text((10, y), line, font=font, fill=(*color, 255))
@@ -368,7 +373,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     overlay = (
         ColorClip((WIDTH, HEIGHT), color=COLOR_OVERLAY_BG)
-        .set_opacity(0.4)
+        .set_opacity(0.15)  # Reduced opacity to show background image better
         .set_duration(duration)
     )
 
@@ -449,6 +454,9 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     
     # Load description text clip
     desc_base_clip = ImageClip(desc_img_path).set_duration(duration)
+    
+    # Constrain clip to box height - only show 1100px height
+    desc_base_clip = desc_base_clip.crop(width=desc_width, height=desc_box_height)
     
     # If text is too tall for the box, create scrolling animation
     if desc_height > desc_box_height:
