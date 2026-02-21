@@ -274,12 +274,21 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     duration = voice.duration
 
+    # Try to use shorts background image if available, otherwise fall back to bg.mp4
+    bg_path = "assets/shorts background.png" if os.path.exists("assets/shorts background.png") else "assets/bg.mp4"
+    
     # Background
-    bg = (
-        VideoFileClip("assets/bg.mp4")
-        .resize((WIDTH, HEIGHT))
-        .subclip(0, duration)
-    )
+    if bg_path.endswith(".png"):
+        # Static image background
+        bg_img = ImageClip(bg_path)
+        bg = bg_img.resize((WIDTH, HEIGHT)).set_duration(duration)
+    else:
+        # Video background
+        bg = (
+            VideoFileClip(bg_path)
+            .resize((WIDTH, HEIGHT))
+            .subclip(0, min(duration, VideoFileClip(bg_path).duration))
+        )
 
     overlay = (
         ColorClip((WIDTH, HEIGHT), color=COLOR_OVERLAY_BG)
@@ -347,8 +356,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     desc_x = 430  # Right side, opposite anchor
     desc_start_y = 350
     desc_width = 600
-    # Maximum height: from below headline bar to above breaking news bar
-    max_text_height = (HEIGHT - 220) - desc_start_y - 50  # 50px buffer
+    # Fixed box height: 1100px for consistent layout
+    max_text_height = 1100
 
     # Description (dynamic positioning) - smaller font to fit better
     desc_img_path, desc_height = create_text_image(
@@ -360,7 +369,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         language=language
     )
     
-    # If text is too tall, create scrolling animation instead of scaling
+    # If text is too tall for the box, create scrolling animation
     if desc_height > max_text_height:
         # Text scrolls vertically when it exceeds box height
         desc_clip = ImageClip(desc_img_path).set_duration(duration)

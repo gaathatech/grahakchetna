@@ -42,12 +42,12 @@ Our current generation uses a **vertical format** of **1080 pixels wide × 1920 
 
 #### 5. **Description Text** (Right Side, Center)
 - **Position**: Right side opposite anchor, middle area
-- **Size**: 600px width × variable height
+- **Size**: 600px width × 1100px height (fixed box)
 - **Color**: White text with black shadow
 - **Font Size**: 40px
 - **Font Weight**: Regular
-- **Scrolling**: If text exceeds box height, content scrolls vertically
-- **Max Height**: Fills space between headline bar and breaking news bar
+- **Scrolling**: If text exceeds box height, content scrolls vertically (smooth animation)
+- **Box Height**: Fixed 1100px to maintain layout consistency
 - **Purpose**: Detailed news story content
 - **Text Wrapping**: Automatic word wrapping at 600px
 
