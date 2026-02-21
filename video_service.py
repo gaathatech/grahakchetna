@@ -218,7 +218,7 @@ def create_boxed_text_image(text, fontsize=40, color=(255, 255, 255), bold=True,
     return temp_file.name, img_height
 
 
-
+def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_width=620, language="en", add_shadow=True):
     """Create text image using PIL instead of ImageMagick with optional shadow"""
     if language in ["gujarati", "hindi"]:
         font_path = FONT_GUJARATI_BOLD if bold else FONT_GUJARATI
@@ -230,17 +230,8 @@ def create_boxed_text_image(text, fontsize=40, color=(255, 255, 255), bold=True,
             font = ImageFont.truetype(font_path, fontsize)
         else:
             font = ImageFont.load_default()
-    except Exception:
+    except:
         font = ImageFont.load_default()
-
-    # If default font cannot render the text (e.g., Indic scripts), try to find a working font
-    try:
-        # quick check whether font can measure the text
-        font.getbbox(text)
-    except Exception:
-        found = _find_working_font_for_text(text, fontsize)
-        if found:
-            font = found
     
     # Wrap text using actual pixel measurements
     lines = []
