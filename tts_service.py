@@ -78,14 +78,15 @@ def get_cache_path(text: str) -> str:
 # ELEVENLABS PRIMARY
 # ======================================
 
-async def _elevenlabs_tts(text: str, output_path: str):
+async def _elevenlabs_tts(text: str, output_path: str, voice_id: Optional[str] = None):
     try:
         import requests
 
         if not ELEVEN_API_KEY:
             return False
 
-        voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+        if not voice_id:
+            voice_id = "21m00Tcm4TlvDq8ikWAM"  # default Rachel
 
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
@@ -124,9 +125,12 @@ async def _elevenlabs_tts(text: str, output_path: str):
 # EDGE SECONDARY
 # ======================================
 
-async def _edge_tts(text: str, output_path: str, language: str, female_voice: bool):
-    voice_map = VOICE_MAP_FEMALE if female_voice else VOICE_MAP
-    voice = voice_map.get(language.lower(), "en-US-GuyNeural")
+async def _edge_tts(text: str, output_path: str, language: str, female_voice: bool, voice_override: Optional[str] = None):
+    if voice_override:
+        voice = voice_override
+    else:
+        voice_map = VOICE_MAP_FEMALE if female_voice else VOICE_MAP
+        voice = voice_map.get(language.lower(), "en-US-GuyNeural")
 
     communicate = edge_tts.Communicate(
         text=text,
@@ -191,6 +195,7 @@ async def generate_voice_async(
     output_path: Optional[str] = None,
     female_voice: bool = False,
     voice_model: Optional[str] = None,
+    voice_provider: Optional[str] = None,
 ) -> Optional[str]:
 
     if output_path is None:
@@ -219,9 +224,9 @@ async def generate_voice_async(
     # Provider selection: respect `voice_model` if provided; otherwise use default order
     model = (voice_model or "auto").lower()
 
-    async def _try_eleven():
+    async def _try_eleven(vid: Optional[str] = None):
         logger.info("Trying ElevenLabs")
-        success = await _elevenlabs_tts(formatted, output_path)
+        success = await _elevenlabs_tts(formatted, output_path, voice_id=vid)
         if success and os.path.exists(output_path):
             os.replace(output_path, cache_path)
             os.replace(cache_path, output_path)
@@ -229,11 +234,11 @@ async def generate_voice_async(
             return True
         return False
 
-    async def _try_edge():
+    async def _try_edge(voice_override: Optional[str] = None):
         logger.info("Trying Edge TTS")
         for attempt in range(3):
             try:
-                await _edge_tts(formatted, output_path, language, female_voice)
+                await _edge_tts(formatted, output_path, language, female_voice, voice_override)
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
                     os.replace(output_path, cache_path)
                     os.replace(cache_path, output_path)
@@ -255,11 +260,20 @@ async def generate_voice_async(
         success = await _offline_fallback(formatted, output_path)
         return bool(success)
 
-    # Preferred flow based on selected model
-    if model.startswith("eleven"):
-        if await _try_eleven():
-            return output_path
-        # fallback chain
+    # Preferred flow based on selected provider/model
+    provider = (voice_provider or "auto").lower()
+    model_val = (voice_model or "").strip()
+
+    if provider.startswith("eleven"):
+        # if a specific eleven voice id provided, use it
+        if model_val and not model_val.startswith("auto"):
+            if await _try_eleven(model_val):
+                return output_path
+        else:
+            if await _try_eleven():
+                return output_path
+
+        # fallback
         if await _try_edge():
             return output_path
         if await _try_gtts():
@@ -267,9 +281,16 @@ async def generate_voice_async(
         if await _try_offline():
             return output_path
 
-    elif model.startswith("edge"):
-        if await _try_edge():
-            return output_path
+    elif provider.startswith("edge"):
+        # if user supplied an edge voice id, pass it
+        if model_val and not model_val.startswith("auto"):
+            if await _try_edge(model_val):
+                return output_path
+        else:
+            if await _try_edge():
+                return output_path
+
+        # fallback
         if await _try_eleven():
             return output_path
         if await _try_gtts():
@@ -277,9 +298,16 @@ async def generate_voice_async(
         if await _try_offline():
             return output_path
 
-    elif model.startswith("gtts"):
-        if await _try_gtts():
-            return output_path
+    elif provider.startswith("gtts"):
+        # gTTS uses the model_val as language code
+        if model_val and not model_val.startswith("auto"):
+            if await _try_gtts():
+                return output_path
+        else:
+            if await _try_gtts():
+                return output_path
+
+        # fallback
         if await _try_edge():
             return output_path
         if await _try_eleven():

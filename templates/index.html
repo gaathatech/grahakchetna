@@ -315,12 +315,17 @@
                     <option value="true">Female</option>
                 </select>
 
+                <label for="voice_provider">Voice Provider</label>
+                <select id="voice_provider" name="voice_provider">
+                    <option value="auto">Auto (recommended)</option>
+                    <option value="edge">Edge TTS</option>
+                    <option value="eleven">ElevenLabs</option>
+                    <option value="gtts">gTTS</option>
+                </select>
+
                 <label for="voice_model">Voice Model</label>
                 <select id="voice_model" name="voice_model">
-                    <option value="auto">Auto (recommended)</option>
-                    <option value="edge">Edge TTS (preferred)</option>
-                    <option value="eleven">ElevenLabs</option>
-                    <option value="gtts">gTTS (fallback)</option>
+                    <option value="auto">Auto</option>
                 </select>
 
                 <button type="submit" id="submitBtn">Generate Video</button>
@@ -343,12 +348,54 @@
         const statusDiv = document.getElementById('status');
         const submitBtn = document.getElementById('submitBtn');
         const videosList = document.getElementById('videosList');
+        const providerSelect = document.getElementById('voice_provider');
+        const modelSelect = document.getElementById('voice_model');
 
         // Load videos on page load
         loadVideos();
 
         // Auto-load videos every 5 seconds
         setInterval(loadVideos, 5000);
+
+        // Voice model lists
+        const MODELS = {
+            edge: [
+                {id: 'en-US-GuyNeural', label: 'Edge — en-US Guy (male)'} ,
+                {id: 'en-US-AmberNeural', label: 'Edge — en-US Amber (female)'} ,
+                {id: 'hi-IN-MadhurNeural', label: 'Edge — hi-IN Madhur (male)'} ,
+                {id: 'hi-IN-SwaraNeural', label: 'Edge — hi-IN Swara (female)'} ,
+                {id: 'gu-IN-NiranjanNeural', label: 'Edge — gu-IN Niranjan (male)'} ,
+                {id: 'gu-IN-DhwaniNeural', label: 'Edge — gu-IN Dhwani (female)'}
+            ],
+            eleven: [
+                {id: '21m00Tcm4TlvDq8ikWAM', label: 'ElevenLabs — Rachel'},
+                {id: 'EXAVITQu4vr4xnSDxMaL', label: 'ElevenLabs — Alloy'},
+                {id: 'pNinE6OkJ8cz0Uj7sD', label: 'ElevenLabs — Zeus'}
+            ],
+            gtts: [
+                {id: 'en', label: 'gTTS — English (en)'},
+                {id: 'hi', label: 'gTTS — Hindi (hi)'},
+                {id: 'gu', label: 'gTTS — Gujarati (gu)'}
+            ],
+            auto: [ {id: 'auto', label: 'Auto (choose best)'} ]
+        };
+
+        function populateModels(provider) {
+            modelSelect.innerHTML = '';
+            const list = MODELS[provider] || MODELS['auto'];
+            list.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.label;
+                modelSelect.appendChild(opt);
+            });
+        }
+
+        // initialize
+        if (providerSelect) {
+            populateModels(providerSelect.value || 'auto');
+            providerSelect.addEventListener('change', (e) => populateModels(e.target.value));
+        }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();

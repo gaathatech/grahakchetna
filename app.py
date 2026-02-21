@@ -109,6 +109,7 @@ def generate():
     description = request.form["description"]
     language = request.form["language"]
     female_voice = request.form.get("female_voice", "false").lower() == "true"
+    voice_provider = request.form.get("voice_provider", "auto")
     voice_model = request.form.get("voice_model", "auto")
 
     # 1️⃣ Generate Script
@@ -118,7 +119,7 @@ def generate():
         return jsonify({"error": "Script generation failed"}), 400
 
     # 2️⃣ Generate Voice
-    audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model)
+    audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model, voice_provider=voice_provider)
 
     if not audio_path:
         return jsonify({"error": "Voice generation failed"}), 400
@@ -152,6 +153,7 @@ def generate_and_post():
         description = request.form["description"]
         language = request.form["language"]
         female_voice = request.form.get("female_voice", "false").lower() == "true"
+        voice_provider = request.form.get("voice_provider", "auto")
         voice_model = request.form.get("voice_model", "auto")
         auto_post = request.form.get("auto_post", "false").lower() == "true"
 
@@ -161,7 +163,7 @@ def generate_and_post():
             return jsonify({"error": "Script generation failed"}), 400
 
         # 2️⃣ Generate Voice
-        audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model)
+        audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model, voice_provider=voice_provider)
         if not audio_path:
             return jsonify({"error": "Voice generation failed"}), 400
 
