@@ -4,12 +4,17 @@ from PIL import Image, ImageDraw, ImageFont
 import textwrap
 import tempfile
 import os
+import json
+from datetime import datetime
 import subprocess
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
 
 WIDTH = 1080
 HEIGHT = 1920
+
+VIDEOS_DIR = "videos"
+VIDEO_MANIFEST = os.path.join(VIDEOS_DIR, "manifest.json")
 
 # Enhanced professional colors
 COLOR_ACCENT_RED = (220, 20, 60)     # Crimson red for better contrast
@@ -86,6 +91,46 @@ def get_font(bold=False, language="default"):
 
     return None  # Use default PIL font if no font file found
 
+
+def _find_working_font_for_text(text: str, fontsize: int, candidate_paths=None):
+    """Try candidate font files and return the first ImageFont that can render `text` without encoding errors."""
+    if candidate_paths is None:
+        candidate_paths = FONT_PATHS + INDIC_FONT_PATHS
+
+    # include runtime scan of /usr/share/fonts for additional ttf files
+    for root in ("/usr/share/fonts", "/usr/local/share/fonts", "/usr/share/fonts/truetype"):
+        try:
+            for dirpath, dirnames, filenames in os.walk(root):
+                for fn in filenames:
+                    if fn.lower().endswith((".ttf", ".otf")):
+                        candidate_paths.append(os.path.join(dirpath, fn))
+        except Exception:
+            continue
+
+    seen = set()
+    for path in candidate_paths:
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        try:
+            if not os.path.exists(path):
+                continue
+            f = ImageFont.truetype(path, fontsize)
+            # quick test: try to get bbox or mask for the text
+            try:
+                f.getbbox(text)
+                return f
+            except Exception:
+                try:
+                    f.getmask(text)
+                    return f
+                except Exception:
+                    continue
+        except Exception:
+            continue
+
+    return None
+
 FONT_REGULAR = get_font(bold=False)
 FONT_BOLD = get_font(bold=True)
 FONT_GUJARATI = get_font(bold=False, language="gujarati")
@@ -109,8 +154,17 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
             font = ImageFont.truetype(font_path, fontsize)
         else:
             font = ImageFont.load_default()
-    except:
+    except Exception:
         font = ImageFont.load_default()
+
+    # If default font cannot render the text (e.g., Indic scripts), try to find a working font
+    try:
+        # quick check whether font can measure the text
+        font.getbbox(text)
+    except Exception:
+        found = _find_working_font_for_text(text, fontsize)
+        if found:
+            font = found
     
     # Wrap text using actual pixel measurements
     lines = []
@@ -169,8 +223,16 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
             font = ImageFont.truetype(font_path, fontsize)
         else:
             font = ImageFont.load_default()
-    except:
+    except Exception:
         font = ImageFont.load_default()
+
+    # Ensure the font can render the provided text; if not, try to find a working font
+    try:
+        font.getbbox(text)
+    except Exception:
+        found = _find_working_font_for_text(text, fontsize)
+        if found:
+            font = found
     
     # Create image with extra width for scrolling
     img_height = fontsize + 30
@@ -412,5 +474,34 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         codec="libx264",
         audio_codec="aac",
     )
+
+    # Auto-add to manifest if videos folder exists
+    try:
+        os.makedirs(VIDEOS_DIR, exist_ok=True)
+        if os.path.exists(VIDEO_MANIFEST):
+            try:
+                with open(VIDEO_MANIFEST, 'r') as f:
+                    manifest = json.load(f)
+            except Exception:
+                manifest = {"videos": []}
+
+            entry = {
+                "id": datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3],
+                "filename": os.path.basename(output_path),
+                "path": output_path,
+                "headline": title,
+                "description": description,
+                "language": language,
+                "created_at": datetime.now().isoformat(),
+                "size_mb": round(os.path.getsize(output_path) / (1024*1024), 2)
+            }
+
+            manifest["videos"] = manifest.get("videos", [])
+            manifest["videos"].insert(0, entry)
+
+            with open(VIDEO_MANIFEST, 'w') as f:
+                json.dump(manifest, f, indent=2)
+    except Exception:
+        pass
 
     return output_path
