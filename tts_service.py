@@ -335,10 +335,12 @@ def generate_voice(
     language: str = "english",
     output_path: Optional[str] = None,
     female_voice: bool = False,
+    voice_model: Optional[str] = None,
+    voice_provider: Optional[str] = None,
 ) -> Optional[str]:
     try:
         return asyncio.run(
-            generate_voice_async(text, language, output_path, female_voice)
+            generate_voice_async(text, language, output_path, female_voice, voice_model, voice_provider)
         )
     except RuntimeError:
         # If an event loop is already running (e.g., Flask/Gunicorn), use it
@@ -347,7 +349,6 @@ def generate_voice(
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-
         return loop.run_until_complete(
-            generate_voice_async(text, language, output_path, female_voice)
+            generate_voice_async(text, language, output_path, female_voice, voice_model, voice_provider)
         )
