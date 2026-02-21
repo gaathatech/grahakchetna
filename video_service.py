@@ -342,12 +342,13 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     
     ticker_clip = ticker_clip.set_position(make_ticker_position)
 
-    # ============= DESCRIPTION (CENTER-RIGHT AREA) =============
-    text_x = 420
-    text_start_y = 350
-    text_width = 600
-    # Maximum height: breaking news bar starts at HEIGHT - 220
-    max_text_height = (HEIGHT - 220) - text_start_y - 50  # 50px buffer
+    # ============= DESCRIPTION (RIGHT SIDE, OPPOSITE ANCHOR) =============
+    # Position opposite to anchor (anchor is at x=40, so desc is at right side)
+    desc_x = 430  # Right side, opposite anchor
+    desc_start_y = 350
+    desc_width = 600
+    # Maximum height: from below headline bar to above breaking news bar
+    max_text_height = (HEIGHT - 220) - desc_start_y - 50  # 50px buffer
 
     # Description (dynamic positioning) - smaller font to fit better
     desc_img_path, desc_height = create_text_image(
@@ -355,19 +356,33 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         fontsize=40,
         color=(255, 255, 255),
         bold=False,
-        max_width=text_width,
+        max_width=desc_width,
         language=language
     )
     
-    # If text is too tall, scale it down
+    # If text is too tall, create scrolling animation instead of scaling
     if desc_height > max_text_height:
+        # Text scrolls vertically when it exceeds box height
         desc_clip = ImageClip(desc_img_path).set_duration(duration)
-        scale_factor = max_text_height / desc_height
-        desc_clip = desc_clip.resize(scale_factor)
+        
+        # Animation function for vertical scrolling
+        def make_desc_scroll_position(t):
+            # Scroll speed: complete scroll in 60% of duration, then pause
+            scroll_duration = duration * 0.6
+            if t < scroll_duration:
+                # Scroll from bottom to top
+                scroll_distance = desc_height + max_text_height
+                y_pos = desc_start_y + max_text_height - (t / scroll_duration) * scroll_distance
+            else:
+                # Pause at top after scrolling
+                y_pos = desc_start_y + max_text_height - desc_height
+            return (desc_x, y_pos)
+        
+        desc_clip = desc_clip.set_position(make_desc_scroll_position)
     else:
+        # No scrolling needed, static position
         desc_clip = ImageClip(desc_img_path).set_duration(duration)
-    
-    desc_clip = desc_clip.set_position((text_x, text_start_y))
+        desc_clip = desc_clip.set_position((desc_x, desc_start_y))
 
     # ============= BOTTOM BREAKING NEWS BAR =============
     breaking_bar_y = HEIGHT - 220
