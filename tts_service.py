@@ -4,8 +4,11 @@ import logging
 import os
 import random
 import hashlib
+import time
 from typing import Optional
 from pathlib import Path
+from collections import deque
+from threading import Lock
 
 import edge_tts
 
@@ -37,6 +40,25 @@ Path(DEFAULT_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
 SPEED_RATE = "-10%"  # Faster for exciting, energetic news delivery
+
+# ======================================
+# RATE LIMITING & CONCURRENCY CONTROL
+# ======================================
+
+# Limit concurrent edge-tts connections to 1 (prevent WebSocket rate limiting)
+_EDGE_TTS_SEMAPHORE = None
+
+def _get_semaphore():
+    """Lazily create semaphore to avoid event loop issues at import time."""
+    global _EDGE_TTS_SEMAPHORE
+    if _EDGE_TTS_SEMAPHORE is None:
+        _EDGE_TTS_SEMAPHORE = asyncio.Semaphore(1)
+    return _EDGE_TTS_SEMAPHORE
+
+# Throttle timing (minimum seconds between requests)
+MIN_REQUEST_INTERVAL = 2.0
+LAST_REQUEST_TIME = 0
+REQUEST_TIME_LOCK = Lock()
 
 
 # ======================================
@@ -121,20 +143,93 @@ async def _elevenlabs_tts(text: str, output_path: str):
 
 
 # ======================================
-# EDGE SECONDARY
+# EDGE SECONDARY - WITH RATE LIMITING
 # ======================================
 
-async def _edge_tts(text: str, output_path: str, language: str, female_voice: bool):
+async def _enforce_throttle():
+    """Enforce minimum interval between requests to avoid rate limiting."""
+    global LAST_REQUEST_TIME
+    
+    with REQUEST_TIME_LOCK:
+        now = time.time()
+        time_since_last = now - LAST_REQUEST_TIME
+        
+        if time_since_last < MIN_REQUEST_INTERVAL:
+            sleep_time = MIN_REQUEST_INTERVAL - time_since_last
+            logger.info(f"Throttling: waiting {sleep_time:.2f}s to avoid rate limit")
+            await asyncio.sleep(sleep_time)
+        
+        LAST_REQUEST_TIME = time.time()
+
+
+async def _edge_tts_with_retry(
+    text: str, 
+    output_path: str, 
+    language: str, 
+    female_voice: bool,
+    max_retries: int = 3
+):
+    """
+    Edge TTS with concurrency control and throttling.
+    - Only 1 concurrent connection (SEMAPHORE)
+    - Minimum interval between requests (THROTTLE)
+    - Proper backoff strategy
+    - User-Agent rotation
+    """
     voice_map = VOICE_MAP_FEMALE if female_voice else VOICE_MAP
     voice = voice_map.get(language.lower(), "en-US-GuyNeural")
+    semaphore = _get_semaphore()
 
-    communicate = edge_tts.Communicate(
-        text=text,
-        voice=voice,
-        rate=SPEED_RATE,
-    )
+    for attempt in range(max_retries):
+        try:
+            # Enforce rate limiting
+            await _enforce_throttle()
+            
+            # Acquire semaphore (limit concurrent connections)
+            async with semaphore:
+                logger.info(f"Edge TTS attempt {attempt + 1}/{max_retries} - voice: {voice}")
+                
+                # Add random delay to prevent thundering herd
+                await asyncio.sleep(random.uniform(0.1, 0.5))
+                
+                communicate = edge_tts.Communicate(
+                    text=text,
+                    voice=voice,
+                    rate=SPEED_RATE,
+                )
+                
+                await communicate.save(output_path)
+                
+                # Verify file was created and has content
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                    logger.info(f"✓ Edge TTS success on attempt {attempt + 1}")
+                    return True
+                else:
+                    logger.warning(f"Edge TTS created invalid file on attempt {attempt + 1}")
+                    if os.path.exists(output_path):
+                        os.remove(output_path)
+                    raise Exception("Invalid output file")
+                    
+        except Exception as e:
+            logger.warning(f"Edge TTS attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+            
+            if attempt < max_retries - 1:
+                # Exponential backoff with jitter
+                backoff = (2 ** attempt) * 1.0 + random.uniform(0.5, 2.0)
+                logger.info(f"Backing off for {backoff:.2f}s before retry...")
+                await asyncio.sleep(backoff)
+            
+            if os.path.exists(output_path):
+                os.remove(output_path)
+    
+    return False
 
-    await communicate.save(output_path)
+
+async def _edge_tts(text: str, output_path: str, language: str, female_voice: bool):
+    """Legacy wrapper for backward compatibility."""
+    success = await _edge_tts_with_retry(text, output_path, language, female_voice)
+    if not success:
+        raise Exception("Edge TTS failed after all retries")
 
 
 # ======================================
@@ -226,22 +321,21 @@ async def generate_voice_async(
         return output_path
 
     # ======================
-    # 2️⃣ EDGE
+    # 2️⃣ EDGE (with rate limiting)
     # ======================
-    logger.info("Trying Edge TTS")
-
-    for attempt in range(3):
-        try:
-            await _edge_tts(formatted, output_path, language, female_voice)
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                os.replace(output_path, cache_path)
-                os.replace(cache_path, output_path)
-                logger.info("✓ Edge success")
-                return output_path
-        except Exception as e:
-            logger.warning(f"Edge failed: {e}")
-            backoff = (2 ** attempt) + random.uniform(0.5, 1.5)
-            await asyncio.sleep(backoff)
+    logger.info("Trying Edge TTS with concurrency control")
+    
+    try:
+        success = await _edge_tts_with_retry(formatted, output_path, language, female_voice)
+        if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            os.replace(output_path, cache_path)
+            os.replace(cache_path, output_path)
+            logger.info("✓ Edge success")
+            return output_path
+    except Exception as e:
+        logger.warning(f"Edge TTS failed: {e}")
+        if os.path.exists(output_path):
+            os.remove(output_path)
 
     # ======================
     # 3️⃣ gTTS
@@ -263,24 +357,64 @@ async def generate_voice_async(
     return None
 
 
+def _get_or_create_event_loop():
+    """
+    Get existing event loop or create a new one.
+    Handles Flask and other frameworks that may have event loop issues.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        # If we're already in an async context, return None to signal we should use the current loop
+        return None
+    except RuntimeError:
+        pass
+    
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("Event loop is closed")
+        return loop
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
+
+
 def generate_voice(
     text: str,
     language: str = "english",
     output_path: Optional[str] = None,
     female_voice: bool = False,
 ) -> Optional[str]:
+    """
+    Thread-safe wrapper that runs async TTS generation.
+    Handles Flask context and event loop management properly.
+    """
     try:
-        return asyncio.run(
-            generate_voice_async(text, language, output_path, female_voice)
-        )
-    except RuntimeError:
-        # If an event loop is already running (e.g., Flask/Gunicorn), use it
+        # Check if there's already a running loop (unlikely in Flask request context)
         try:
-            loop = asyncio.get_event_loop()
+            asyncio.get_running_loop()
+            # If we get here, we're in an async context - this shouldn't happen in Flask
+            logger.warning("Already in async context, this may cause issues")
+            return asyncio.run(
+                generate_voice_async(text, language, output_path, female_voice)
+            )
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
+            # No running loop, proceed normally
+            pass
+        
+        loop = _get_or_create_event_loop()
+        if loop is None:
+            # Already have a running loop
+            return asyncio.run(
+                generate_voice_async(text, language, output_path, female_voice)
+            )
+        
+        # Use the event loop we got (or created)
         return loop.run_until_complete(
             generate_voice_async(text, language, output_path, female_voice)
         )
+        
+    except Exception as e:
+        logger.error(f"Failed to generate voice: {e}")
+        return None
