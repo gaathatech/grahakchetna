@@ -145,7 +145,7 @@ def generate():
         return jsonify({"error": "Script generation failed"}), 400
 
     # 2️⃣ Generate Voice
-    audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice, voice_model=voice_model, voice_provider=voice_provider)
+    audio_path = generate_voice(script, language, output_path=None, female_voice=female_voice)
 
     if not audio_path:
         return jsonify({"error": "Voice generation failed"}), 400
