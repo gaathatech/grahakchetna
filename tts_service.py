@@ -2,15 +2,32 @@ import re
 import asyncio
 import logging
 import os
+import random
 import hashlib
 from typing import Optional
 from pathlib import Path
+
+import edge_tts
 
 logger = logging.getLogger(__name__)
 
 # ======================================
 # CONFIG
 # ======================================
+
+VOICE_MAP = {
+    "english": "en-US-GuyNeural",
+    "hindi": "hi-IN-MadhurNeural",
+    "gujarati": "gu-IN-NiranjanNeural",
+}
+
+VOICE_MAP_FEMALE = {
+    "english": "en-US-AmberNeural",
+    "hindi": "hi-IN-SwaraNeural",
+    "gujarati": "gu-IN-DhwaniNeural",
+}
+
+ELEVEN_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
 DEFAULT_OUTPUT_DIR = os.getenv("TTS_OUTPUT_DIR", "output")
 CACHE_DIR = os.path.join(DEFAULT_OUTPUT_DIR, "cache")
@@ -19,7 +36,7 @@ DEFAULT_OUTPUT_PATH = os.path.join(DEFAULT_OUTPUT_DIR, "voice.mp3")
 Path(DEFAULT_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
-SPEED_RATE = "-5%"  # Slight speedup for energetic delivery (was -10%, reduced for natural pacing)
+SPEED_RATE = "-10%"  # Faster for exciting, energetic news delivery
 
 
 # ======================================
@@ -33,39 +50,18 @@ def clean_text(text: str) -> str:
 
 def format_news_script(text: str) -> str:
     """
-    Adds natural pauses, emphasis, and emotional pacing for exciting news delivery.
-    Makes the speech sound natural and engaging, not robotic.
+    Adds dramatic pauses and exciting news pacing.
+    Enhanced for energetic, breaking news delivery.
     """
-    
-    # Start with natural sentence breaks
-    # Short pause after commas
+
+    # Minimal pause after commas for faster pacing
     text = text.replace(",", ", ")
-    
-    # Longer dramatic pauses for punctuation
-    text = text.replace("! ", "!. ")  # Pause for emphasis after exclamation
-    text = text.replace("? ", "? ")   # Natural pause after questions
-    text = text.replace(". ", ". ")   # Regular pause after periods
-    
-    # Add breathing room at paragraph breaks or section markers
-    text = text.replace("\n\n", ". ")  # Paragraph breaks become pauses
-    text = text.replace("\n", " ")     # Line breaks become spaces
-    
-    # Emphasize key news words with strategic punctuation
-    # (Some TTS engines recognize emphasis patterns)
-    keywords = ["breaking", "urgent", "just", "now", "today", "alert", "confirmed", "latest"]
-    for kw in keywords:
-        # Add slight emphasis markup (most TTS ignores, but helps readability)
-        text = text.replace(f" {kw} ", f" {kw.upper()} ")
-    
-    # Add strategic pauses before important details
-    text = text.replace("According to ", "According to. ")
-    text = text.replace("Authorities ", "Authorities. ")
-    text = text.replace("Officials ", "Officials. ")
-    text = text.replace("Reports ", "Reports indicate. ")
-    
-    # Add natural "bridge" phrases for smoother delivery
-    text = text.replace("  ", " ")  # Remove double spaces
-    
+
+    # Strategic pauses for impact
+    text = text.replace("! ", "! ... ")
+    text = text.replace("? ", "? ... ")
+    text = text.replace(". ", ". ")
+
     return text
 
 
@@ -78,7 +74,67 @@ def get_cache_path(text: str) -> str:
     return os.path.join(CACHE_DIR, f"{hash_id}.mp3")
 
 
-# Note: ElevenLabs and Edge TTS removed. Using gTTS and offline fallback only.
+# ======================================
+# ELEVENLABS PRIMARY
+# ======================================
+
+async def _elevenlabs_tts(text: str, output_path: str):
+    try:
+        import requests
+
+        if not ELEVEN_API_KEY:
+            return False
+
+        voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+        headers = {
+            "xi-api-key": ELEVEN_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "text": text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {
+                "stability": 0.65,
+                "similarity_boost": 0.85,
+                "style": 0.95,
+                "use_speaker_boost": True
+            }
+        }
+
+        response = requests.post(url, json=data, headers=headers)
+
+        if response.status_code == 200:
+            with open(output_path, "wb") as f:
+                f.write(response.content)
+            return True
+        else:
+            logger.warning(f"ElevenLabs failed: {response.text}")
+            return False
+
+    except Exception as e:
+        logger.warning(f"ElevenLabs error: {e}")
+        return False
+
+
+# ======================================
+# EDGE SECONDARY
+# ======================================
+
+async def _edge_tts(text: str, output_path: str, language: str, female_voice: bool):
+    voice_map = VOICE_MAP_FEMALE if female_voice else VOICE_MAP
+    voice = voice_map.get(language.lower(), "en-US-GuyNeural")
+
+    communicate = edge_tts.Communicate(
+        text=text,
+        voice=voice,
+        rate=SPEED_RATE,
+    )
+
+    await communicate.save(output_path)
 
 
 # ======================================
@@ -134,8 +190,6 @@ async def generate_voice_async(
     language: str = "english",
     output_path: Optional[str] = None,
     female_voice: bool = False,
-    voice_model: Optional[str] = None,
-    voice_provider: Optional[str] = None,
 ) -> Optional[str]:
 
     if output_path is None:
@@ -161,35 +215,48 @@ async def generate_voice_async(
         return output_path
 
     # ======================
-    # Simple fallback: gTTS -> Offline
+    # 1️⃣ ELEVENLABS
     # ======================
-    # Note: ElevenLabs and Edge removed; using only gTTS and offline pyttsx3
-
-    async def _try_gtts():
-        logger.info("Trying gTTS")
-        success = await _gtts_fallback(formatted, output_path, language)
-        if success and os.path.exists(output_path):
-            os.replace(output_path, cache_path)
-            os.replace(cache_path, output_path)
-            logger.info("✓ gTTS success")
-            return True
-        return False
-
-    async def _try_offline():
-        logger.info("Trying Offline (pyttsx3)")
-        success = await _offline_fallback(formatted, output_path)
-        if success and os.path.exists(output_path):
-            os.replace(output_path, cache_path)
-            os.replace(cache_path, output_path)
-            logger.info("✓ Offline success")
-            return True
-        return False
-
-    # Simple flow: gTTS -> Offline
-    # (ElevenLabs and Edge removed)
-    if await _try_gtts():
+    logger.info("Trying ElevenLabs")
+    success = await _elevenlabs_tts(formatted, output_path)
+    if success and os.path.exists(output_path):
+        os.replace(output_path, cache_path)
+        os.replace(cache_path, output_path)
+        logger.info("✓ ElevenLabs success")
         return output_path
-    if await _try_offline():
+
+    # ======================
+    # 2️⃣ EDGE
+    # ======================
+    logger.info("Trying Edge TTS")
+
+    for attempt in range(3):
+        try:
+            await _edge_tts(formatted, output_path, language, female_voice)
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                os.replace(output_path, cache_path)
+                os.replace(cache_path, output_path)
+                logger.info("✓ Edge success")
+                return output_path
+        except Exception as e:
+            logger.warning(f"Edge failed: {e}")
+            backoff = (2 ** attempt) + random.uniform(0.5, 1.5)
+            await asyncio.sleep(backoff)
+
+    # ======================
+    # 3️⃣ gTTS
+    # ======================
+    logger.info("Trying gTTS")
+    success = await _gtts_fallback(formatted, output_path, language)
+    if success:
+        return output_path
+
+    # ======================
+    # 4️⃣ Offline
+    # ======================
+    logger.info("Trying Offline")
+    success = await _offline_fallback(formatted, output_path)
+    if success:
         return output_path
 
     logger.error("All TTS engines failed")
@@ -201,12 +268,10 @@ def generate_voice(
     language: str = "english",
     output_path: Optional[str] = None,
     female_voice: bool = False,
-    voice_model: Optional[str] = None,
-    voice_provider: Optional[str] = None,
 ) -> Optional[str]:
     try:
         return asyncio.run(
-            generate_voice_async(text, language, output_path, female_voice, voice_model, voice_provider)
+            generate_voice_async(text, language, output_path, female_voice)
         )
     except RuntimeError:
         # If an event loop is already running (e.g., Flask/Gunicorn), use it
@@ -215,6 +280,7 @@ def generate_voice(
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+
         return loop.run_until_complete(
-            generate_voice_async(text, language, output_path, female_voice, voice_model, voice_provider)
+            generate_voice_async(text, language, output_path, female_voice)
         )
