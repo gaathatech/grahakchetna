@@ -426,7 +426,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     # Animation function for scrolling
     def make_ticker_position(t):
         # Speed: move across screen in duration seconds, then loop
-        scroll_speed = WIDTH + 1200  # Total distance to scroll
+        scroll_speed = WIDTH + 2400  # Total distance to scroll - increased for faster speed
         x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
         return (x_pos, headline_bar_y + 35)
     
@@ -452,33 +452,59 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     
     logger.info(f"Description text height: {desc_height}, box height: {desc_box_height}")
     
-    # Load description text clip
-    desc_base_clip = ImageClip(desc_img_path).set_duration(duration)
+    # Create fixed background box for description area (visual container)
+    desc_bg_box = (
+        ColorClip((desc_width, desc_box_height), color=(0, 0, 0))
+        .set_opacity(0.6)
+        .set_position((desc_x, desc_start_y))
+        .set_duration(duration)
+    )
     
-    # Constrain clip to box height - only show 1100px height
-    desc_base_clip = desc_base_clip.crop(width=desc_width, height=desc_box_height)
+    # Create border for description box
+    desc_border = (
+        ColorClip((desc_width, 3), color=(255, 215, 0))
+        .set_position((desc_x, desc_start_y))
+        .set_duration(duration)
+    )
     
-    # If text is too tall for the box, create scrolling animation
+    # If text is too tall for the box, create scrolling animation with proper masking
     if desc_height > desc_box_height:
         logger.info(f"Description scrolling enabled (height {desc_height} > box {desc_box_height})")
-        # Animation function for vertical scrolling
-        def make_desc_scroll_position(t):
-            # Scroll speed: complete scroll in 60% of duration, then pause
+        
+        from PIL import Image as PILImage
+        import numpy as np
+        
+        # Load the full description image once
+        full_img = PILImage.open(desc_img_path)
+        
+        # Create a custom clip that handles internal cropping for scrolling
+        def desc_make_frame(t):
+            # Calculate scroll position
             scroll_duration = duration * 0.6
             if t < scroll_duration:
-                # Scroll from bottom to top
-                scroll_distance = desc_height + desc_box_height
-                y_pos = desc_start_y + desc_box_height - (t / scroll_duration) * scroll_distance
+                # Scroll from top to bottom of text
+                scroll_distance = desc_height - desc_box_height
+                y_scroll = int((t / scroll_duration) * scroll_distance)
             else:
-                # Pause at top after scrolling
-                y_pos = desc_start_y + desc_box_height - desc_height
-            return (desc_x, y_pos)
+                # Pause at bottom after scrolling
+                y_scroll = int(desc_height - desc_box_height)
+            
+            # Crop the image to show only the visible box portion
+            # Box shows from y_scroll to y_scroll + desc_box_height
+            cropped = full_img.crop((0, y_scroll, desc_width, y_scroll + desc_box_height))
+            # Convert to RGB to match video composition format
+            if cropped.mode == 'RGBA':
+                cropped = cropped.convert('RGB')
+            return np.array(cropped)
         
-        desc_clip = desc_base_clip.set_position(make_desc_scroll_position)
+        from moviepy.video.VideoClip import VideoClip
+        desc_clip = VideoClip(make_frame=desc_make_frame, duration=duration)
+        desc_clip = desc_clip.set_position((desc_x, desc_start_y))
     else:
         # No scrolling needed, static position
         logger.info("Description static (fits in box)")
-        desc_clip = desc_base_clip.set_position((desc_x, desc_start_y))
+        desc_clip = ImageClip(desc_img_path).set_duration(duration)
+        desc_clip = desc_clip.set_position((desc_x, desc_start_y))
 
     # ============= BOTTOM BREAKING NEWS BAR =============
     breaking_bar_y = HEIGHT - 220
@@ -546,6 +572,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
             headline_bar,
             headline_bar_border,
             ticker_clip,
+            desc_bg_box,
             desc_clip,
             breaking_bar,
             breaking_bar_border,

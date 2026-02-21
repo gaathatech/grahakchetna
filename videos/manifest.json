@@ -1,84 +1,24 @@
 {
   "videos": [
     {
-      "id": "20260221_121004_438",
-      "filename": "video_20260221_120924_224.mp4",
-      "path": "videos/video_20260221_120924_224.mp4",
-      "headline": "Technology Advances",
-      "description": "Artificial intelligence continues to revolutionize the world. New breakthrough technologies emerge every day. The future looks bright for innovation and progress.",
-      "language": "en",
-      "created_at": "2026-02-21T12:10:04.438531",
-      "size_mb": 0.93
-    },
-    {
-      "id": "20260221_121004_437",
-      "filename": "video_20260221_120924_224.mp4",
-      "path": "videos/video_20260221_120924_224.mp4",
-      "headline": "Technology Advances",
-      "description": "Artificial intelligence continues to revolutionize the world. New breakthrough technologies emerge every day. The future looks bright for innovation and progress.",
-      "language": "en",
-      "created_at": "2026-02-21T12:10:04.437619",
-      "size_mb": 0.93
-    },
-    {
-      "id": "20260221_120654_801",
-      "filename": "video_20260221_120623_304.mp4",
-      "path": "videos/video_20260221_120623_304.mp4",
-      "headline": "Breaking News",
-      "description": "The quick brown fox jumps over the lazy dog. Technology is changing rapidly. Artificial intelligence has become the next frontier.",
-      "language": "en",
-      "created_at": "2026-02-21T12:06:54.801875",
-      "size_mb": 0.78
-    },
-    {
-      "id": "20260221_120654_800",
-      "filename": "video_20260221_120623_304.mp4",
-      "path": "videos/video_20260221_120623_304.mp4",
-      "headline": "Breaking News",
-      "description": "The quick brown fox jumps over the lazy dog. Technology is changing rapidly. Artificial intelligence has become the next frontier.",
-      "language": "en",
-      "created_at": "2026-02-21T12:06:54.800990",
-      "size_mb": 0.78
-    },
-    {
-      "id": "20260221_115959_885",
-      "filename": "video_20260221_115218_677.mp4",
-      "path": "videos/video_20260221_115218_677.mp4",
-      "headline": "Sarvam AI Powering a Made-in-India AI Revolution  Advancing India\u2019s Sovereign, Multilingual AI Ecosystem for Public Good",
-      "description": "India\u2019s emergence as a global digital power now hinges on its ability to build artificial intelligence systems that are indigenous, inclusive, and aligned with national priorities. As AI increasingly shapes governance, public services, industry, and citizen engagement, the need for homegrown foundational models has become important. These models must be trained on Indian languages, local data, and real-world contexts to ensure relevance and effectiveness.\r\n\r\nBuilt with the vision of creating AI systems specifically for India, Sarvam AI is an organization that is developing artificial intelligence tailored to India\u2019s needs by building foundational components and applying them to the country\u2019s unique linguistic, enterprise, and governance requirements. The company has built a full-stack AI platform, with everything developed, deployed, and governed entirely in India. These enterprise grade platforms reflect the country\u2019s linguistic diversity and are designed to support public service delivery. Its work directly addresses long-standing barriers in accessibility, multilingual communication, and dependence on foreign AI infrastructure.\r\n\r\nAt the India AI Impact Summit 2026, Union Minister Shri Amit Shah stated that Sarvam AI exemplifies why the future belongs to India. He noted that the company is ensuring technology reaches every citizen, advancing the vision of Viksit Bharat, where innovation serves as a trusted ally in empowering people and strengthening the nation.\r\n\r\nDriving Digital Self-Reliance through Indigenous AI Models\r\n\r\nStrengthening indigenous AI infrastructure is central to India\u2019s vision of technological sovereignty, digital self-reliance, and inclusive growth. In an era where artificial intelligence shapes governance, economic competitiveness, and citizen services, building AI systems rooted in local languages, datasets, and regulatory frameworks ensures that innovation aligns with national priorities and societal needs. Indigenous AI development not only safeguards strategic autonomy but also fosters economic resilience and equitable access to emerging technologies.\r\n\r\nIn this context, Sarvam AI stands out as one of the 12 organisations selected under the Innovation Centre pillar of the IndiaAI Mission to develop indigenous foundational models, with financial and compute support amounting to \u20b9246.72 crore. The company is building large language and speech models (LLMs) tailored for Indian languages and public service delivery, with capabilities such as voice-based interfaces, document processing, and citizen-centric applications that enhance accessibility and ease of use. By developing homegrown AI models aligned with national objectives, Sarvam AI is reducing reliance on foreign AI systems while strengthening the open-source ecosystem and enabling innovation across startups, academia, research institutions, and industry.\r\n\r\nAn AI model is a computer program trained on vast amounts of data to recognize patterns, make predictions, or generate new content, acting like a digital brain.\r\n\r\n \r\n\r\nSarvam AI\u2019s models include:\r\n\r\nBulbul (Text-to-Speech): Available in 11 Indian languages with 39 distinct speaker voices.\r\nSaaras (Speech-to-Text): Supports all 22 scheduled languages, 8kHz telephony audio, and code-mixed speech.\r\nVision (Document Understanding): Tailored for 22+ Indian languages, mixed scripts, and handwritten text\r\nThrough these foundational capabilities, Sarvam AI demonstrates how India-centric AI can evolve into scalable, resilient, and population-scale digital infrastructure, enhancing public service delivery, improving linguistic accessibility, and reinforcing India\u2019s journey toward a globally competitive AI ecosystem.\r\n\r\n \r\n\r\nFull-Stack Sovereign AI Ecosystem of Sarvam AI\r\n\r\nSarvam AI has built a comprehensive, full-stack sovereign AI ecosystem designed to serve enterprises, governments, developers, and creators across India. Developed end-to-end within the country  spanning compute infrastructure, foundational models, platforms, and real-world applications. The ecosystem reflects commitment to technological self-reliance in artificial intelligence.",
+      "id": "20260221_125954_574",
+      "filename": "video_20260221_125530_140.mp4",
+      "path": "videos/video_20260221_125530_140.mp4",
+      "headline": "India and Brazil have taken a major step toward securing the future of steel.",
+      "description": "The Ministry of Steel, Government of India, and Brazil\u2019s Ministry of Mines and Energy have signed a landmark Memorandum of Understanding in New Delhi.\r\n\r\nThe agreement was exchanged in the presence of Prime Minister Narendra Modi and President Luiz In\u00e1cio Lula da Silva at Hyderabad House.\r\n\r\nThe focus?\r\n\r\nStrengthening cooperation across the entire steel value chain \u2014 from mineral exploration to advanced processing technologies.\r\n\r\nThe partnership will promote investment in mining infrastructure, recycling technologies, automation, and even the use of Artificial Intelligence in geoscientific data analysis.\r\n\r\nBrazil, one of the world\u2019s largest producers of iron ore and key steelmaking minerals like manganese, nickel, and niobium, becomes a crucial partner in ensuring stable raw material access for India.\r\n\r\nWith India\u2019s steel capacity already at 218 million tonnes \u2014 and expanding rapidly \u2014 this MoU strengthens supply chain resilience and supports sustainable, technology-driven growth.\r\n\r\nIndia and Brazil are not just signing an agreement.\r\n\r\nThey are building a strategic steel alliance for the future.",
       "language": "english",
-      "created_at": "2026-02-21T11:59:59.885592",
-      "size_mb": 71.15
+      "created_at": "2026-02-21T12:59:54.574969",
+      "size_mb": 5.46
     },
     {
-      "id": "20260221_115959_884",
-      "filename": "video_20260221_115218_677.mp4",
-      "path": "videos/video_20260221_115218_677.mp4",
-      "headline": "Sarvam AI Powering a Made-in-India AI Revolution  Advancing India\u2019s Sovereign, Multilingual AI Ecosystem for Public Good",
-      "description": "India\u2019s emergence as a global digital power now hinges on its ability to build artificial intelligence systems that are indigenous, inclusive, and aligned with national priorities. As AI increasingly shapes governance, public services, industry, and citizen engagement, the need for homegrown foundational models has become important. These models must be trained on Indian languages, local data, and real-world contexts to ensure relevance and effectiveness.\r\n\r\nBuilt with the vision of creating AI systems specifically for India, Sarvam AI is an organization that is developing artificial intelligence tailored to India\u2019s needs by building foundational components and applying them to the country\u2019s unique linguistic, enterprise, and governance requirements. The company has built a full-stack AI platform, with everything developed, deployed, and governed entirely in India. These enterprise grade platforms reflect the country\u2019s linguistic diversity and are designed to support public service delivery. Its work directly addresses long-standing barriers in accessibility, multilingual communication, and dependence on foreign AI infrastructure.\r\n\r\nAt the India AI Impact Summit 2026, Union Minister Shri Amit Shah stated that Sarvam AI exemplifies why the future belongs to India. He noted that the company is ensuring technology reaches every citizen, advancing the vision of Viksit Bharat, where innovation serves as a trusted ally in empowering people and strengthening the nation.\r\n\r\nDriving Digital Self-Reliance through Indigenous AI Models\r\n\r\nStrengthening indigenous AI infrastructure is central to India\u2019s vision of technological sovereignty, digital self-reliance, and inclusive growth. In an era where artificial intelligence shapes governance, economic competitiveness, and citizen services, building AI systems rooted in local languages, datasets, and regulatory frameworks ensures that innovation aligns with national priorities and societal needs. Indigenous AI development not only safeguards strategic autonomy but also fosters economic resilience and equitable access to emerging technologies.\r\n\r\nIn this context, Sarvam AI stands out as one of the 12 organisations selected under the Innovation Centre pillar of the IndiaAI Mission to develop indigenous foundational models, with financial and compute support amounting to \u20b9246.72 crore. The company is building large language and speech models (LLMs) tailored for Indian languages and public service delivery, with capabilities such as voice-based interfaces, document processing, and citizen-centric applications that enhance accessibility and ease of use. By developing homegrown AI models aligned with national objectives, Sarvam AI is reducing reliance on foreign AI systems while strengthening the open-source ecosystem and enabling innovation across startups, academia, research institutions, and industry.\r\n\r\nAn AI model is a computer program trained on vast amounts of data to recognize patterns, make predictions, or generate new content, acting like a digital brain.\r\n\r\n \r\n\r\nSarvam AI\u2019s models include:\r\n\r\nBulbul (Text-to-Speech): Available in 11 Indian languages with 39 distinct speaker voices.\r\nSaaras (Speech-to-Text): Supports all 22 scheduled languages, 8kHz telephony audio, and code-mixed speech.\r\nVision (Document Understanding): Tailored for 22+ Indian languages, mixed scripts, and handwritten text\r\nThrough these foundational capabilities, Sarvam AI demonstrates how India-centric AI can evolve into scalable, resilient, and population-scale digital infrastructure, enhancing public service delivery, improving linguistic accessibility, and reinforcing India\u2019s journey toward a globally competitive AI ecosystem.\r\n\r\n \r\n\r\nFull-Stack Sovereign AI Ecosystem of Sarvam AI\r\n\r\nSarvam AI has built a comprehensive, full-stack sovereign AI ecosystem designed to serve enterprises, governments, developers, and creators across India. Developed end-to-end within the country  spanning compute infrastructure, foundational models, platforms, and real-world applications. The ecosystem reflects commitment to technological self-reliance in artificial intelligence.",
+      "id": "20260221_125954_574",
+      "filename": "video_20260221_125530_140.mp4",
+      "path": "videos/video_20260221_125530_140.mp4",
+      "headline": "India and Brazil have taken a major step toward securing the future of steel.",
+      "description": "The Ministry of Steel, Government of India, and Brazil\u2019s Ministry of Mines and Energy have signed a landmark Memorandum of Understanding in New Delhi.\r\n\r\nThe agreement was exchanged in the presence of Prime Minister Narendra Modi and President Luiz In\u00e1cio Lula da Silva at Hyderabad House.\r\n\r\nThe focus?\r\n\r\nStrengthening cooperation across the entire steel value chain \u2014 from mineral exploration to advanced processing technologies.\r\n\r\nThe partnership will promote investment in mining infrastructure, recycling technologies, automation, and even the use of Artificial Intelligence in geoscientific data analysis.\r\n\r\nBrazil, one of the world\u2019s largest producers of iron ore and key steelmaking minerals like manganese, nickel, and niobium, becomes a crucial partner in ensuring stable raw material access for India.\r\n\r\nWith India\u2019s steel capacity already at 218 million tonnes \u2014 and expanding rapidly \u2014 this MoU strengthens supply chain resilience and supports sustainable, technology-driven growth.\r\n\r\nIndia and Brazil are not just signing an agreement.\r\n\r\nThey are building a strategic steel alliance for the future.",
       "language": "english",
-      "created_at": "2026-02-21T11:59:59.884660",
-      "size_mb": 71.15
-    },
-    {
-      "id": "20260221_115019_333",
-      "filename": "video_20260221_115003_085.mp4",
-      "path": "videos/video_20260221_115003_085.mp4",
-      "headline": "Test Video",
-      "description": "Testing video generation with text boxing",
-      "language": "en",
-      "created_at": "2026-02-21T11:50:19.333573",
-      "size_mb": 0.34
-    },
-    {
-      "id": "20260221_115019_332",
-      "filename": "video_20260221_115003_085.mp4",
-      "path": "videos/video_20260221_115003_085.mp4",
-      "headline": "Test Video",
-      "description": "Testing video generation with text boxing",
-      "language": "en",
-      "created_at": "2026-02-21T11:50:19.332839",
-      "size_mb": 0.34
+      "created_at": "2026-02-21T12:59:54.574451",
+      "size_mb": 5.46
     },
     {
       "id": "20260217_044555_406",
