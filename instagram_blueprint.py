@@ -18,7 +18,9 @@ def post_to_instagram():
         return jsonify({"error": "video not found"}), 404
 
     try:
-        resp = upload_instagram(video_path, caption)
+        page_id = os.getenv('PAGE_ID')
+        page_access_token = os.getenv('PAGE_ACCESS_TOKEN')
+        resp = upload_instagram(video_path, caption, page_id=page_id, page_access_token=page_access_token)
         return jsonify({"status": "posted", "response": resp})
     except InstagramUploadError as e:
         return jsonify({"error": str(e)}), 500
