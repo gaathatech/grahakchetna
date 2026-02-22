@@ -2,12 +2,11 @@ import re
 import asyncio
 import logging
 import os
-import random
 import hashlib
 import time
-from typing import Optional
+import unicodedata
+from typing import Optional, Tuple
 from pathlib import Path
-from collections import deque
 from threading import Lock
 
 import edge_tts
@@ -18,19 +17,12 @@ logger = logging.getLogger(__name__)
 # CONFIG
 # ======================================
 
-VOICE_MAP = {
-    "english": "en-US-GuyNeural",
-    "hindi": "hi-IN-MadhurNeural",
-    "gujarati": "gu-IN-NiranjanNeural",
-}
-
-VOICE_MAP_FEMALE = {
-    "english": "en-US-AmberNeural",
-    "hindi": "hi-IN-SwaraNeural",
-    "gujarati": "gu-IN-DhwaniNeural",
-}
+# Default voice - production tested and reliable
+DEFAULT_VOICE = "en-US-GuyNeural"
 
 ELEVEN_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+AZURE_API_KEY = os.getenv("AZURE_SPEECH_KEY")
+AZURE_REGION = os.getenv("AZURE_SPEECH_REGION", "eastus")
 
 DEFAULT_OUTPUT_DIR = os.getenv("TTS_OUTPUT_DIR", "output")
 CACHE_DIR = os.path.join(DEFAULT_OUTPUT_DIR, "cache")
@@ -42,49 +34,95 @@ Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
 SPEED_RATE = "-10%"  # Faster for exciting, energetic news delivery
 
 # ======================================
-# RATE LIMITING & CONCURRENCY CONTROL
+# THREAD-SAFE LOCKING FOR EDGE TTS
 # ======================================
 
-# Limit concurrent edge-tts connections to 1 (prevent WebSocket rate limiting)
-_EDGE_TTS_SEMAPHORE = None
+# Ensure only ONE Edge TTS request at a time (prevents parallel calls)
+EDGE_TTS_LOCK = Lock()
 
-def _get_semaphore():
-    """Lazily create semaphore to avoid event loop issues at import time."""
-    global _EDGE_TTS_SEMAPHORE
-    if _EDGE_TTS_SEMAPHORE is None:
-        _EDGE_TTS_SEMAPHORE = asyncio.Semaphore(1)
-    return _EDGE_TTS_SEMAPHORE
+# For async contexts, we need an asyncio.Lock
+_ASYNC_EDGE_TTS_LOCK = None
 
-# Throttle timing (minimum seconds between requests)
-MIN_REQUEST_INTERVAL = 2.0
-LAST_REQUEST_TIME = 0
-REQUEST_TIME_LOCK = Lock()
+def _get_async_lock():
+    """Get or create asyncio.Lock for async Edge TTS calls."""
+    global _ASYNC_EDGE_TTS_LOCK
+    if _ASYNC_EDGE_TTS_LOCK is None:
+        try:
+            loop = asyncio.get_running_loop()
+            _ASYNC_EDGE_TTS_LOCK = asyncio.Lock()
+        except RuntimeError:
+            # No running loop, will be created later
+            pass
+    return _ASYNC_EDGE_TTS_LOCK
 
 
 # ======================================
-# TEXT CLEANING + NEWS FORMATTER
+# TEXT PREPROCESSING
 # ======================================
 
-def clean_text(text: str) -> str:
-    text = re.sub(r"[^\w\s.,!?'\"-]", "", text)
-    return text.strip()[:2000]
-
-
-def format_news_script(text: str) -> str:
+def _remove_emojis_and_non_ascii(text: str) -> str:
     """
-    Adds dramatic pauses and exciting news pacing.
-    Enhanced for energetic, breaking news delivery.
+    Remove emojis and non-ASCII characters while preserving basic punctuation.
+    Keeps: letters, numbers, basic punctuation (.,!?'-"), spaces
     """
+    cleaned = []
+    for char in text:
+        # Check if character is ASCII or allowed punctuation
+        if ord(char) < 128:  # ASCII range
+            cleaned.append(char)
+        elif char in ' ':  # Keep spaces for unicode
+            cleaned.append(char)
+        # Skip emojis and non-ASCII characters
+    
+    return ''.join(cleaned)
 
-    # Minimal pause after commas for faster pacing
-    text = text.replace(",", ", ")
 
-    # Strategic pauses for impact
-    text = text.replace("! ", "! ... ")
-    text = text.replace("? ", "? ... ")
-    text = text.replace(". ", ". ")
+def _collapse_whitespace(text: str) -> str:
+    """Collapse multiple spaces, tabs, newlines into single space."""
+    # Replace newlines and tabs with spaces
+    text = re.sub(r'[\n\r\t]+', ' ', text)
+    # Collapse multiple spaces into single space
+    text = re.sub(r' {2,}', ' ', text)
+    return text.strip()
 
-    return text
+
+def preprocess_text(text: str, max_length: int = 1000) -> str:
+    """
+    Preprocess text for TTS:
+    1. Strip leading/trailing whitespace
+    2. Remove emojis and non-ASCII characters
+    3. Collapse multiple spaces
+    4. Limit to max_length characters
+    
+    Args:
+        text: Raw text input
+        max_length: Maximum allowed text length (default 1000)
+    
+    Returns:
+        Cleaned and preprocessed text
+    """
+    if not text or not isinstance(text, str):
+        return ""
+    
+    # Step 1: Strip whitespace
+    text = text.strip()
+    
+    # Step 2: Remove emojis and non-ASCII characters
+    text = _remove_emojis_and_non_ascii(text)
+    
+    # Step 3: Collapse multiple spaces
+    text = _collapse_whitespace(text)
+    
+    # Step 4: Limit to max_length
+    if len(text) > max_length:
+        # Truncate at word boundary if possible
+        text = text[:max_length]
+        # Try to cut at last space to avoid cutting mid-word
+        last_space = text.rfind(' ')
+        if last_space > max_length * 0.8:  # Only if space is reasonably close
+            text = text[:last_space]
+    
+    return text.strip()
 
 
 # ======================================
@@ -92,30 +130,145 @@ def format_news_script(text: str) -> str:
 # ======================================
 
 def get_cache_path(text: str) -> str:
+    """Generate cache path based on text hash."""
     hash_id = hashlib.md5(text.encode()).hexdigest()
     return os.path.join(CACHE_DIR, f"{hash_id}.mp3")
 
 
 # ======================================
-# ELEVENLABS PRIMARY
+# ERROR DETECTION HELPERS
 # ======================================
 
-async def _elevenlabs_tts(text: str, output_path: str):
+def _is_retryable_error(error: Exception) -> bool:
+    """
+    Determine if an Edge TTS error is retryable.
+    Only retry on specific HTTP errors (403 Forbidden, 503 Service Unavailable).
+    Do NOT retry NoAudioReceived - proceed to fallback immediately.
+    
+    Args:
+        error: The exception that occurred
+    
+    Returns:
+        True if error is retryable, False otherwise
+    """
+    error_str = str(error).lower()
+    error_type = type(error).__name__
+    
+    # NoAudioReceived is NOT retryable - skip immediately to fallback
+    if "noaudioreceived" in error_str or "no audio received" in error_str:
+        logger.warning("NoAudioReceived error detected - skipping retry, jumping to fallback")
+        return False
+    
+    # Only retry on HTTP 403 or 503
+    if "403" in error_str or "forbidden" in error_str:
+        logger.info("403 Forbidden error detected - will retry")
+        return True
+    
+    if "503" in error_str or "service unavailable" in error_str:
+        logger.info("503 Service Unavailable error detected - will retry")
+        return True
+    
+    # All other errors are not retryable
+    logger.info(f"Non-retryable error ({error_type}) - proceeding to fallback")
+    return False
+
+
+# ======================================
+# AZURE TTS FALLBACK
+# ======================================
+
+async def _azure_tts(text: str, output_path: str) -> bool:
+    """
+    Azure Speech Synthesis fallback.
+    
+    Args:
+        text: Text to synthesize
+        output_path: Path to save MP3 file
+    
+    Returns:
+        True if successful, False otherwise
+    """
     try:
-        import requests
-
-        if not ELEVEN_API_KEY:
+        if not AZURE_API_KEY:
+            logger.info("Azure TTS: API key not configured, skipping")
             return False
+        
+        import azure.cognitiveservices.speech as speechsdk
+        
+        logger.info(f"Trying Azure TTS (region: {AZURE_REGION})")
+        
+        speech_config = speechsdk.SpeechConfig(
+            subscription=AZURE_API_KEY,
+            region=AZURE_REGION
+        )
+        
+        # Use same voice family as Edge TTS for consistency
+        speech_config.speech_synthesis_voice_name = DEFAULT_VOICE
+        
+        # Save to file
+        audio_config = speechsdk.audio.AudioOutputConfig(filename=output_path)
+        
+        synthesizer = speechsdk.SpeechSynthesizer(
+            speech_config=speech_config,
+            audio_config=audio_config
+        )
+        
+        result = synthesizer.speak_text(text)
+        
+        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            logger.info("✓ Azure TTS succeeded")
+            return True
+        else:
+            logger.warning(f"Azure TTS synthesis not completed: {result.reason}")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+            
+    except ImportError:
+        logger.warning("Azure SDK not installed (azure-cognitiveservices-speech)")
+        return False
+    except Exception as e:
+        logger.warning(f"Azure TTS failed: {type(e).__name__}: {e}")
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        return False
 
+
+
+# ======================================
+# ELEVENLABS TTS (PRIMARY FALLBACK)
+# ======================================
+
+async def _elevenlabs_tts(text: str, output_path: str) -> bool:
+    """
+    ElevenLabs API - Premium quality voice.
+    Only used as fallback if configured.
+    
+    Args:
+        text: Text to synthesize
+        output_path: Path to save MP3 file
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        if not ELEVEN_API_KEY:
+            logger.info("ElevenLabs: API key not configured, skipping")
+            return False
+        
+        import requests
+        
+        logger.info("Trying ElevenLabs TTS")
+        
         voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
-
+        
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-
+        
         headers = {
             "xi-api-key": ELEVEN_API_KEY,
             "Content-Type": "application/json"
         }
-
+        
         data = {
             "text": text,
             "model_id": "eleven_multilingual_v2",
@@ -126,295 +279,461 @@ async def _elevenlabs_tts(text: str, output_path: str):
                 "use_speaker_boost": True
             }
         }
-
-        response = requests.post(url, json=data, headers=headers)
-
+        
+        response = requests.post(url, json=data, headers=headers, timeout=30)
+        
         if response.status_code == 200:
             with open(output_path, "wb") as f:
                 f.write(response.content)
+            logger.info("✓ ElevenLabs TTS succeeded")
             return True
         else:
-            logger.warning(f"ElevenLabs failed: {response.text}")
+            logger.warning(f"ElevenLabs failed (HTTP {response.status_code}): {response.text}")
             return False
-
+            
+    except ImportError:
+        logger.warning("requests library not available for ElevenLabs")
+        return False
     except Exception as e:
-        logger.warning(f"ElevenLabs error: {e}")
+        logger.warning(f"ElevenLabs error: {type(e).__name__}: {e}")
         return False
 
 
 # ======================================
-# EDGE SECONDARY - WITH RATE LIMITING
+# EDGE TTS WITH SMART RETRY LOGIC
 # ======================================
 
-async def _enforce_throttle():
-    """Enforce minimum interval between requests to avoid rate limiting."""
-    global LAST_REQUEST_TIME
+async def _edge_tts_with_smart_retry(
+    text: str,
+    output_path: str,
+    max_attempts: int = 2
+) -> bool:
+    """
+    Edge TTS with intelligent retry logic:
+    - Retries ONLY on 403 (Forbidden) or 503 (Service Unavailable)
+    - Does NOT retry on NoAudioReceived error
+    - Uses exponential backoff (2 seconds base) for retryable errors
+    - Thread-safe: ensures only one Edge TTS request at a time
     
-    with REQUEST_TIME_LOCK:
-        now = time.time()
-        time_since_last = now - LAST_REQUEST_TIME
-        
-        if time_since_last < MIN_REQUEST_INTERVAL:
-            sleep_time = MIN_REQUEST_INTERVAL - time_since_last
-            logger.info(f"Throttling: waiting {sleep_time:.2f}s to avoid rate limit")
-            await asyncio.sleep(sleep_time)
-        
-        LAST_REQUEST_TIME = time.time()
-
-
-async def _edge_tts_with_retry(
-    text: str, 
-    output_path: str, 
-    language: str, 
-    female_voice: bool,
-    max_retries: int = 3
-):
+    Args:
+        text: Preprocessed text to synthesize
+        output_path: Path to save MP3 file
+        max_attempts: Maximum retry attempts (default 2)
+    
+    Returns:
+        True if successful, False otherwise (caller should try fallback)
     """
-    Edge TTS with concurrency control and throttling.
-    - Only 1 concurrent connection (SEMAPHORE)
-    - Minimum interval between requests (THROTTLE)
-    - Proper backoff strategy
-    - User-Agent rotation
-    """
-    voice_map = VOICE_MAP_FEMALE if female_voice else VOICE_MAP
-    voice = voice_map.get(language.lower(), "en-US-GuyNeural")
-    semaphore = _get_semaphore()
-
-    for attempt in range(max_retries):
+    
+    # Acquire async lock to prevent parallel Edge TTS requests
+    try:
+        loop = asyncio.get_running_loop()
+        async_lock = asyncio.Lock()
+    except RuntimeError:
+        async_lock = None
+    
+    async def _do_edge_tts():
         try:
-            # Enforce rate limiting
-            await _enforce_throttle()
+            logger.info(f"Edge TTS: Calling Communicate with voice={DEFAULT_VOICE}, text_len={len(text)}")
             
-            # Acquire semaphore (limit concurrent connections)
-            async with semaphore:
-                logger.info(f"Edge TTS attempt {attempt + 1}/{max_retries} - voice: {voice}")
+            communicate = edge_tts.Communicate(
+                text=text,
+                voice=DEFAULT_VOICE,
+                rate=SPEED_RATE,
+            )
+            
+            await communicate.save(output_path)
+            
+            # Verify file was created and has content
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                logger.info(f"✓ Edge TTS audio file created successfully ({os.path.getsize(output_path)} bytes)")
+                return True
+            else:
+                logger.warning("Edge TTS created invalid or empty file")
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                raise Exception("Invalid output file")
                 
-                # Add random delay to prevent thundering herd
-                await asyncio.sleep(random.uniform(0.1, 0.5))
-                
-                communicate = edge_tts.Communicate(
-                    text=text,
-                    voice=voice,
-                    rate=SPEED_RATE,
-                )
-                
-                await communicate.save(output_path)
-                
-                # Verify file was created and has content
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                    logger.info(f"✓ Edge TTS success on attempt {attempt + 1}")
-                    return True
-                else:
-                    logger.warning(f"Edge TTS created invalid file on attempt {attempt + 1}")
-                    if os.path.exists(output_path):
-                        os.remove(output_path)
-                    raise Exception("Invalid output file")
-                    
         except Exception as e:
-            logger.warning(f"Edge TTS attempt {attempt + 1} failed: {type(e).__name__}: {e}")
-            
-            if attempt < max_retries - 1:
-                # Exponential backoff with jitter
-                backoff = (2 ** attempt) * 1.0 + random.uniform(0.5, 2.0)
-                logger.info(f"Backing off for {backoff:.2f}s before retry...")
-                await asyncio.sleep(backoff)
-            
             if os.path.exists(output_path):
                 os.remove(output_path)
+            raise
+    
+    for attempt in range(1, max_attempts + 1):
+        try:
+            logger.info(f"Edge TTS attempt {attempt}/{max_attempts}")
+            
+            # If we have an async lock, use it
+            if async_lock:
+                async with async_lock:
+                    success = await _do_edge_tts()
+            else:
+                success = await _do_edge_tts()
+            
+            if success:
+                return True
+                
+        except Exception as e:
+            error_str = str(e)
+            logger.warning(f"Edge TTS attempt {attempt} failed: {type(e).__name__}: {error_str}")
+            
+            # Check if error is retryable
+            is_retryable = _is_retryable_error(e)
+            
+            if not is_retryable:
+                # Non-retryable error (including NoAudioReceived) - stop here
+                logger.info(f"Non-retryable error detected, stopping Edge TTS attempts")
+                return False
+            
+            # Retryable error - apply exponential backoff if more attempts remain
+            if attempt < max_attempts:
+                backoff_seconds = (2 ** (attempt - 1)) * 2  # 2, 4, 8, etc.
+                logger.info(f"Retryable error - backing off {backoff_seconds}s before retry {attempt + 1}")
+                await asyncio.sleep(backoff_seconds)
+            else:
+                logger.info(f"Maximum Edge TTS attempts reached, proceeding to fallback")
+                return False
     
     return False
-
-
-async def _edge_tts(text: str, output_path: str, language: str, female_voice: bool):
-    """Legacy wrapper for backward compatibility."""
-    success = await _edge_tts_with_retry(text, output_path, language, female_voice)
-    if not success:
-        raise Exception("Edge TTS failed after all retries")
 
 
 # ======================================
 # GTTS FALLBACK
 # ======================================
 
-async def _gtts_fallback(text: str, output_path: str, language: str):
+async def _gtts_tts(text: str, output_path: str, language: str = "en") -> bool:
+    """
+    gTTS fallback - free, reliable TTS service.
+    
+    Args:
+        text: Text to synthesize
+        output_path: Path to save MP3 file
+        language: Language code (default "en")
+    
+    Returns:
+        True if successful, False otherwise
+    """
     try:
         from gtts import gTTS
-
-        lang_code = "en" if language.lower().startswith("eng") else language[:2]
-
+        
+        logger.info(f"Trying gTTS with language={language}")
+        
         def _save():
-            t = gTTS(text=text, lang=lang_code, slow=False)
-            t.save(output_path)
-
+            tts = gTTS(text=text, lang=language, slow=False)
+            tts.save(output_path)
+        
+        # Run gTTS in thread pool to avoid blocking
         await asyncio.to_thread(_save)
-        return True
-
+        
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            logger.info(f"✓ gTTS succeeded ({os.path.getsize(output_path)} bytes)")
+            return True
+        else:
+            logger.warning("gTTS created invalid or empty file")
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            return False
+            
+    except ImportError:
+        logger.warning("gtts library not installed")
+        return False
     except Exception as e:
-        logger.warning(f"gTTS failed: {e}")
+        logger.warning(f"gTTS failed: {type(e).__name__}: {e}")
+        if os.path.exists(output_path):
+            os.remove(output_path)
         return False
 
 
 # ======================================
-# OFFLINE FALLBACK
+# PYTTSX3 OFFLINE FALLBACK
 # ======================================
 
-async def _offline_fallback(text: str, output_path: str):
+async def _pyttsx3_tts(text: str, output_path: str) -> bool:
+    """
+    pyttsx3 offline TTS - last resort fallback.
+    Works without internet connection.
+    
+    Args:
+        text: Text to synthesize
+        output_path: Path to save MP3 file
+    
+    Returns:
+        True if successful, False otherwise
+    """
     try:
         import pyttsx3
-
+        
+        logger.info("Trying pyttsx3 offline TTS")
+        
         def _save():
             engine = pyttsx3.init()
-            engine.setProperty("rate", 175)
+            engine.setProperty("rate", 175)  # Slightly faster speed
             engine.save_to_file(text, output_path)
             engine.runAndWait()
-
+        
         await asyncio.to_thread(_save)
-        return True
-
+        
+        if os.path.exists(output_path):
+            logger.info(f"✓ pyttsx3 succeeded ({os.path.getsize(output_path)} bytes)")
+            return True
+        else:
+            logger.warning("pyttsx3 did not create output file")
+            return False
+            
+    except ImportError:
+        logger.warning("pyttsx3 library not installed")
+        return False
     except Exception as e:
-        logger.warning(f"Offline TTS failed: {e}")
+        logger.warning(f"pyttsx3 failed: {type(e).__name__}: {e}")
+        if os.path.exists(output_path):
+            os.remove(output_path)
         return False
 
 
+
 # ======================================
-# MAIN FUNCTION
+# MAIN ASYNC FUNCTION - FALLBACK ORDER
 # ======================================
 
 async def generate_voice_async(
     text: str,
-    language: str = "english",
     output_path: Optional[str] = None,
-    female_voice: bool = False,
 ) -> Optional[str]:
-
+    """
+    Generate voice audio with comprehensive fallback strategy.
+    
+    Fallback order:
+    1. Edge TTS (max 2 attempts, smart retry logic)
+    2. Azure TTS (1 attempt, if configured)
+    3. gTTS (free service fallback)
+    4. pyttsx3 (offline fallback)
+    
+    Args:
+        text: Text to convert to speech
+        output_path: Path to save MP3 file (uses default if not specified)
+    
+    Returns:
+        Path to generated audio file, or None if all providers failed
+    """
+    
     if output_path is None:
         output_path = DEFAULT_OUTPUT_PATH
-
+    
+    # Create output directory if needed
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-
-    cleaned = clean_text(text)
-    formatted = format_news_script(cleaned)
-
-    if not formatted:
-        logger.error("Text empty after cleaning")
+    
+    # =========================================
+    # STEP 1: Preprocess input text
+    # =========================================
+    logger.info(f"Input text length: {len(text)} characters")
+    
+    processed_text = preprocess_text(text, max_length=1000)
+    
+    if not processed_text:
+        logger.error("Text empty after preprocessing")
         return None
-
-    # ======================
-    # CACHE CHECK
-    # ======================
-    cache_path = get_cache_path(formatted)
-
+    
+    logger.info(f"Processed text length: {len(processed_text)} characters")
+    logger.debug(f"Processed text preview: {processed_text[:100]}...")
+    
+    # =========================================
+    # STEP 2: Check cache
+    # =========================================
+    cache_path = get_cache_path(processed_text)
+    
     if os.path.exists(cache_path):
-        logger.info("Using cached audio")
-        os.replace(cache_path, output_path)
+        logger.info(f"✓ Using cached audio: {cache_path}")
+        # Copy cache to output path if different
+        if cache_path != output_path:
+            os.replace(cache_path, output_path)
         return output_path
-
-    # ======================
-    # 1️⃣ ELEVENLABS
-    # ======================
-    logger.info("Trying ElevenLabs")
-    success = await _elevenlabs_tts(formatted, output_path)
-    if success and os.path.exists(output_path):
+    
+    # =========================================
+    # STEP 3: Try Edge TTS (2 attempts max)
+    # =========================================
+    logger.info("=" * 50)
+    logger.info("Provider 1: Edge TTS")
+    logger.info("=" * 50)
+    
+    success = await _edge_tts_with_smart_retry(processed_text, output_path, max_attempts=2)
+    
+    if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+        logger.info("✓✓✓ SUCCESS: Edge TTS ✓✓✓")
+        # Cache the result
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         os.replace(output_path, cache_path)
         os.replace(cache_path, output_path)
-        logger.info("✓ ElevenLabs success")
         return output_path
-
-    # ======================
-    # 2️⃣ EDGE (with rate limiting)
-    # ======================
-    logger.info("Trying Edge TTS with concurrency control")
     
-    try:
-        success = await _edge_tts_with_retry(formatted, output_path, language, female_voice)
-        if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            os.replace(output_path, cache_path)
-            os.replace(cache_path, output_path)
-            logger.info("✓ Edge success")
-            return output_path
-    except Exception as e:
-        logger.warning(f"Edge TTS failed: {e}")
-        if os.path.exists(output_path):
-            os.remove(output_path)
-
-    # ======================
-    # 3️⃣ gTTS
-    # ======================
-    logger.info("Trying gTTS")
-    success = await _gtts_fallback(formatted, output_path, language)
-    if success:
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    
+    # =========================================
+    # STEP 4: Try Azure TTS (1 attempt)
+    # =========================================
+    logger.info("=" * 50)
+    logger.info("Provider 2: Azure TTS")
+    logger.info("=" * 50)
+    
+    success = await _azure_tts(processed_text, output_path)
+    
+    if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+        logger.info("✓✓✓ SUCCESS: Azure TTS ✓✓✓")
+        # Cache the result
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        os.replace(output_path, cache_path)
+        os.replace(cache_path, output_path)
         return output_path
-
-    # ======================
-    # 4️⃣ Offline
-    # ======================
-    logger.info("Trying Offline")
-    success = await _offline_fallback(formatted, output_path)
-    if success:
+    
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    
+    # =========================================
+    # STEP 5: Try gTTS (free fallback)
+    # =========================================
+    logger.info("=" * 50)
+    logger.info("Provider 3: gTTS (Google Text-to-Speech)")
+    logger.info("=" * 50)
+    
+    success = await _gtts_tts(processed_text, output_path, language="en")
+    
+    if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+        logger.info("✓✓✓ SUCCESS: gTTS ✓✓✓")
+        # Cache the result
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        os.replace(output_path, cache_path)
+        os.replace(cache_path, output_path)
         return output_path
-
-    logger.error("All TTS engines failed")
+    
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    
+    # =========================================
+    # STEP 6: Try pyttsx3 offline (last resort)
+    # =========================================
+    logger.info("=" * 50)
+    logger.info("Provider 4: pyttsx3 (Offline)")
+    logger.info("=" * 50)
+    
+    success = await _pyttsx3_tts(processed_text, output_path)
+    
+    if success and os.path.exists(output_path):
+        logger.info("✓✓✓ SUCCESS: pyttsx3 (Offline) ✓✓✓")
+        # Don't cache offline TTS as formats may vary
+        return output_path
+    
+    # =========================================
+    # ALL PROVIDERS FAILED
+    # =========================================
+    logger.error("✗✗✗ FAILURE: All TTS providers exhausted ✗✗✗")
+    
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    
     return None
 
 
+# ======================================
+# SYNCHRONOUS WRAPPER (FLASK COMPATIBILITY)
+# ======================================
+
 def _get_or_create_event_loop():
     """
-    Get existing event loop or create a new one.
-    Handles Flask and other frameworks that may have event loop issues.
+    Safely get or create event loop for Flask/threading context.
+    Handles edge cases where event loops exist but are closed.
     """
     try:
+        # Check if we're already in an async context
         loop = asyncio.get_running_loop()
-        # If we're already in an async context, return None to signal we should use the current loop
-        return None
+        return loop
     except RuntimeError:
         pass
     
     try:
+        # Try to get existing event loop
         loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            raise RuntimeError("Event loop is closed")
-        return loop
+        if not loop.is_closed():
+            return loop
     except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop
+        pass
+    
+    # Create new event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    return loop
 
 
 def generate_voice(
+    text: str,
+    output_path: Optional[str] = None,
+    **kwargs
+) -> Optional[str]:
+    """
+    Synchronous wrapper for generate_voice_async.
+    Thread-safe for use in Flask and other sync frameworks.
+    
+    Ensures only ONE Edge TTS request happens at a time using threading.Lock.
+    
+    Args:
+        text: Text to convert to speech
+        output_path: Path to save MP3 file (uses default if not specified)
+        **kwargs: Ignored parameters for backward compatibility
+                 (language, female_voice, voice_model, voice_provider, etc.)
+    
+    Returns:
+        Path to generated audio file, or None if all providers failed
+    """
+    
+    # Log ignored parameters for debugging (production info level)
+    if kwargs:
+        ignored_params = [f"{k}={v}" for k, v in kwargs.items()]
+        logger.info(f"Ignoring parameters (using en-US-GuyNeural): {', '.join(ignored_params)}")
+    
+    # Thread-safe lock: prevent parallel Edge TTS calls
+    with EDGE_TTS_LOCK:
+        logger.info("Acquired EDGE_TTS_LOCK - starting TTS generation")
+        
+        try:
+            loop = _get_or_create_event_loop()
+            result = loop.run_until_complete(
+                generate_voice_async(text, output_path)
+            )
+            return result
+            
+        except Exception as e:
+            logger.error(f"TTS generation failed: {type(e).__name__}: {e}", exc_info=True)
+            return None
+        finally:
+            logger.info("Released EDGE_TTS_LOCK")
+
+
+# ======================================
+# LEGACY COMPATIBILITY FUNCTIONS
+# ======================================
+
+async def generate_voice_async_legacy(
     text: str,
     language: str = "english",
     output_path: Optional[str] = None,
     female_voice: bool = False,
 ) -> Optional[str]:
     """
-    Thread-safe wrapper that runs async TTS generation.
-    Handles Flask context and event loop management properly.
+    Legacy wrapper for backward compatibility.
+    Ignores language and female_voice parameters (now uses en-US-GuyNeural).
     """
-    try:
-        # Check if there's already a running loop (unlikely in Flask request context)
-        try:
-            asyncio.get_running_loop()
-            # If we get here, we're in an async context - this shouldn't happen in Flask
-            logger.warning("Already in async context, this may cause issues")
-            return asyncio.run(
-                generate_voice_async(text, language, output_path, female_voice)
-            )
-        except RuntimeError:
-            # No running loop, proceed normally
-            pass
-        
-        loop = _get_or_create_event_loop()
-        if loop is None:
-            # Already have a running loop
-            return asyncio.run(
-                generate_voice_async(text, language, output_path, female_voice)
-            )
-        
-        # Use the event loop we got (or created)
-        return loop.run_until_complete(
-            generate_voice_async(text, language, output_path, female_voice)
-        )
-        
-    except Exception as e:
-        logger.error(f"Failed to generate voice: {e}")
-        return None
+    logger.info(f"Legacy function called with language={language}, female_voice={female_voice}")
+    logger.info("Using default voice: en-US-GuyNeural")
+    return await generate_voice_async(text, output_path)
+
+
+def generate_voice_legacy(
+    text: str,
+    language: str = "english",
+    output_path: Optional[str] = None,
+    female_voice: bool = False,
+) -> Optional[str]:
+    """
+    Legacy wrapper for backward compatibility.
+    Ignores language and female_voice parameters (now uses en-US-GuyNeural).
+    """
+    logger.info(f"Legacy function called with language={language}, female_voice={female_voice}")
+    return generate_voice(text, output_path)
