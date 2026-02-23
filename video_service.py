@@ -206,7 +206,7 @@ def create_boxed_text_image(text, fontsize=40, color=(255, 255, 255), bold=True,
     
     # Draw semi-transparent background box for visibility
     box_coords = [(5, 5), (img_width - 5, min(box_height, img_height) - 5)]
-    draw.rectangle(box_coords, fill=(0, 0, 0, 60), outline=(255, 215, 0, 200), width=3)
+    draw.rectangle(box_coords, fill=(0, 0, 0, 60))
     
     # Draw text with shadow
     y = padding

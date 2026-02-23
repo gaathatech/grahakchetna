@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # ======================================
 
 # Default voice - production tested and reliable
-DEFAULT_VOICE = "en-US-GuyNeural"
+DEFAULT_VOICE = "en-US-AmberNeural"
 
 ELEVEN_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 AZURE_API_KEY = os.getenv("AZURE_SPEECH_KEY")
@@ -686,7 +686,7 @@ def generate_voice(
     # Log ignored parameters for debugging (production info level)
     if kwargs:
         ignored_params = [f"{k}={v}" for k, v in kwargs.items()]
-        logger.info(f"Ignoring parameters (using en-US-GuyNeural): {', '.join(ignored_params)}")
+        logger.info(f"Ignoring parameters (using en-US-AmberNeural): {', '.join(ignored_params)}")
     
     # Thread-safe lock: prevent parallel Edge TTS calls
     with EDGE_TTS_LOCK:
@@ -718,10 +718,10 @@ async def generate_voice_async_legacy(
 ) -> Optional[str]:
     """
     Legacy wrapper for backward compatibility.
-    Ignores language and female_voice parameters (now uses en-US-GuyNeural).
+    Ignores language and female_voice parameters (now uses en-US-AmberNeural).
     """
     logger.info(f"Legacy function called with language={language}, female_voice={female_voice}")
-    logger.info("Using default voice: en-US-GuyNeural")
+    logger.info("Using default voice: en-US-AmberNeural")
     return await generate_voice_async(text, output_path)
 
 
@@ -733,7 +733,7 @@ def generate_voice_legacy(
 ) -> Optional[str]:
     """
     Legacy wrapper for backward compatibility.
-    Ignores language and female_voice parameters (now uses en-US-GuyNeural).
+    Ignores language and female_voice parameters (now uses en-US-AmberNeural).
     """
     logger.info(f"Legacy function called with language={language}, female_voice={female_voice}")
     return generate_voice(text, output_path)
