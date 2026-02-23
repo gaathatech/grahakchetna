@@ -144,10 +144,21 @@ def generate():
         return jsonify({"error": "Script generation failed"}), 400
 
     # 2️⃣ Generate Voice
-    audio_path = generate_voice(script)
+    tts_result = generate_voice(script)
 
+    if not tts_result.get("success"):
+        error_msg = tts_result.get("error", "Voice generation failed")
+        logger.error(f"TTS error: {error_msg}")
+        logger.debug(f"TTS details: {tts_result.get('details', {})}")
+        return jsonify({
+            "error": error_msg,
+            "error_type": tts_result.get("error_type"),
+            "attempted_providers": tts_result.get("attempted_providers", [])
+        }), 400
+    
+    audio_path = tts_result.get("path")
     if not audio_path:
-        return jsonify({"error": "Voice generation failed"}), 400
+        return jsonify({"error": "Voice generation succeeded but no file path returned"}), 400
 
     # 3️⃣ Generate unique video filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -195,9 +206,20 @@ def generate_and_post():
             return jsonify({"error": "Script generation failed"}), 400
 
         # 2️⃣ Generate Voice
-        audio_path = generate_voice(script)
+        tts_result = generate_voice(script)
+        if not tts_result.get("success"):
+            error_msg = tts_result.get("error", "Voice generation failed")
+            logger.error(f"TTS error: {error_msg}")
+            logger.debug(f"TTS details: {tts_result.get('details', {})}")
+            return jsonify({
+                "error": error_msg,
+                "error_type": tts_result.get("error_type"),
+                "attempted_providers": tts_result.get("attempted_providers", [])
+            }), 400
+        
+        audio_path = tts_result.get("path")
         if not audio_path:
-            return jsonify({"error": "Voice generation failed"}), 400
+            return jsonify({"error": "Voice generation succeeded but no file path returned"}), 400
 
         # 3️⃣ Generate unique video filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
