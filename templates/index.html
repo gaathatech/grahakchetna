@@ -21,7 +21,7 @@
             max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 30px;
             position: relative;
         }
@@ -284,28 +284,197 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(3px);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(30, 144, 255, 0.2);
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(102, 178, 255, 0.2);
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #66b2ff;
+            font-size: 1.4em;
+        }
+
+        .modal-close {
+            background: none;
+            color: #666;
+            font-size: 28px;
+            height: 30px;
+            width: 30px;
+            padding: 0;
+            cursor: pointer;
+            margin: 0;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #ff6b6b;
+            transform: scale(1.1);
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer button {
+            flex: none;
+            width: auto;
+            min-width: 100px;
+        }
+
+        .modal-footer .btn-cancel {
+            background: linear-gradient(135deg, #444444, #222222);
+        }
+
+        .modal-footer .btn-submit {
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+        }
+
+        /* Tabs/Navigation Styles */
+        .tabs-nav {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(102, 178, 255, 0.2);
+            overflow-x: auto;
+            padding-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: transparent;
+            color: #888;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tab-btn:hover {
+            color: #66b2ff;
+        }
+
+        .tab-btn.active {
+            color: #66b2ff;
+            border-bottom-color: #66b2ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-upload-group {
+            border: 2px dashed rgba(102, 178, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-group:hover {
+            border-color: #66b2ff;
+            background: rgba(102, 178, 255, 0.05);
+        }
+
+        .file-upload-group input[type="file"] {
+            display: none;
+        }
+
+        .upload-text {
+            color: #888;
+            font-size: 0.95em;
+            margin: 10px 0;
+        }
+
+        .file-name {
+            color: #66b2ff;
+            font-weight: 600;
+            margin-top: 10px;
+        }
     </style>
+
 </head>
 <body>
 
     <h1>🎬 Grahak Chetna AI News Studio</h1>
     <p class="subtitle">Generate Professional News Videos with AI Narration</p>
 
-    <div class="menu" style="display:flex; gap:10px; justify-content:center; margin-bottom:18px;">
-        <button onclick="createShort()" style="width:auto; padding:10px 18px;">Create Short Video</button>
-        <button onclick="createLong()" style="width:auto; padding:10px 18px;">Create Long Video</button>
-        <button onclick="promptPost('wordpress')" style="width:auto; padding:10px 18px;">WordPress Posting</button>
-        <button onclick="promptPost('facebook')" style="width:auto; padding:10px 18px;">Facebook Posting</button>
-        <button onclick="promptPost('instagram')" style="width:auto; padding:10px 18px;">Instagram Posting</button>
-        <button onclick="promptPost('youtube')" style="width:auto; padding:10px 18px;">YouTube Posting</button>
-    </div>
-
     <div class="container">
-        <!-- LEFT: Generator Form -->
-        <div class="section">
-            <h2>📝 Create Video</h2>
-            
-            <form id="generateForm">
+        <!-- NAVIGATION TABS -->
+        <div class="tabs-nav" style="grid-column: 1 / -1;">
+            <button class="tab-btn active" onclick="switchTab('create-short')">⏱ Short Video</button>
+            <button class="tab-btn" onclick="switchTab('create-long')">▶ Long Video</button>
+            <button class="tab-btn" onclick="switchTab('wp-post')">📝 WordPress</button>
+            <button class="tab-btn" onclick="switchTab('fb-post')">f Facebook</button>
+            <button class="tab-btn" onclick="switchTab('ig-post')">📸 Instagram</button>
+            <button class="tab-btn" onclick="switchTab('videos')">📹 Videos Library</button>
+        </div>
+
+        <!-- ============= TAB 1: CREATE SHORT VIDEO ============= -->
+        <div id="create-short" class="tab-content active section">
+            <h2>⏱ Create Short Video (15 seconds)</h2>
+            <form id="generateForm" method="POST">
                 <label for="headline">Headline</label>
                 <input type="text" id="headline" name="headline" placeholder="Breaking News: Major Development..." required>
 
@@ -319,13 +488,7 @@
                     <option value="gujarati">🇮🇳 Gujarati</option>
                 </select>
 
-                <input type="hidden" id="video_length" name="video_length" value="full">
-
-                <label for="voice_gender">Voice</label>
-                <select id="voice_gender" name="female_voice" required>
-                    <option value="false">Male</option>
-                    <option value="true">Female</option>
-                </select>
+                <input type="hidden" id="video_length" name="video_length" value="short">
 
                 <label for="voice_provider">Voice Provider</label>
                 <select id="voice_provider" name="voice_provider">
@@ -346,8 +509,127 @@
             </form>
         </div>
 
-        <!-- RIGHT: Videos Library -->
-        <div class="section">
+        <!-- ============= TAB 2: CREATE LONG VIDEO ============= -->
+        <div id="create-long" class="tab-content section">
+            <h2>▶ Create Long Video (Full Duration)</h2>
+            <form id="generateFormLong" method="POST">
+                <label for="headline2">Headline</label>
+                <input type="text" id="headline2" name="headline" placeholder="Breaking News: Major Development..." required>
+
+                <label for="description2">Description</label>
+                <textarea id="description2" name="description" placeholder="Provide detailed description of the news story..." required></textarea>
+
+                <label for="language2">Language</label>
+                <select id="language2" name="language" required>
+                    <option value="english">🇬🇧 English</option>
+                    <option value="hindi">🇮🇳 Hindi</option>
+                    <option value="gujarati">🇮🇳 Gujarati</option>
+                </select>
+
+                <input type="hidden" id="video_length2" name="video_length" value="full">
+
+                <label for="voice_provider2">Voice Provider</label>
+                <select id="voice_provider2" name="voice_provider">
+                    <option value="auto">Auto (recommended)</option>
+                    <option value="edge">Edge TTS</option>
+                    <option value="eleven">ElevenLabs</option>
+                    <option value="gtts">gTTS</option>
+                </select>
+
+                <label for="voice_model2">Voice Model</label>
+                <select id="voice_model2" name="voice_model">
+                    <option value="auto">Auto</option>
+                </select>
+
+                <button type="submit" id="submitBtnLong">Generate Video</button>
+                
+                <div id="statusLong" class="status"></div>
+            </form>
+        </div>
+
+        <!-- ============= TAB 3: WORDPRESS POSTING ============= -->
+        <div id="wp-post" class="tab-content section">
+            <h2>📝 WordPress Posting</h2>
+            <form id="wpPostForm">
+                <label for="wpFileUpload">Select Video File *</label>
+                <div class="file-upload-group" onclick="document.getElementById('wpFileUpload').click()">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📹</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div style="font-size: 0.85em; color: #666;">MP4 video file</div>
+                    <input type="file" id="wpFileUpload" accept=".mp4,video/mp4" required>
+                    <div id="wpFileName" class="file-name"></div>
+                </div>
+
+                <label for="wpTitle">Post Title *</label>
+                <input type="text" id="wpTitle" placeholder="Enter post title..." required>
+
+                <label for="wpDescription">Description</label>
+                <textarea id="wpDescription" placeholder="Enter post description..."></textarea>
+
+                <label for="wpYoutubeUrl">YouTube Link (optional)</label>
+                <input type="url" id="wpYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
+
+                <button type="submit" id="wpSubmitBtn">Publish to WordPress</button>
+                <div id="wpStatus" class="status"></div>
+            </form>
+        </div>
+
+        <!-- ============= TAB 4: FACEBOOK POSTING ============= -->
+        <div id="fb-post" class="tab-content section">
+            <h2>f Facebook Posting</h2>
+            <form id="fbPostForm">
+                <label for="fbFileUpload">Select Video File *</label>
+                <div class="file-upload-group" onclick="document.getElementById('fbFileUpload').click()">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📹</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div style="font-size: 0.85em; color: #666;">MP4 video file</div>
+                    <input type="file" id="fbFileUpload" accept=".mp4,video/mp4" required>
+                    <div id="fbFileName" class="file-name"></div>
+                </div>
+
+                <label for="fbCaption">Caption</label>
+                <textarea id="fbCaption" placeholder="Enter caption for your Facebook post..."></textarea>
+
+                <button type="submit" id="fbSubmitBtn">Post to Facebook</button>
+                <div id="fbStatus" class="status"></div>
+            </form>
+        </div>
+
+        <!-- ============= TAB 5: INSTAGRAM POSTING ============= -->
+        <div id="ig-post" class="tab-content section">
+            <h2>📸 Instagram Posting</h2>
+            <form id="igPostForm">
+                <label for="igFileUpload">Select Video File *</label>
+                <div class="file-upload-group" onclick="document.getElementById('igFileUpload').click()">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📹</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div style="font-size: 0.85em; color: #666;">MP4 video file</div>
+                    <input type="file" id="igFileUpload" accept=".mp4,video/mp4" required>
+                    <div id="igFileName" class="file-name"></div>
+                </div>
+
+                <label for="igCaption">Caption</label>
+                <textarea id="igCaption" placeholder="Enter caption for your Instagram post..."></textarea>
+
+                <label>Posting Method</label>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; margin: 0; font-weight: normal;">
+                        <input type="radio" name="igPostType" value="api" checked style="width: auto; margin-right: 8px;">
+                        Direct API
+                    </label>
+                    <label style="display: flex; align-items: center; margin: 0; font-weight: normal;">
+                        <input type="radio" name="igPostType" value="web" style="width: auto; margin-right: 8px;">
+                        Web Share
+                    </label>
+                </div>
+
+                <button type="submit" id="igSubmitBtn">Post to Instagram</button>
+                <div id="igStatus" class="status"></div>
+            </form>
+        </div>
+
+        <!-- ============= TAB 6: VIDEOS LIBRARY ============= -->
+        <div id="videos" class="tab-content section">
             <h2>📹 Generated Videos</h2>
             <div id="videosList" class="video-grid">
                 <div class="empty-message">Loading videos...</div>
@@ -356,12 +638,65 @@
     </div>
 
     <script>
+        // ============= TAB SWITCHING =============
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Deactivate all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            const tab = document.getElementById(tabId);
+            if (tab) {
+                tab.classList.add('active');
+                // Activate corresponding button
+                event.target.classList.add('active');
+                
+                // Load videos when switching to videos tab
+                if (tabId === 'videos') {
+                    loadVideos();
+                }
+            }
+        }
+
+        // ============= FILE UPLOAD HANDLERS =============
+        function setupFileUpload(fileInputId, fileNameId) {
+            const fileInput = document.getElementById(fileInputId);
+            const fileName = document.getElementById(fileNameId);
+            
+            if (!fileInput) return;
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    fileName.textContent = '✓ ' + e.target.files[0].name;
+                    fileName.style.color = '#66b2ff';
+                } else {
+                    fileName.textContent = '';
+                }
+            });
+        }
+
+        // Initialize file uploads
+        setupFileUpload('wpFileUpload', 'wpFileName');
+        setupFileUpload('fbFileUpload', 'fbFileName');
+        setupFileUpload('igFileUpload', 'igFileName');
+
+        // ============= FORM HANDLERS =============
         const form = document.getElementById('generateForm');
+        const formLong = document.getElementById('generateFormLong');
         const statusDiv = document.getElementById('status');
+        const statusDivLong = document.getElementById('statusLong');
         const submitBtn = document.getElementById('submitBtn');
+        const submitBtnLong = document.getElementById('submitBtnLong');
         const videosList = document.getElementById('videosList');
         const providerSelect = document.getElementById('voice_provider');
         const modelSelect = document.getElementById('voice_model');
+        const providerSelect2 = document.getElementById('voice_provider2');
+        const modelSelect2 = document.getElementById('voice_model2');
 
         // Load videos on page load
         loadVideos();
@@ -409,6 +744,21 @@
             providerSelect.addEventListener('change', (e) => populateModels(e.target.value));
         }
 
+        // Initialize second provider/model selectors for long form
+        if (providerSelect2) {
+            populateModels(providerSelect2.value || 'auto');
+            providerSelect2.addEventListener('change', (e) => {
+                const list = MODELS[e.target.value] || MODELS['auto'];
+                modelSelect2.innerHTML = '';
+                list.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.label;
+                    modelSelect2.appendChild(opt);
+                });
+            });
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -434,8 +784,7 @@
                 formData.append('headline', headline);
                 formData.append('description', description);
                 formData.append('language', language);
-                // include voice & model choices
-                formData.append('female_voice', document.getElementById('voice_gender').value);
+                // Voice uses default female voice with fallback to male
                 formData.append('voice_provider', document.getElementById('voice_provider').value);
                 formData.append('voice_model', document.getElementById('voice_model').value);
                 formData.append('video_length', document.getElementById('video_length').value);
@@ -479,6 +828,218 @@
             }
         });
 
+        // LONG FORM EVENT LISTENER
+        if (formLong) {
+            formLong.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const headline = document.getElementById('headline2').value;
+                const description = document.getElementById('description2').value;
+                const language = document.getElementById('language2').value;
+
+                if (!headline.trim()) {
+                    const status = document.getElementById('statusLong');
+                    showStatusInDiv(status, 'Please enter a headline', 'error');
+                    return;
+                }
+                
+                if (!description.trim()) {
+                    const status = document.getElementById('statusLong');
+                    showStatusInDiv(status, 'Please enter a description', 'error');
+                    return;
+                }
+
+                submitBtnLong.disabled = true;
+                const status = document.getElementById('statusLong');
+                showStatusInDiv(status, '<span class="spinner"></span> Generating video... This may take 1-2 minutes', 'loading');
+
+                try {
+                    const formData = new FormData();
+                    formData.append('headline', headline);
+                    formData.append('description', description);
+                    formData.append('language', language);
+                    formData.append('voice_provider', document.getElementById('voice_provider2').value);
+                    formData.append('voice_model', document.getElementById('voice_model2').value);
+                    formData.append('video_length', document.getElementById('video_length2').value);
+
+                    const response = await fetch('/generate', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    let data = await response.json().catch(() => ({}));
+
+                    if (response.ok) {
+                        showStatusInDiv(status, '✓ Video generated successfully!', 'success');
+                        formLong.reset();
+                        setTimeout(() => {
+                            status.classList.remove('show');
+                        }, 3000);
+                        loadVideos();
+                    } else {
+                        showStatusInDiv(status, '✗ ' + (data.error || 'Failed to generate video'), 'error');
+                    }
+                } catch (error) {
+                    showStatusInDiv(status, '✗ Error: ' + error.message, 'error');
+                } finally {
+                    submitBtnLong.disabled = false;
+                }
+            });
+        }
+
+        // WORDPRESS POSTING FORM
+        const wpPostForm = document.getElementById('wpPostForm');
+        if (wpPostForm) {
+            wpPostForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('wpFileUpload');
+                const title = document.getElementById('wpTitle').value.trim();
+                const description = document.getElementById('wpDescription').value.trim();
+                const youtubeUrl = document.getElementById('wpYoutubeUrl').value.trim();
+                const status = document.getElementById('wpStatus');
+
+                if (!fileInput.files.length) {
+                    showStatusInDiv(status, 'Please select a video file', 'error');
+                    return;
+                }
+
+                if (!title) {
+                    showStatusInDiv(status, 'Title is required', 'error');
+                    return;
+                }
+
+                showStatusInDiv(status, '<span class="spinner"></span> Uploading to WordPress...', 'loading');
+                submitBtnLong.disabled = true;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('video', fileInput.files[0]);
+                    formData.append('headline', title);
+                    formData.append('description', description);
+                    formData.append('youtube_url', youtubeUrl);
+
+                    const response = await fetch('/wordpress/post', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    let data = await response.json().catch(() => ({}));
+
+                    if (response.ok) {
+                        showStatusInDiv(status, '✓ Posted to WordPress successfully!', 'success');
+                        wpPostForm.reset();
+                        document.getElementById('wpFileName').textContent = '';
+                        setTimeout(() => status.classList.remove('show'), 3000);
+                    } else {
+                        showStatusInDiv(status, '✗ ' + (data.error || 'Upload failed'), 'error');
+                    }
+                } catch (error) {
+                    showStatusInDiv(status, '✗ Error: ' + error.message, 'error');
+                } finally {
+                    submitBtnLong.disabled = false;
+                }
+            });
+        }
+
+        // FACEBOOK POSTING FORM
+        const fbPostForm = document.getElementById('fbPostForm');
+        if (fbPostForm) {
+            fbPostForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('fbFileUpload');
+                const caption = document.getElementById('fbCaption').value.trim();
+                const status = document.getElementById('fbStatus');
+
+                if (!fileInput.files.length) {
+                    showStatusInDiv(status, 'Please select a video file', 'error');
+                    return;
+                }
+
+                showStatusInDiv(status, '<span class="spinner"></span> Posting to Facebook...', 'loading');
+                const fbSubmitBtn = document.getElementById('fbSubmitBtn');
+                fbSubmitBtn.disabled = true;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('video', fileInput.files[0]);
+                    formData.append('caption', caption);
+
+                    const response = await fetch('/facebook/post', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    let data = await response.json().catch(() => ({}));
+
+                    if (response.ok) {
+                        showStatusInDiv(status, '✓ Posted to Facebook successfully!', 'success');
+                        fbPostForm.reset();
+                        document.getElementById('fbFileName').textContent = '';
+                        setTimeout(() => status.classList.remove('show'), 3000);
+                    } else {
+                        showStatusInDiv(status, '✗ ' + (data.error || 'Upload failed'), 'error');
+                    }
+                } catch (error) {
+                    showStatusInDiv(status, '✗ Error: ' + error.message, 'error');
+                } finally {
+                    fbSubmitBtn.disabled = false;
+                }
+            });
+        }
+
+        // INSTAGRAM POSTING FORM
+        const igPostForm = document.getElementById('igPostForm');
+        if (igPostForm) {
+            igPostForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('igFileUpload');
+                const caption = document.getElementById('igCaption').value.trim();
+                const postType = document.querySelector('input[name="igPostType"]:checked')?.value || 'api';
+                const status = document.getElementById('igStatus');
+
+                if (!fileInput.files.length) {
+                    showStatusInDiv(status, 'Please select a video file', 'error');
+                    return;
+                }
+
+                if (postType === 'web') {
+                    // For web share, we can't really share a file directly
+                    showStatusInDiv(status, 'For web share, please use your device\'s native share feature', 'info');
+                    return;
+                }
+
+                showStatusInDiv(status, '<span class="spinner"></span> Posting to Instagram...', 'loading');
+                const igSubmitBtn = document.getElementById('igSubmitBtn');
+                igSubmitBtn.disabled = true;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('video', fileInput.files[0]);
+                    formData.append('caption', caption);
+
+                    const response = await fetch('/instagram/post', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    let data = await response.json().catch(() => ({}));
+
+                    if (response.ok) {
+                        showStatusInDiv(status, '✓ Posted to Instagram successfully!', 'success');
+                        igPostForm.reset();
+                        document.getElementById('igFileName').textContent = '';
+                        setTimeout(() => status.classList.remove('show'), 3000);
+                    } else {
+                        showStatusInDiv(status, '✗ ' + (data.error || 'Upload failed'), 'error');
+                    }
+                } catch (error) {
+                    showStatusInDiv(status, '✗ Error: ' + error.message, 'error');
+                } finally {
+                    igSubmitBtn.disabled = false;
+                }
+            });
+        }
+
         function createShort() {
             document.getElementById('video_length').value = 'short';
             submitBtn.click();
@@ -517,6 +1078,12 @@
         function showStatus(message, type) {
             statusDiv.innerHTML = message;
             statusDiv.className = `status show ${type}`;
+        }
+
+        function showStatusInDiv(statusElement, message, type) {
+            if (!statusElement) return;
+            statusElement.innerHTML = message;
+            statusElement.className = `status show ${type}`;
         }
 
         async function loadVideos() {
@@ -613,98 +1180,15 @@
 
         // Social sharing helpers
         function shareFacebook(filename, headline) {
-            const videoUrl = window.location.origin + `/video/${filename}`;
-            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`;
-            window.open(shareUrl, '_blank', 'noopener');
+            openFacebookModal(filename, headline);
         }
 
         async function shareInstagram(filename, headline) {
-            const videoUrl = window.location.origin + `/video/${filename}`;
-
-            // Try Web Share API first (mobile browsers)
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: headline,
-                        text: headline,
-                        url: videoUrl
-                    });
-                    return;
-                } catch (e) {
-                    console.warn('Web Share failed:', e);
-                }
-            }
-
-            // Fallback: prompt user to download and upload to Instagram
-            const msg = `Instagram requires native upload.\n\nOpen this link to download the video:\n${videoUrl}\n\nOr copy the link to clipboard.`;
-            if (confirm(msg + '\n\nPress OK to copy link to clipboard.')) {
-                try {
-                    await navigator.clipboard.writeText(videoUrl);
-                    alert('Link copied to clipboard. Download the video and post to Instagram.');
-                } catch (e) {
-                    prompt('Copy this link to clipboard:', videoUrl);
-                }
-            }
+            openInstagramModal(filename, headline);
         }
 
         async function shareWordpress(filename, headline) {
-            // Sends a request to backend to create a WordPress post from the generated video
-            const postInfoId = `post-info-${filename}`;
-            const postInfo = document.getElementById(postInfoId);
-            const maxAttempts = 3;
-
-            async function attemptPublish(attempt = 1) {
-                // local UI feedback
-                postInfo.innerHTML = `<div class="status loading show"><span class="spinner"></span> Publishing to WordPress... (attempt ${attempt}/${maxAttempts})</div>`;
-
-                try {
-                    const formData = new FormData();
-                    formData.append('filename', filename);
-                    formData.append('headline', headline);
-
-                    const res = await fetch('/post-to-wordpress', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const data = await res.json().catch(() => ({}));
-
-                    if (res.ok && data.post) {
-                        const postLink = data.post.link || data.post.guid?.rendered || data.post.url || '';
-                        let html = `<div class="status success show">✓ Published to WordPress</div>`;
-                        if (postLink) {
-                            html += `<div style="margin-top:8px">Post: <a href="${postLink}" target="_blank" rel="noopener">${postLink}</a></div>`;
-                            html += `<div class="post-actions">`;
-                            html += `<button onclick="window.open('${postLink}','_blank')">Open</button>`;
-                            html += `<button onclick="embedPost('${postInfoId}','${postLink}')">Embed</button>`;
-                            html += `</div>`;
-                        } else {
-                            html += `<div style="margin-top:8px">Post created (ID: ${data.post.id || 'unknown'})</div>`;
-                        }
-
-                        postInfo.innerHTML = html;
-                        setTimeout(() => { if (postInfo) postInfo.querySelector('.status')?.classList.remove('show'); }, 3000);
-                    } else {
-                        const err = data.error || res.statusText || 'Unknown error';
-                        if (attempt < maxAttempts) {
-                            postInfo.innerHTML = `<div class="status error show">✗ WordPress publish failed: ${err} — retrying...</div>`;
-                            await new Promise(r => setTimeout(r, 1200));
-                            return attemptPublish(attempt + 1);
-                        } else {
-                            postInfo.innerHTML = `<div class="status error show">✗ WordPress publish failed: ${err}</div><div class="post-actions"><button onclick="shareWordpress('${filename}','${headline}')">Retry</button></div>`;
-                        }
-                    }
-                } catch (e) {
-                    if (attempt < maxAttempts) {
-                        postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message} — retrying...</div>`;
-                        await new Promise(r => setTimeout(r, 1200));
-                        return attemptPublish(attempt + 1);
-                    }
-                    postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message}</div><div class="post-actions"><button onclick="shareWordpress('${filename}','${headline}')">Retry</button></div>`;
-                }
-            }
-
-            attemptPublish();
+            openWordPressModal(filename, headline);
         }
 
         function embedPost(containerId, url) {
@@ -725,7 +1209,292 @@
             iframe.style.border = '1px solid rgba(255,255,255,0.06)';
             container.appendChild(iframe);
         }
+
+        // ============= MODAL FUNCTIONS =============
+        let currentModalData = {};
+
+        function openModal(modalId, modalData = {}) {
+            currentModalData = modalData;
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            currentModalData = {};
+        }
+
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+            currentModalData = {};
+        }
+
+        // WordPress Modal
+        async function openWordPressModal(filename, headline) {
+            openModal('wordpressModal', { filename, headline });
+            document.getElementById('wpTitle').value = headline || '';
+            document.getElementById('wpDescription').value = '';
+            document.getElementById('wpYoutubeUrl').value = '';
+        }
+
+        async function submitWordPressForm() {
+            const filename = currentModalData.filename;
+            const title = document.getElementById('wpTitle').value.trim();
+            const description = document.getElementById('wpDescription').value.trim();
+            const youtubeUrl = document.getElementById('wpYoutubeUrl').value.trim();
+
+            if (!title) {
+                alert('Title is required');
+                return;
+            }
+
+            closeAllModals();
+
+            const postInfoId = `post-info-${filename}`;
+            const postInfo = document.getElementById(postInfoId);
+            const maxAttempts = 3;
+
+            async function attemptPublish(attempt = 1) {
+                postInfo.innerHTML = `<div class="status loading show"><span class="spinner"></span> Publishing to WordPress... (attempt ${attempt}/${maxAttempts})</div>`;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('filename', filename);
+                    formData.append('headline', title);
+                    formData.append('description', description);
+                    formData.append('youtube_url', youtubeUrl);
+
+                    const res = await fetch('/wordpress/post', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    if (res.ok && data.post) {
+                        const postLink = data.post.link || data.post.guid?.rendered || data.post.url || '';
+                        let html = `<div class="status success show">✓ Published to WordPress</div>`;
+                        if (postLink) {
+                            html += `<div style="margin-top:8px">Post: <a href="${postLink}" target="_blank" rel="noopener">${postLink}</a></div>`;
+                            html += `<div class="post-actions">`;
+                            html += `<button onclick="window.open('${postLink}','_blank')">Open</button>`;
+                            html += `<button onclick="embedPost('${postInfoId}','${postLink}')">Embed</button>`;
+                            html += `</div>`;
+                        } else {
+                            html += `<div style="margin-top:8px">Post created (ID: ${data.post.id || 'unknown'})</div>`;
+                        }
+                        postInfo.innerHTML = html;
+                        setTimeout(() => { if (postInfo) postInfo.querySelector('.status')?.classList.remove('show'); }, 3000);
+                    } else {
+                        const err = data.error || res.statusText || 'Unknown error';
+                        if (attempt < maxAttempts) {
+                            postInfo.innerHTML = `<div class="status error show">✗ Publish failed: ${err} — retrying...</div>`;
+                            await new Promise(r => setTimeout(r, 1200));
+                            return attemptPublish(attempt + 1);
+                        } else {
+                            postInfo.innerHTML = `<div class="status error show">✗ Publish failed: ${err}</div><div class="post-actions"><button onclick="openWordPressModal('${filename}','${title}')">Retry</button></div>`;
+                        }
+                    }
+                } catch (e) {
+                    if (attempt < maxAttempts) {
+                        postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message} — retrying...</div>`;
+                        await new Promise(r => setTimeout(r, 1200));
+                        return attemptPublish(attempt + 1);
+                    }
+                    postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message}</div><div class="post-actions"><button onclick="openWordPressModal('${filename}','${title}')">Retry</button></div>`;
+                }
+            }
+
+            attemptPublish();
+        }
+
+        // Facebook Modal
+        async function openFacebookModal(filename, headline) {
+            openModal('facebookModal', { filename, headline });
+            document.getElementById('fbCaption').value = '';
+        }
+
+        async function submitFacebookForm() {
+            const filename = currentModalData.filename;
+            const caption = document.getElementById('fbCaption').value.trim();
+
+            closeAllModals();
+
+            const postInfoId = `post-info-${filename}`;
+            const postInfo = document.getElementById(postInfoId);
+
+            try {
+                postInfo.innerHTML = `<div class="status loading show"><span class="spinner"></span> Posting to Facebook...</div>`;
+
+                const formData = new FormData();
+                formData.append('filename', filename);
+                formData.append('caption', caption);
+
+                const res = await fetch('/facebook/post', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.status === 'posted') {
+                    postInfo.innerHTML = `<div class="status success show">✓ Posted to Facebook</div>`;
+                    setTimeout(() => { if (postInfo) postInfo.querySelector('.status')?.classList.remove('show'); }, 3000);
+                } else {
+                    const err = data.error || res.statusText || 'Unknown error';
+                    postInfo.innerHTML = `<div class="status error show">✗ Failed: ${err}</div><div class="post-actions"><button onclick="openFacebookModal('${filename}','')">Retry</button></div>`;
+                }
+            } catch (e) {
+                postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message}</div><div class="post-actions"><button onclick="openFacebookModal('${filename}','')">Retry</button></div>`;
+            }
+        }
+
+        // Instagram Modal
+        async function openInstagramModal(filename, headline) {
+            openModal('instagramModal', { filename, headline });
+            document.getElementById('igCaption').value = '';
+        }
+
+        async function submitInstagramForm() {
+            const filename = currentModalData.filename;
+            const caption = document.getElementById('igCaption').value.trim();
+            const postType = document.querySelector('input[name="igPostType"]:checked')?.value || 'api';
+
+            closeAllModals();
+
+            const postInfoId = `post-info-${filename}`;
+            const postInfo = document.getElementById(postInfoId);
+
+            if (postType === 'web') {
+                // Web Share method
+                const videoUrl = window.location.origin + `/video/${filename}`;
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: 'Check this out',
+                            text: caption || 'Generated video',
+                            url: videoUrl
+                        });
+                        postInfo.innerHTML = `<div class="status success show">✓ Shared to Instagram</div>`;
+                        setTimeout(() => { if (postInfo) postInfo.querySelector('.status')?.classList.remove('show'); }, 3000);
+                        return;
+                    } catch (e) {
+                        console.warn('Web Share failed:', e);
+                    }
+                }
+                // Fallback
+                const msg = `Open link to download and upload to Instagram:\n${videoUrl}`;
+                if (confirm(msg + '\n\nCopy to clipboard?')) {
+                    await navigator.clipboard.writeText(videoUrl);
+                    alert('Link copied. Download the video and post to Instagram.');
+                }
+            } else {
+                // API method
+                try {
+                    postInfo.innerHTML = `<div class="status loading show"><span class="spinner"></span> Posting to Instagram...</div>`;
+
+                    const formData = new FormData();
+                    formData.append('filename', filename);
+                    formData.append('caption', caption);
+
+                    const res = await fetch('/instagram/post', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    if (res.ok && data.status === 'posted') {
+                        postInfo.innerHTML = `<div class="status success show">✓ Posted to Instagram</div>`;
+                        setTimeout(() => { if (postInfo) postInfo.querySelector('.status')?.classList.remove('show'); }, 3000);
+                    } else {
+                        const err = data.error || res.statusText || 'Unknown error';
+                        postInfo.innerHTML = `<div class="status error show">✗ Failed: ${err}</div><div class="post-actions"><button onclick="openInstagramModal('${filename}','')">Retry</button></div>`;
+                    }
+                } catch (e) {
+                    postInfo.innerHTML = `<div class="status error show">✗ Error: ${e.message}</div><div class="post-actions"><button onclick="openInstagramModal('${filename}','')">Retry</button></div>`;
+                }
+            }
+        }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeAllModals();
+            }
+        }
     </script>
+
+    <!-- WordPress Modal -->
+    <div id="wordpressModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 WordPress Post</h2>
+                <button class="modal-close" onclick="closeAllModals()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="wpTitle">Title *</label>
+                <input type="text" id="wpTitle" placeholder="Enter post title..." required>
+
+                <label for="wpDescription">Description</label>
+                <textarea id="wpDescription" placeholder="Enter post description..."></textarea>
+
+                <label for="wpYoutubeUrl">YouTube Link (optional)</label>
+                <input type="url" id="wpYoutubeUrl" placeholder="https://youtube.com/watch?v=...">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAllModals()">Cancel</button>
+                <button class="btn-submit" onclick="submitWordPressForm()">Publish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Facebook Modal -->
+    <div id="facebookModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>f Facebook Post</h2>
+                <button class="modal-close" onclick="closeAllModals()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="fbCaption">Caption</label>
+                <textarea id="fbCaption" placeholder="Enter caption for your Facebook post..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAllModals()">Cancel</button>
+                <button class="btn-submit" onclick="submitFacebookForm()">Post</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instagram Modal -->
+    <div id="instagramModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📸 Instagram Post</h2>
+                <button class="modal-close" onclick="closeAllModals()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="igCaption">Caption</label>
+                <textarea id="igCaption" placeholder="Enter caption for your Instagram post..."></textarea>
+
+                <label>Posting Method</label>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; margin: 0; font-weight: normal;">
+                        <input type="radio" name="igPostType" value="api" checked style="width: auto; margin-right: 8px;">
+                        Direct API
+                    </label>
+                    <label style="display: flex; align-items: center; margin: 0; font-weight: normal;">
+                        <input type="radio" name="igPostType" value="web" style="width: auto; margin-right: 8px;">
+                        Web Share
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAllModals()">Cancel</button>
+                <button class="btn-submit" onclick="submitInstagramForm()">Post</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

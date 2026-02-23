@@ -40,11 +40,47 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
         raise WordPressUploadError(str(e)) from e
 
 
-def create_post(title: str, content: str, wp_url: str, username: str, app_password: str, media_id: int = None, status: str = "publish") -> Dict[str, Any]:
+def create_post(title: str, content: str, wp_url: str, username: str, app_password: str, media_id: int = None, status: str = "publish", description: str = None, youtube_url: str = None) -> Dict[str, Any]:
     endpoint = f"{wp_url.rstrip('/')}/wp-json/wp/v2/posts"
+    
+    # Build post content
+    post_content = ""
+    
+    # Extract YouTube video ID from various URL formats
+    video_id = None
+    if youtube_url:
+        # Handle https://youtube.com/watch?v=VIDEOID
+        # Handle https://youtu.be/VIDEOID
+        # Handle https://www.youtube.com/watch?v=VIDEOID
+        if "youtube.com" in youtube_url:
+            try:
+                from urllib.parse import urlparse, parse_qs
+                parsed = urlparse(youtube_url)
+                video_id = parse_qs(parsed.query).get('v', [None])[0]
+            except:
+                # Fallback to simple split
+                video_id = youtube_url.split('v=')[-1] if 'v=' in youtube_url else None
+        elif "youtu.be" in youtube_url:
+            # Extract from youtu.be/VIDEOID format
+            video_id = youtube_url.split('/')[-1]
+        else:
+            # Assume it's just the video ID
+            video_id = youtube_url.strip()
+        
+        if video_id:
+            post_content += f'<iframe width="560" height="315" src="https://www.youtube.com/embed/{video_id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n'
+    
+    if description:
+        post_content += f"<p>{description}</p>\n"
+    else:
+        post_content += f"<p>{title}</p>\n"
+    
+    if content:
+        post_content += content
+    
     payload = {
         "title": title,
-        "content": content,
+        "content": post_content,
         "status": status
     }
     if media_id is not None:
@@ -60,9 +96,18 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
         raise WordPressUploadError(str(e)) from e
 
 
-def publish_video_as_post(video_path: str, title: str, wp_url: str, username: str, app_password: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def publish_video_as_post(video_path: str, title: str, wp_url: str, username: str, app_password: str, description: str = None, youtube_url: str = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Uploads the video as media and creates a post linking/embedding it.
+
+    Args:
+        video_path: Path to the video file
+        title: Post title
+        wp_url: WordPress site URL
+        username: WordPress username
+        app_password: WordPress app password
+        description: Post description (optional)
+        youtube_url: YouTube video URL to embed (optional)
 
     Returns a tuple (media_response, post_response)
     """
@@ -74,10 +119,19 @@ def publish_video_as_post(video_path: str, title: str, wp_url: str, username: st
     # Simple post content embedding the video
     content = ""
     if media_url:
-        content = f"<p>{title}</p>\n<video controls src=\"{media_url}\" style=\"max-width:100%\"></video>"
+        content = f"<video controls src=\"{media_url}\" style=\"max-width:100%\"></video>"
     else:
-        content = f"<p>{title}</p>\n<p>Video uploaded to media library (ID: {media.get('id')}).</p>"
+        content = f"<p>Video uploaded to media library (ID: {media.get('id')}).</p>"
 
-    post = create_post(title=title, content=content, wp_url=wp_url, username=username, app_password=app_password, media_id=media.get("id"))
+    post = create_post(
+        title=title,
+        content=content,
+        wp_url=wp_url,
+        username=username,
+        app_password=app_password,
+        media_id=media.get("id"),
+        description=description,
+        youtube_url=youtube_url
+    )
 
     return media, post

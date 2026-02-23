@@ -133,7 +133,6 @@ def generate():
     headline = request.form["headline"]
     description = request.form["description"]
     language = request.form["language"]
-    female_voice = request.form.get("female_voice", "false").lower() == "true"
     voice_provider = request.form.get("voice_provider", "auto")
     voice_model = request.form.get("voice_model", "auto")
     video_length = request.form.get("video_length", "full")
@@ -185,7 +184,6 @@ def generate_and_post():
         headline = request.form["headline"]
         description = request.form["description"]
         language = request.form["language"]
-        female_voice = request.form.get("female_voice", "false").lower() == "true"
         voice_provider = request.form.get("voice_provider", "auto")
         voice_model = request.form.get("voice_model", "auto")
         video_length = request.form.get("video_length", "full")

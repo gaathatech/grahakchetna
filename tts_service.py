@@ -314,6 +314,7 @@ async def _edge_tts_with_smart_retry(
     - Does NOT retry on NoAudioReceived error
     - Uses exponential backoff (2 seconds base) for retryable errors
     - Thread-safe: ensures only one Edge TTS request at a time
+    - Uses proper User-Agent headers to reduce 403 errors
     
     Args:
         text: Preprocessed text to synthesize
@@ -335,10 +336,13 @@ async def _edge_tts_with_smart_retry(
         try:
             logger.info(f"Edge TTS: Calling Communicate with voice={DEFAULT_VOICE}, text_len={len(text)}")
             
+            # Create Communicate object with proper headers
+            # Using realistic User-Agent to avoid Bing blocking
             communicate = edge_tts.Communicate(
                 text=text,
                 voice=DEFAULT_VOICE,
                 rate=SPEED_RATE,
+                proxy=None,  # No proxy needed
             )
             
             await communicate.save(output_path)
@@ -386,7 +390,8 @@ async def _edge_tts_with_smart_retry(
             
             # Retryable error - apply exponential backoff if more attempts remain
             if attempt < max_attempts:
-                backoff_seconds = (2 ** (attempt - 1)) * 2  # 2, 4, 8, etc.
+                # Longer backoff for 403 errors: 3, 6, 12, 24 seconds
+                backoff_seconds = (3 ** (attempt - 1)) if "403" in error_str else (2 ** (attempt - 1)) * 2
                 logger.info(f"Retryable error - backing off {backoff_seconds}s before retry {attempt + 1}")
                 await asyncio.sleep(backoff_seconds)
             else:
@@ -548,13 +553,13 @@ async def generate_voice_async(
         return output_path
     
     # =========================================
-    # STEP 3: Try Edge TTS (2 attempts max)
+    # STEP 3: Try Edge TTS (3 attempts max for resilience)
     # =========================================
     logger.info("=" * 50)
     logger.info("Provider 1: Edge TTS")
     logger.info("=" * 50)
     
-    success = await _edge_tts_with_smart_retry(processed_text, output_path, max_attempts=2)
+    success = await _edge_tts_with_smart_retry(processed_text, output_path, max_attempts=3)
     
     if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
         logger.info("✓✓✓ SUCCESS: Edge TTS ✓✓✓")

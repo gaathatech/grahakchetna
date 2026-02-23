@@ -426,7 +426,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     # Animation function for scrolling
     def make_ticker_position(t):
         # Speed: move across screen in duration seconds, then loop
-        scroll_speed = WIDTH + 2400  # Total distance to scroll - increased for faster speed
+        scroll_speed = WIDTH + 4500  # Total distance to scroll - increased for faster speed
         x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
         return (x_pos, headline_bar_y + 35)
     
@@ -480,7 +480,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         # Create a custom clip that handles internal cropping for scrolling
         def desc_make_frame(t):
             # Calculate scroll position
-            scroll_duration = duration * 0.6
+            scroll_duration = duration * 0.35  # Faster scrolling - reduced from 0.6
             if t < scroll_duration:
                 # Scroll from top to bottom of text
                 scroll_distance = desc_height - desc_box_height
