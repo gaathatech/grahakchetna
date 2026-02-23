@@ -55,6 +55,11 @@ Notes
 - The Facebook upload feature requires valid `PAGE_ID` and `PAGE_ACCESS_TOKEN` environment variables.
 - The project expects `assets/bg.mp4`, `assets/music.mp3` and `static/anchor.png`/`static/logo.jpg` to be present for best results.
 
+Security note
+-------------
+
+This repository recently had a Google OAuth client secret committed and subsequently removed from history. The file pattern `client_secret_*.json` has been added to `.gitignore`. Rotate any exposed credentials immediately; see `CREDENTIAL_ROTATION.md` for details.
+
 License
 This repository contains internal code and assets — follow your project's licensing and distribution rules.
 ```
