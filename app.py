@@ -113,7 +113,7 @@ def _get_video_duration(video_path):
         return 0
 
 
-@app.route("/")
+@app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template("index.html")
 
