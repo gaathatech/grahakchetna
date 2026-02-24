@@ -11,9 +11,17 @@ class WordPressUploadError(Exception):
     pass
 
 
-def upload_media(video_path: str, wp_url: str, username: str, app_password: str, timeout: int = 300) -> Dict[str, Any]:
+def upload_media(video_path: str, wp_url: str, username: str, app_password: str, timeout: int = 300, verify_ssl: bool = True) -> Dict[str, Any]:
     """
     Upload a video file to WordPress media library via REST API.
+
+    Args:
+        video_path: Path to the video file
+        wp_url: WordPress site URL
+        username: WordPress username
+        app_password: WordPress app password
+        timeout: Request timeout in seconds
+        verify_ssl: Whether to verify SSL certificates (set to False for self-signed certs)
 
     Returns the JSON response from the media endpoint.
     """
@@ -29,7 +37,14 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
     try:
         with open(video_path, "rb") as fh:
             files = {"file": (os.path.basename(video_path), fh, "video/mp4")}
-            resp = requests.post(endpoint, auth=(username, app_password), files=files, headers=headers, timeout=timeout)
+            resp = requests.post(
+                endpoint,
+                auth=(username, app_password),
+                files=files,
+                headers=headers,
+                timeout=timeout,
+                verify=verify_ssl
+            )
 
         resp.raise_for_status()
         logger.info("✓ WordPress media uploaded")
@@ -40,7 +55,7 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
         raise WordPressUploadError(str(e)) from e
 
 
-def create_post(title: str, content: str, wp_url: str, username: str, app_password: str, media_id: int = None, status: str = "publish", description: str = None, youtube_url: str = None) -> Dict[str, Any]:
+def create_post(title: str, content: str, wp_url: str, username: str, app_password: str, media_id: int = None, status: str = "publish", description: str = None, youtube_url: str = None, verify_ssl: bool = True) -> Dict[str, Any]:
     endpoint = f"{wp_url.rstrip('/')}/wp-json/wp/v2/posts"
     
     # Build post content
@@ -87,7 +102,13 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
         payload["featured_media"] = media_id
 
     try:
-        resp = requests.post(endpoint, auth=(username, app_password), json=payload, timeout=30)
+        resp = requests.post(
+            endpoint,
+            auth=(username, app_password),
+            json=payload,
+            timeout=30,
+            verify=verify_ssl
+        )
         resp.raise_for_status()
         logger.info("✓ WordPress post created")
         return resp.json()
@@ -96,7 +117,7 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
         raise WordPressUploadError(str(e)) from e
 
 
-def publish_video_as_post(video_path: str, title: str, wp_url: str, username: str, app_password: str, description: str = None, youtube_url: str = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def publish_video_as_post(video_path: str, title: str, wp_url: str, username: str, app_password: str, description: str = None, youtube_url: str = None, verify_ssl: bool = True) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Uploads the video as media and creates a post linking/embedding it.
 
@@ -108,10 +129,11 @@ def publish_video_as_post(video_path: str, title: str, wp_url: str, username: st
         app_password: WordPress app password
         description: Post description (optional)
         youtube_url: YouTube video URL to embed (optional)
+        verify_ssl: Whether to verify SSL certificates (set to False for self-signed certs)
 
     Returns a tuple (media_response, post_response)
     """
-    media = upload_media(video_path, wp_url, username, app_password)
+    media = upload_media(video_path, wp_url, username, app_password, verify_ssl=verify_ssl)
 
     # Prefer the media source URL if available
     media_url = media.get("source_url") or media.get("guid", {}).get("rendered")
@@ -131,7 +153,8 @@ def publish_video_as_post(video_path: str, title: str, wp_url: str, username: st
         app_password=app_password,
         media_id=media.get("id"),
         description=description,
-        youtube_url=youtube_url
+        youtube_url=youtube_url,
+        verify_ssl=verify_ssl
     )
 
     return media, post

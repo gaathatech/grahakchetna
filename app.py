@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, send_file, jsonify
 from script_service import generate_script
+from long_script_service import generate_long_script
 from tts_service import generate_voice
 from video_service import generate_video
+from long_video_service import generate_long_video
 from facebook_uploader import upload_reel, FacebookReelUploadError
 from wordpress_uploader import publish_video_as_post, WordPressUploadError
 import os
@@ -87,6 +89,19 @@ def add_to_manifest(video_path, headline, description, language):
     save_manifest(manifest)
     return entry
 
+
+def _get_video_duration(video_path):
+    """Get video duration in seconds"""
+    try:
+        from moviepy.editor import VideoFileClip
+        clip = VideoFileClip(video_path)
+        duration = clip.duration
+        clip.close()
+        return duration
+    except Exception:
+        return 0
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -96,6 +111,28 @@ def list_videos():
     """List all generated videos"""
     manifest = load_manifest()
     return jsonify(manifest)
+
+@app.route("/config/credentials", methods=["GET"])
+def get_credentials_status():
+    """
+    Check which posting platforms are configured.
+    Returns status of credentials for Facebook, Instagram, WordPress.
+    """
+    return jsonify({
+        "facebook": {
+            "configured": bool(os.getenv("PAGE_ID") and os.getenv("PAGE_ACCESS_TOKEN")),
+            "page_id": os.getenv("PAGE_ID", "").split()[0] if os.getenv("PAGE_ID") else None,
+        },
+        "instagram": {
+            "configured": bool(os.getenv("PAGE_ID") and os.getenv("PAGE_ACCESS_TOKEN")),
+            "insta_id": os.getenv("INSTA_ID", "").split()[0] if os.getenv("INSTA_ID") else None,
+        },
+        "wordpress": {
+            "configured": bool(os.getenv("WORDPRESS_URL") and os.getenv("WORDPRESS_USERNAME") and os.getenv("WORDPRESS_APP_PASSWORD")),
+            "url": os.getenv("WORDPRESS_URL", "").split("/")[2] if os.getenv("WORDPRESS_URL") else None,
+            "verify_ssl": os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
+        }
+    })
 
 @app.route("/video/<filename>", methods=["GET"])
 def get_video(filename):
@@ -307,7 +344,265 @@ def generate_and_post():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/post-to-wordpress", methods=["POST"])
+@app.route("/generate-long", methods=["POST"])
+def generate_long():
+    """
+    Generate a long-form YouTube video (8-12 minutes, 1920x1080).
+    
+    Expects JSON or form data input:
+    JSON:
+    {
+        "title": "Topic headline",
+        "description": "Short summary",
+        "language": "english" (optional)
+    }
+    
+    Form data also accepts:
+    - green_screen: File upload (image or video for green screen overlay)
+    """
+    try:
+        # Support both JSON and form data
+        headline = None
+        description = None
+        language = "english"
+        green_screen_media = None
+        
+        if request.is_json:
+            data = request.get_json()
+            headline = data.get("title")
+            description = data.get("description")
+            language = data.get("language", "english")
+        else:
+            headline = request.form.get("title")
+            description = request.form.get("description")
+            language = request.form.get("language", "english")
+            
+            # Handle green screen file upload
+            if 'green_screen' in request.files:
+                try:
+                    gs_file = request.files['green_screen']
+                    if gs_file and gs_file.filename:
+                        from werkzeug.utils import secure_filename
+                        filename = secure_filename(gs_file.filename)
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        gs_filename = f"gs_{timestamp}_{filename}"
+                        gs_path = os.path.join("uploads", gs_filename)
+                        os.makedirs("uploads", exist_ok=True)
+                        gs_file.save(gs_path)
+                        green_screen_media = gs_path
+                        logger.info(f"✓ Green screen media uploaded: {gs_filename}")
+                except Exception as e:
+                    logger.warning(f"Failed to save green screen upload: {e}")
+        
+        # If no green screen uploaded, fetch from Pexels API
+        if not green_screen_media:
+            logger.info("📸 No green screen uploaded, fetching from Pexels API...")
+            from long_video_service import fetch_image_from_pexels
+            pexels_image = fetch_image_from_pexels(headline)
+            if pexels_image:
+                green_screen_media = pexels_image
+                logger.info(f"✓ Using Pexels image as green screen")
+            else:
+                logger.info("⚠️ Pexels API unavailable, will use placeholder green screen")
+        
+        if not headline or not description:
+            return jsonify({"error": "title and description required"}), 400
+        
+        logger.info(f"🎬 Starting long-form video generation: {headline}")
+        
+        # 1️⃣ Generate Long Script (1000-1500 words)
+        logger.info("📝 Step 1: Generating long-form script...")
+        script_result = generate_long_script(headline, description, language)
+        
+        if not script_result.get("success"):
+            error_msg = script_result.get("error", "Script generation failed")
+            logger.error(f"Script generation failed: {error_msg}")
+            return jsonify({
+                "status": "failed",
+                "stage": "script_generation",
+                "error": error_msg
+            }), 400
+        
+        script_text = script_result.get("script")
+        word_count = script_result.get("word_count", 0)
+        
+        logger.info(f"✓ Script generated ({word_count} words)")
+        
+        # 2️⃣ Generate TTS Audio using existing tts_service
+        logger.info("🎤 Step 2: Generating voice narration...")
+        tts_result = generate_voice(script_text)
+        
+        if not tts_result.get("success"):
+            error_msg = tts_result.get("error", "Voice generation failed")
+            logger.error(f"TTS error: {error_msg}")
+            return jsonify({
+                "status": "failed",
+                "stage": "tts_generation",
+                "error": error_msg,
+                "attempted_providers": tts_result.get("attempted_providers", [])
+            }), 400
+        
+        audio_path = tts_result.get("path")
+        if not audio_path:
+            return jsonify({
+                "status": "failed",
+                "stage": "tts_generation",
+                "error": "Voice generation succeeded but no file path returned"
+            }), 400
+        
+        logger.info(f"✓ Voice generated: {os.path.basename(audio_path)}")
+        
+        # 3️⃣ Generate Horizontal Video (1920x1080) with Green Screen
+        logger.info("🎥 Step 3: Creating long-form video...")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        video_filename = f"long_video_{timestamp}.mp4"
+        output_video_path = os.path.join(VIDEOS_DIR, "long", video_filename)
+        
+        try:
+            video_path = generate_long_video(
+                headline=headline,
+                description=description,
+                audio_path=audio_path,
+                language=language,
+                output_path=output_video_path,
+                green_screen_media=green_screen_media
+            )
+            logger.info(f"✓ Video generated: {os.path.basename(video_path)}")
+        except Exception as e:
+            logger.error(f"Video generation failed: {str(e)}")
+            return jsonify({
+                "status": "failed",
+                "stage": "video_generation",
+                "error": str(e)
+            }), 400
+        
+        # 4️⃣ Add to manifest
+        logger.info("📋 Step 4: Saving metadata...")
+        entry = add_to_manifest(video_path, headline, description, language)
+        
+        logger.info(f"✅ Long-form video complete!")
+        logger.info(f"   Word count: {word_count}")
+        logger.info(f"   Duration: {_get_video_duration(video_path):.1f}s")
+        logger.info(f"   Size: {entry.get('size_mb', 0):.1f} MB")
+        
+        # 5️⃣ Return response
+        return jsonify({
+            "status": "success",
+            "video_path": video_path,
+            "video_url": f"/video/{video_filename}",
+            "script_word_count": word_count,
+            "video": entry,
+            "details": {
+                "headline": headline,
+                "language": language,
+                "format": "1920x1080 (YouTube long-form)",
+                "word_count": word_count
+            }
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Long-form generation failed: {str(e)}")
+        return jsonify({
+            "status": "failed",
+            "error": str(e)
+        }), 500
+
+
+@app.route("/test-long", methods=["GET"])
+def test_long():
+    """
+    Test endpoint: Generate a sample long-form video.
+    
+    Uses:
+    - Title: "Why Hungary Blocked EU Sanctions"
+    - Description: "Hungary blocks EU sanctions package against Russia before war anniversary."
+    """
+    logger.info("🧪 Running long-form video test...")
+    
+    test_headline = "Why Hungary Blocked EU Sanctions"
+    test_description = "Hungary blocks EU sanctions package against Russia before war anniversary."
+    
+    try:
+        # Forward to /generate-long as a full JSON request
+        test_data = {
+            "title": test_headline,
+            "description": test_description,
+            "language": "english"
+        }
+        
+        # Create a test request
+        import json as json_lib
+        test_request = type('obj', (object,), {
+            'get_json': lambda: test_data
+        })()
+        
+        # Call generate_long directly
+        logger.info(f"Test case: {test_headline}")
+        
+        # 1️⃣ Generate script
+        logger.info("Generating test script...")
+        script_result = generate_long_script(test_headline, test_description)
+        
+        if not script_result.get("success"):
+            return jsonify({
+                "status": "test_failed",
+                "stage": "script",
+                "error": script_result.get("error")
+            }), 400
+        
+        script_text = script_result.get("script")
+        word_count = script_result.get("word_count", 0)
+        
+        # 2️⃣ Generate voice
+        logger.info("Generating test voice...")
+        tts_result = generate_voice(script_text)
+        
+        if not tts_result.get("success"):
+            return jsonify({
+                "status": "test_failed",
+                "stage": "tts",
+                "error": tts_result.get("error")
+            }), 400
+        
+        audio_path = tts_result.get("path")
+        
+        # 3️⃣ Generate video
+        logger.info("Generating test video...")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        test_video_path = os.path.join(VIDEOS_DIR, "long", f"TEST_long_video_{timestamp}.mp4")
+        
+        video_path = generate_long_video(
+            headline=test_headline,
+            description=test_description,
+            audio_path=audio_path,
+            language="english",
+            output_path=test_video_path
+        )
+        
+        entry = add_to_manifest(video_path, test_headline, test_description, "english")
+        
+        logger.info("✅ Test completed successfully!")
+        
+        return jsonify({
+            "status": "success",
+            "test_name": "Long-form video generation test",
+            "headline": test_headline,
+            "description": test_description,
+            "script_word_count": word_count,
+            "video_path": video_path,
+            "video_url": f"/video/{os.path.basename(video_path)}",
+            "video": entry,
+            "message": "Test long-form video generated successfully. Check /videos/long/ folder."
+        }), 200
+    
+    except Exception as e:
+        logger.error(f"Test failed: {str(e)}")
+        return jsonify({
+            "status": "test_failed",
+            "error": str(e)
+        }), 500
+
+
 def post_to_wordpress():
     """Create a WordPress post using the generated video.
 

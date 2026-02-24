@@ -44,6 +44,9 @@ def post_to_wordpress_bp():
         return jsonify({"error": "WordPress credentials not configured"}), 400
 
     try:
+        # SSL verification: disable if WORDPRESS_VERIFY_SSL is set to false/0
+        verify_ssl = os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
+        
         media_resp, post_resp = publish_video_as_post(
             video_path,
             headline,
@@ -51,7 +54,8 @@ def post_to_wordpress_bp():
             wp_user,
             wp_app_pass,
             description=description,
-            youtube_url=youtube_url
+            youtube_url=youtube_url,
+            verify_ssl=verify_ssl
         )
         return jsonify({"status": "published", "media": media_resp, "post": post_resp})
     except WordPressUploadError as e:
