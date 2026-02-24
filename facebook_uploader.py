@@ -266,35 +266,34 @@ class FacebookReelUploader:
             "description": caption,
             "access_token": self.page_access_token
         }
+        try:
+            response = requests.post(url, params=params, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
 
-            try:
-                response = requests.post(url, params=params, timeout=REQUEST_TIMEOUT)
-                response.raise_for_status()
+            data = response.json()
 
-                data = response.json()
-
-                if "id" not in data:
-                    logger.warning(f"No reel ID in FINISH response: {data}")
-                    return data
-
-                reel_id = data["id"]
-                logger.info(f"✓ FINISH phase successful. Reel ID: {reel_id}")
-                print(f"\n✓ Successfully uploaded Facebook Reel! ID: {reel_id}\n")
-
+            if "id" not in data:
+                logger.warning(f"No reel ID in FINISH response: {data}")
                 return data
 
-            except requests.exceptions.Timeout:
-                raise FacebookReelUploadError("FINISH phase request timeout")
-            except requests.exceptions.HTTPError as e:
-                try:
-                    logger.error(f"FINISH phase HTTP error: {e} - response: {response.text}")
-                except Exception:
-                    logger.error(f"FINISH phase HTTP error: {e}")
-                raise FacebookReelUploadError(f"FINISH phase failed: {str(e)}")
-            except requests.exceptions.RequestException as e:
-                error_msg = f"FINISH phase failed: {str(e)}"
-                logger.error(error_msg)
-                raise FacebookReelUploadError(error_msg)
+            reel_id = data["id"]
+            logger.info(f"✓ FINISH phase successful. Reel ID: {reel_id}")
+            print(f"\n✓ Successfully uploaded Facebook Reel! ID: {reel_id}\n")
+
+            return data
+
+        except requests.exceptions.Timeout:
+            raise FacebookReelUploadError("FINISH phase request timeout")
+        except requests.exceptions.HTTPError as e:
+            try:
+                logger.error(f"FINISH phase HTTP error: {e} - response: {response.text}")
+            except Exception:
+                logger.error(f"FINISH phase HTTP error: {e}")
+            raise FacebookReelUploadError(f"FINISH phase failed: {str(e)}")
+        except requests.exceptions.RequestException as e:
+            error_msg = f"FINISH phase failed: {str(e)}"
+            logger.error(error_msg)
+            raise FacebookReelUploadError(error_msg)
 
     def upload(self, video_path: str, caption: str) -> Dict:
         """
