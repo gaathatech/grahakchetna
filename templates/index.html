@@ -890,7 +890,7 @@
         <!-- ============= TAB 1: CREATE SHORT VIDEO ============= -->
         <div id="create-short" class="tab-content active section">
             <h2>⏱ Create Short Video (15 seconds)</h2>
-            <form id="generateForm" method="POST">
+            <form id="generateForm" method="POST" action="/generate">
                 <label for="headline">Headline</label>
                 <input type="text" id="headline" name="headline" placeholder="Breaking News: Major Development..." required>
 
@@ -928,7 +928,7 @@
         <!-- ============= TAB 2: CREATE LONG VIDEO ============= -->
         <div id="create-long" class="tab-content section">
             <h2>▶ Create Long Video (Full Duration)</h2>
-            <form id="generateFormLong" method="POST">
+            <form id="generateFormLong" method="POST" action="/generate-long">
                 <label for="headline2">Headline</label>
                 <input type="text" id="headline2" name="headline" placeholder="Breaking News: Major Development..." required>
 
