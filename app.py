@@ -9,6 +9,7 @@ from wordpress_uploader import publish_video_as_post, WordPressUploadError
 import os
 import json
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -80,25 +81,54 @@ def load_manifest():
 
 def save_manifest(manifest):
     """Save video manifest"""
-    with open(VIDEO_MANIFEST, 'w') as f:
-        json.dump(manifest, f, indent=2)
+    try:
+        # Ensure directory exists
+        os.makedirs(VIDEOS_DIR, exist_ok=True)
+        # Write to temp file first, then move (atomic write)
+        temp_path = f"{VIDEO_MANIFEST}.tmp"
+        with open(temp_path, 'w') as f:
+            json.dump(manifest, f, indent=2)
+        # Atomic rename
+        shutil.move(temp_path, VIDEO_MANIFEST)
+        logger.info(f"✓ Manifest saved successfully ({len(manifest.get('videos', []))} videos)")
+    except Exception as e:
+        logger.error(f"✗ Failed to save manifest: {e}")
+        raise
 
 def add_to_manifest(video_path, headline, description, language):
     """Add video entry to manifest"""
-    manifest = load_manifest()
-    entry = {
-        "id": datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3],
-        "filename": os.path.basename(video_path),
-        "path": video_path,
-        "headline": headline,
-        "description": description,
-        "language": language,
-        "created_at": datetime.now().isoformat(),
-        "size_mb": round(os.path.getsize(video_path) / (1024*1024), 2)
-    }
-    manifest["videos"].insert(0, entry)  # New videos first
-    save_manifest(manifest)
-    return entry
+    try:
+        # Verify video file exists
+        if not os.path.exists(video_path):
+            logger.error(f"✗ Video file not found: {video_path}")
+            raise FileNotFoundError(f"Video file not found: {video_path}")
+        
+        manifest = load_manifest()
+        
+        # Get file size with error handling
+        try:
+            file_size_mb = round(os.path.getsize(video_path) / (1024*1024), 2)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get file size for {video_path}: {e}")
+            file_size_mb = 0
+        
+        entry = {
+            "id": datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3],
+            "filename": os.path.basename(video_path),
+            "path": video_path,
+            "headline": headline,
+            "description": description,
+            "language": language,
+            "created_at": datetime.now().isoformat(),
+            "size_mb": file_size_mb
+        }
+        manifest["videos"].insert(0, entry)  # New videos first
+        save_manifest(manifest)
+        logger.info(f"✓ Added to manifest: {headline} ({file_size_mb} MB)")
+        return entry
+    except Exception as e:
+        logger.error(f"✗ Failed to add to manifest: {e}")
+        raise
 
 
 def _get_video_duration(video_path):
@@ -373,7 +403,15 @@ def generate():
         return jsonify({"error": "Video generation failed"}), 400
 
     # 5️⃣ Add to manifest
-    entry = add_to_manifest(video_path, headline, description, language)
+    try:
+        entry = add_to_manifest(video_path, headline, description, language)
+    except Exception as e:
+        logger.error(f"Failed to add video to manifest: {e}")
+        return jsonify({
+            "error": "Video generated but failed to save to archive",
+            "details": str(e),
+            "video_path": video_path
+        }), 500
     
     return jsonify({
         "status": "success",
@@ -436,7 +474,15 @@ def generate_and_post():
             return jsonify({"error": "Video generation failed"}), 400
 
         # 5️⃣ Add to manifest
-        entry = add_to_manifest(video_path, headline, description, language)
+        try:
+            entry = add_to_manifest(video_path, headline, description, language)
+        except Exception as e:
+            logger.error(f"Failed to add video to manifest: {e}")
+            return jsonify({
+                "error": "Video generated but failed to save to archive",
+                "details": str(e),
+                "video_path": video_path
+            }), 500
         
         # 6️⃣ Auto-post to Facebook if enabled
         facebook_response = None
@@ -635,7 +681,17 @@ def generate_long():
         
         # 4️⃣ Add to manifest
         logger.info("📋 Step 4: Saving metadata...")
-        entry = add_to_manifest(video_path, headline, description, language)
+        try:
+            entry = add_to_manifest(video_path, headline, description, language)
+        except Exception as e:
+            logger.error(f"Failed to add video to manifest: {e}")
+            return jsonify({
+                "status": "failed",
+                "stage": "manifest_save",
+                "error": "Video generated but failed to save to archive",
+                "details": str(e),
+                "video_path": video_path
+            }), 500
         
         logger.info(f"✅ Long-form video complete!")
         logger.info(f"   Word count: {word_count}")
@@ -736,7 +792,16 @@ def test_long():
             output_path=test_video_path
         )
         
-        entry = add_to_manifest(video_path, test_headline, test_description, "english")
+        try:
+            entry = add_to_manifest(video_path, test_headline, test_description, "english")
+        except Exception as e:
+            logger.error(f"Failed to add test video to manifest: {e}")
+            return jsonify({
+                "status": "test_partial_success",
+                "message": "Video generated but failed to save metadata",
+                "video_path": video_path,
+                "error": str(e)
+            }), 500
         
         logger.info("✅ Test completed successfully!")
         
