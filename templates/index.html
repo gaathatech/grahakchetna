@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="refresh" content="0; url=/">
     <title>Grahak AI News Studio</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <style>
+    <style>body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+</head>
+<body>
+    <div>
+        <p>Redirecting to Short Video page…</p>
+        <p>If your browser doesn't redirect, <a href="/">click here</a>.</p>
+    </div>
+</body>
+</html>
         * {
             margin: 0;
             padding: 0;
@@ -765,12 +773,12 @@
         </div>
         <!-- NAVIGATION TABS -->
         <div class="tabs-nav" style="grid-column: 1 / -1;">
-            <button class="tab-btn active" onclick="switchTab('create-short')">⏱ Short Video</button>
-            <button class="tab-btn" onclick="switchTab('create-long')">▶ Long Video</button>
-            <button class="tab-btn" onclick="switchTab('wp-post')">📝 WordPress</button>
-            <button class="tab-btn" onclick="switchTab('fb-post')">👤 Facebook</button>
-            <button class="tab-btn" onclick="switchTab('ig-post')">📸 Instagram</button>
-            <button class="tab-btn" onclick="switchTab('videos')">📹 Videos</button>
+            <button class="tab-btn active" data-tab="create-short" onclick="switchTab('create-short')">⏱ Short Video</button>
+            <button class="tab-btn" data-tab="create-long" onclick="switchTab('create-long')">▶ Long Video</button>
+            <button class="tab-btn" data-tab="wp-post" onclick="switchTab('wp-post')">📝 WordPress</button>
+            <button class="tab-btn" data-tab="fb-post" onclick="switchTab('fb-post')">👤 Facebook</button>
+            <button class="tab-btn" data-tab="ig-post" onclick="switchTab('ig-post')">📸 Instagram</button>
+            <button class="tab-btn" data-tab="videos" onclick="switchTab('videos')">📹 Videos</button>
         </div>
 
         <!-- ============= TAB 1: CREATE SHORT VIDEO ============= -->
@@ -955,11 +963,8 @@
             const tab = document.getElementById(tabId);
             if (tab) {
                 tab.classList.add('active');
-                // Activate corresponding button (find by onclick attribute)
-                const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
-                    const on = b.getAttribute('onclick') || '';
-                    return on.indexOf("'" + tabId + "'") !== -1 || on.indexOf('\"' + tabId + '\"') !== -1;
-                });
+                // Activate corresponding button (find by data-tab attribute)
+                const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
                 if (btn) btn.classList.add('active');
 
                 // Load videos when switching to videos tab
@@ -1232,6 +1237,7 @@
                         statusDiv.classList.remove('show');
                     }, 3000);
                     loadVideos();
+                    switchTab('videos'); // Switch to videos tab to show the new video
                 } else {
                     showStatus('✗ ' + (data.error || 'Failed to generate video'), 'error');
                 }
@@ -1291,6 +1297,7 @@
                             status.classList.remove('show');
                         }, 3000);
                         loadVideos();
+                        switchTab('videos'); // Switch to videos tab to show the new video
                     } else {
                         showStatusInDiv(status, '✗ ' + (data.error || 'Failed to generate video'), 'error');
                     }
@@ -1543,6 +1550,10 @@
                             <span class="language-badge">${video.language.toUpperCase()}</span>
                             <span class="size-badge">${video.size_mb} MB</span>
                         </div>
+                        <video controls style="width: 100%; max-height: 200px; margin: 10px 0;">
+                            <source src="/video/${video.filename}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
                         <div class="video-actions">
                             <button class="download-btn" onclick="downloadVideo('${video.filename}', '${escapeHtml(video.headline)}')">⬇ Download</button>
                             <button class="delete-btn" onclick="deleteVideo('${video.filename}')">🗑 Delete</button>

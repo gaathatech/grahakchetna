@@ -78,7 +78,7 @@ DEFAULT_OUTPUT_PATH = os.path.join(DEFAULT_OUTPUT_DIR, "voice.mp3")
 Path(DEFAULT_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
-SPEED_RATE = "-10%"  # Faster for exciting, energetic news delivery
+SPEED_RATE = "-9%"  # Slightly faster for natural news delivery
 MIN_TEXT_LENGTH = 1  # Minimum text length (words)
 MAX_TEXT_LENGTH = 1000  # Maximum text length (characters)
 

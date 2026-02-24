@@ -1,16 +1,403 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta http-equiv="refresh" content="0; url=/instagram_page">
-    <title>Instagram — Open</title>
-    <style>body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+    <title>Grahak AI News Studio - Instagram</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            background-attachment: fixed;
+            color: #fff;
+            padding: 12px 8px;
+            min-height: 100vh;
+            font-size: clamp(14px, 3vw, 16px);
+        }
+        
+        .nav {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(30, 144, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav a {
+            color: #66b2ff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: rgba(30, 144, 255, 0.1);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: clamp(15px, 5vw, 30px);
+            position: relative;
+            padding: 0;
+        }
+        
+        .section {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid rgba(30, 144, 255, 0.12);
+            border-radius: 8px;
+            padding: clamp(12px, 4vw, 30px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: clamp(1.5em, 6vw, 2.5em);
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            word-break: break-word;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: clamp(15px, 4vw, 30px);
+            font-size: 0.85em;
+            word-break: break-word;
+        }
+        
+        h2 {
+            color: #66b2ff;
+            margin-bottom: clamp(12px, 3vw, 20px);
+            font-size: clamp(1.1em, 4vw, 1.5em);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            word-break: break-word;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #ccc;
+            font-weight: 600;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: clamp(10px, 3vw, 12px);
+            margin: 0 0 clamp(12px, 3vw, 20px) 0;
+            border-radius: 5px;
+            border: 1px solid rgba(70, 130, 180, 0.15);
+            background: rgba(40, 40, 40, 0.8);
+            color: #fff;
+            font-family: inherit;
+            font-size: 16px;
+            -webkit-appearance: none;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            color: #fff;
+            border: none;
+            padding: clamp(12px, 3vw, 15px) clamp(20px, 5vw, 30px);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 144, 255, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+        
+        .status.error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+        
+        .status.loading {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            color: #ffc107;
+        }
+        
+        .file-upload-group {
+            border: 2px dashed rgba(30, 144, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+        }
+        
+        .file-upload-group:hover {
+            border-color: rgba(30, 144, 255, 0.6);
+        }
+        
+        .upload-text {
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .file-name {
+            color: #66b2ff;
+            font-weight: 600;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            font-weight: normal;
+            font-size: 0.9em;
+        }
+        
+        .radio-group input[type="radio"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .nav {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .nav a {
+                text-align: center;
+            }
+            
+            input, textarea {
+                margin-bottom: 8px;
+            }
+            
+            textarea {
+                min-height: 50px;
+            }
+            
+            button {
+                min-height: 36px;
+            }
+            
+            .radio-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        /* Safe area support for notch devices */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(6px, env(safe-area-inset-left));
+                padding-right: max(6px, env(safe-area-inset-right));
+                padding-top: max(6px, env(safe-area-inset-top));
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
 </head>
 <body>
-    <div>
-        <p>Redirecting to the Instagram UI…</p>
-        <p>If your browser doesn't redirect, <a href="/instagram_page">click here</a>.</p>
+    <h1>🎬 Grahak Chetna AI News Studio</h1>
+    <p class="subtitle">Generate Professional News Videos with AI Narration</p>
+
+    <div class="nav">
+        <a href="/">Short Video</a>
+        <a href="/long">Long Video</a>
+        <a href="/wordpress">WordPress</a>
+        <a href="/facebook">Facebook</a>
+        <a href="/instagram" class="active">Instagram</a>
+        <a href="/videos">Videos</a>
+        <a href="/rss">RSS Manager</a>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="margin-bottom: 12px;">
+        {% for category, msg in messages %}
+            <div class="status show {{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <!-- INSTAGRAM POSTING FORM -->
+        <div class="section">
+            <h2>📸 Instagram Posting</h2>
+            <form id="igPostForm">
+                <label for="igFileUpload">Select Video File *</label>
+                <div class="file-upload-group" onclick="document.getElementById('igFileUpload').click()">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📹</div>
+                    <div class="upload-text">Click to upload or drag and drop</div>
+                    <div style="font-size: 0.85em; color: #666;">MP4 video file</div>
+                    <input type="file" id="igFileUpload" accept=".mp4,video/mp4" required style="display: none;">
+                    <div id="igFileName" class="file-name"></div>
+                </div>
+
+                <label for="igCaption">Caption</label>
+                <textarea id="igCaption" placeholder="Enter caption for your Instagram post..."></textarea>
+
+                <label>Posting Method</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="igPostType" value="api" checked>
+                        Direct API
+                    </label>
+                    <label>
+                        <input type="radio" name="igPostType" value="web">
+                        Web Share
+                    </label>
+                </div>
+
+                <button type="submit" id="igSubmitBtn">Post to Instagram</button>
+                <div id="igStatus" class="status"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // File upload handling
+        document.getElementById('igFileUpload').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                document.getElementById('igFileName').textContent = '✓ ' + e.target.files[0].name;
+                document.getElementById('igFileName').style.color = '#66b2ff';
+            } else {
+                document.getElementById('igFileName').textContent = '';
+            }
+        });
+
+        // Form submission
+        document.getElementById('igPostForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('igFileUpload');
+            const caption = document.getElementById('igCaption').value;
+            const postType = document.querySelector('input[name="igPostType"]:checked').value;
+            
+            if (!fileInput.files.length) {
+                showStatus('Please select a video file', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('igSubmitBtn');
+            submitBtn.disabled = true;
+            showStatus('Posting to Instagram...', 'loading');
+
+            try {
+                const formData = new FormData();
+                formData.append('video', fileInput.files[0]);
+                formData.append('caption', caption);
+                formData.append('post_type', postType);
+
+                const response = await fetch('/instagram/post', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('✓ Posted to Instagram successfully!', 'success');
+                    document.getElementById('igPostForm').reset();
+                    document.getElementById('igFileName').textContent = '';
+                    setTimeout(() => {
+                        document.getElementById('igStatus').classList.remove('show');
+                    }, 3000);
+                } else {
+                    showStatus('✗ ' + (data.error || 'Failed to post'), 'error');
+                }
+            } catch (error) {
+                showStatus('✗ Error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('igStatus');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status show ${type}`;
+        }
+
+        // Check URL parameters for pre-filled data
+        document.addEventListener('DOMContentLoaded', function(){
+            const urlParams = new URLSearchParams(window.location.search);
+            const video = urlParams.get('video');
+            const headline = urlParams.get('headline');
+            
+            if (headline) {
+                document.getElementById('igCaption').value = headline;
+            }
+            
+            if (video) {
+                // Could pre-select video from videos list, but for now just note it
+                console.log('Video to post:', video);
+            }
+        });
+    </script>
 </body>
 </html>

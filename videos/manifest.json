@@ -1,6 +1,26 @@
 {
   "videos": [
     {
+      "id": "20260224_154510_374",
+      "filename": "video_20260224_154436_368.mp4",
+      "path": "videos/video_20260224_154436_368.mp4",
+      "headline": "Test energetic voice",
+      "description": "This should sound like an energetic news anchor with faster speed and higher energy.",
+      "language": "english",
+      "created_at": "2026-02-24T15:45:10.374452",
+      "size_mb": 0.42
+    },
+    {
+      "id": "20260224_152932_427",
+      "filename": "video_20260224_152838_489.mp4",
+      "path": "videos/video_20260224_152838_489.mp4",
+      "headline": "US Adviser Calls India a \u201cTech Powerhouse\u201d in AI",
+      "description": "India is officially a \u201ctechnology powerhouse,\u201d says Michael Kratsios, the top US science adviser. With millions of engineers graduating every year, deep domestic talent, and a booming innovation ecosystem, India is central to America\u2019s global AI strategy.\r\nKratsios calls India a critical partner for \u201creal AI sovereignty,\u201d highlighting strong collaborations, American tech giants\u2019 data centers, and research operations across the country. This integration strengthens both nations\u2019 AI capabilities and makes India a cornerstone of the global tech landscape.\r\nFrom engineering talent to cutting-edge AI products, India\u2019s tech rise is reshaping the global AI map.",
+      "language": "english",
+      "created_at": "2026-02-24T15:29:32.427482",
+      "size_mb": 0.98
+    },
+    {
       "id": "20260224_142620_696",
       "filename": "video_20260224_142606_578.mp4",
       "path": "videos/video_20260224_142606_578.mp4",

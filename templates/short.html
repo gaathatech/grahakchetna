@@ -1,16 +1,483 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta http-equiv="refresh" content="0; url=/short">
-    <title>Short Video — Open</title>
-    <style>body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+    <title>Grahak AI News Studio - Short Video</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            background-attachment: fixed;
+            color: #fff;
+            padding: 12px 8px;
+            min-height: 100vh;
+            font-size: clamp(14px, 3vw, 16px);
+        }
+        
+        .nav {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(30, 144, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav a {
+            color: #66b2ff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: rgba(30, 144, 255, 0.1);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: clamp(15px, 5vw, 30px);
+            position: relative;
+            padding: 0;
+        }
+        
+        .section {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid rgba(30, 144, 255, 0.12);
+            border-radius: 8px;
+            padding: clamp(12px, 4vw, 30px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: clamp(1.5em, 6vw, 2.5em);
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            word-break: break-word;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: clamp(15px, 4vw, 30px);
+            font-size: 0.85em;
+            word-break: break-word;
+        }
+        
+        h2 {
+            color: #66b2ff;
+            margin-bottom: clamp(12px, 3vw, 20px);
+            font-size: clamp(1.1em, 4vw, 1.5em);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            word-break: break-word;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #ccc;
+            font-weight: 600;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: clamp(10px, 3vw, 12px);
+            margin: 0 0 clamp(12px, 3vw, 20px) 0;
+            border-radius: 5px;
+            border: 1px solid rgba(70, 130, 180, 0.15);
+            background: rgba(40, 40, 40, 0.8);
+            color: #fff;
+            font-family: inherit;
+            font-size: 16px;
+            -webkit-appearance: none;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            color: #fff;
+            border: none;
+            padding: clamp(12px, 3vw, 15px) clamp(20px, 5vw, 30px);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 144, 255, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+        
+        .status.error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+        
+        .status.loading {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            color: #ffc107;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .nav {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .nav a {
+                text-align: center;
+            }
+            
+            input, textarea {
+                margin-bottom: 8px;
+            }
+            
+            textarea {
+                min-height: 50px;
+            }
+            
+            button {
+                min-height: 36px;
+            }
+        }
+        
+        /* Safe area support for notch devices */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(6px, env(safe-area-inset-left));
+                padding-right: max(6px, env(safe-area-inset-right));
+                padding-top: max(6px, env(safe-area-inset-top));
+                padding-bottom: max(6px, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
 </head>
 <body>
-    <div>
-        <p>Opening Short Video UI…</p>
-        <p>If your browser doesn't redirect, <a href="/short">click here</a>.</p>
+    <h1>🎬 Grahak Chetna AI News Studio</h1>
+    <p class="subtitle">Generate Professional News Videos with AI Narration</p>
+
+    <div class="nav">
+        <a href="/" class="active">Short Video</a>
+        <a href="/long">Long Video</a>
+        <a href="/wordpress">WordPress</a>
+        <a href="/facebook">Facebook</a>
+        <a href="/instagram">Instagram</a>
+        <a href="/videos">Videos</a>
+        <a href="/rss">RSS Manager</a>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="margin-bottom: 12px;">
+        {% for category, msg in messages %}
+            <div class="status show {{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="container">
+        <!-- CREDENTIAL STATUS BADGE -->
+        <div style="background: rgba(20, 40, 60, 0.9); border: 1px solid rgba(30, 144, 255, 0.2); border-radius: 8px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px;">
+            <span style="color: #888; font-size: 0.85em; min-width: 100%;">Platform Status:</span>
+            <div id="fb-status-badge" style="display: flex; align-items: center; gap: 6px; font-size: 0.85em;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #888;"></span>
+                <span>Facebook</span>
+            </div>
+            <div id="ig-status-badge" style="display: flex; align-items: center; gap: 6px; font-size: 0.85em;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #888;"></span>
+                <span>Instagram</span>
+            </div>
+            <div id="wp-status-badge" style="display: flex; align-items: center; gap: 6px; font-size: 0.85em;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #888;"></span>
+                <span>WordPress</span>
+            </div>
+        </div>
+
+        <!-- SHORT VIDEO FORM -->
+        <div class="section">
+            <h2>⏱ Create Short Video (15 seconds)</h2>
+            <form id="generateForm" method="POST" action="/generate">
+                <label for="headline">Headline</label>
+                <input type="text" id="headline" name="headline" placeholder="Breaking News: Major Development..." required>
+
+                <label for="description">Description</label>
+                <textarea id="description" name="description" placeholder="Provide detailed description of the news story..." required></textarea>
+
+                <label for="language">Language</label>
+                <select id="language" name="language" required>
+                    <option value="english">🇬🇧 English</option>
+                    <option value="hindi">🇮🇳 Hindi</option>
+                    <option value="gujarati">🇮🇳 Gujarati</option>
+                </select>
+
+                <input type="hidden" id="video_length" name="video_length" value="short">
+
+                <label for="voice_provider">Voice Provider</label>
+                <select id="voice_provider" name="voice_provider">
+                    <option value="auto">Auto (recommended)</option>
+                    <option value="edge">Edge TTS</option>
+                    <option value="eleven">ElevenLabs</option>
+                    <option value="gtts">gTTS</option>
+                </select>
+
+                <label for="voice_model">Voice Model</label>
+                <select id="voice_model" name="voice_model">
+                    <option value="auto">Auto</option>
+                </select>
+
+                <button type="submit" id="submitBtn">Generate Video</button>
+                
+                <div id="status" class="status"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Voice model lists
+        const MODELS = {
+            edge: [
+                {id: 'en-US-GuyNeural', label: 'Edge — en-US Guy (male)'} ,
+                {id: 'en-US-AmberNeural', label: 'Edge — en-US Amber (female)'} ,
+                {id: 'hi-IN-MadhurNeural', label: 'Edge — hi-IN Madhur (male)'} ,
+                {id: 'hi-IN-SwaraNeural', label: 'Edge — hi-IN Swara (female)'} ,
+                {id: 'gu-IN-NiranjanNeural', label: 'Edge — gu-IN Niranjan (male)'} ,
+                {id: 'gu-IN-DhwaniNeural', label: 'Edge — gu-IN Dhwani (female)'}
+            ],
+            eleven: [
+                {id: '21m00Tcm4TlvDq8ikWAM', label: 'ElevenLabs — Rachel'},
+                {id: 'EXAVITQu4vr4xnSDxMaL', label: 'ElevenLabs — Alloy'},
+                {id: 'pNinE6OkJ8cz0Uj7sD', label: 'ElevenLabs — Zeus'}
+            ],
+            gtts: [
+                {id: 'en', label: 'gTTS — English (en)'},
+                {id: 'hi', label: 'gTTS — Hindi (hi)'},
+                {id: 'gu', label: 'gTTS — Gujarati (gu)'}
+            ],
+            auto: [ {id: 'auto', label: 'Auto (choose best)'} ]
+        };
+
+        function populateModels(provider) {
+            const modelSelect = document.getElementById('voice_model');
+            modelSelect.innerHTML = '';
+            const list = MODELS[provider] || MODELS['auto'];
+            list.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.label;
+                modelSelect.appendChild(opt);
+            });
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status show ${type}`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function(){
+            populateModels('auto');
+            document.getElementById('voice_provider').addEventListener('change', (e) => populateModels(e.target.value));
+            
+            // Check credentials
+            fetch('/config/credentials')
+                .then(res => res.json())
+                .then(creds => {
+                    // Facebook
+                    const fbBadge = document.getElementById('fb-status-badge');
+                    if (fbBadge) {
+                        const fbDot = fbBadge.querySelector('span:first-child');
+                        const fbText = fbBadge.querySelector('span:last-child');
+                        if (creds.facebook.configured) {
+                            fbDot.style.background = '#4CAF50';
+                            fbText.textContent = '✓ Facebook';
+                            fbText.style.color = '#4CAF50';
+                        } else {
+                            fbDot.style.background = '#FF9800';
+                            fbText.textContent = '⚠ Facebook (not configured)';
+                            fbText.style.color = '#FF9800';
+                        }
+                    }
+
+                    // Instagram
+                    const igBadge = document.getElementById('ig-status-badge');
+                    if (igBadge) {
+                        const igDot = igBadge.querySelector('span:first-child');
+                        const igText = igBadge.querySelector('span:last-child');
+                        if (creds.instagram.configured) {
+                            igDot.style.background = '#4CAF50';
+                            igText.textContent = '✓ Instagram';
+                            igText.style.color = '#4CAF50';
+                        } else {
+                            igDot.style.background = '#FF9800';
+                            igText.textContent = '⚠ Instagram (not configured)';
+                            igText.style.color = '#FF9800';
+                        }
+                    }
+
+                    // WordPress
+                    const wpBadge = document.getElementById('wp-status-badge');
+                    if (wpBadge) {
+                        const wpDot = wpBadge.querySelector('span:first-child');
+                        const wpText = wpBadge.querySelector('span:last-child');
+                        if (creds.wordpress.configured) {
+                            wpDot.style.background = '#4CAF50';
+                            wpText.textContent = '✓ WordPress';
+                            wpText.style.color = '#4CAF50';
+                        } else {
+                            wpDot.style.background = '#FF9800';
+                            wpText.textContent = '⚠ WordPress (not configured)';
+                            wpText.style.color = '#FF9800';
+                        }
+                    }
+                })
+                .catch(err => console.error('Failed to check credentials:', err));
+        });
+
+        // Form submission
+        document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const headline = document.getElementById('headline').value;
+            const description = document.getElementById('description').value;
+            const language = document.getElementById('language').value;
+
+            if (!headline.trim()) {
+                showStatus('Please enter a headline', 'error');
+                return;
+            }
+            
+            if (!description.trim()) {
+                showStatus('Please enter a description', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            showStatus('<span class="spinner"></span> Generating video... This may take 1-2 minutes', 'loading');
+
+            try {
+                const formData = new FormData();
+                formData.append('headline', headline);
+                formData.append('description', description);
+                formData.append('language', language);
+                formData.append('voice_provider', document.getElementById('voice_provider').value);
+                formData.append('voice_model', document.getElementById('voice_model').value);
+                formData.append('video_length', document.getElementById('video_length').value);
+
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                let data = null;
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        data = { error: 'Invalid JSON response from server' };
+                    }
+                } else {
+                    const text = await response.text();
+                    try {
+                        data = JSON.parse(text || '{}');
+                    } catch (e) {
+                        data = { error: text || 'Empty response from server' };
+                    }
+                }
+
+                if (response.ok) {
+                    showStatus('✓ Video generated successfully! <a href="/videos" style="color: #66b2ff;">View in Videos</a>', 'success');
+                    document.getElementById('generateForm').reset();
+                    setTimeout(() => {
+                        document.getElementById('status').classList.remove('show');
+                    }, 5000);
+                } else {
+                    showStatus('✗ ' + (data.error || 'Failed to generate video'), 'error');
+                }
+            } catch (error) {
+                showStatus('✗ Error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
