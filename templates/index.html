@@ -1265,22 +1265,23 @@
             });
         }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const headline = document.getElementById('headline').value;
-            const description = document.getElementById('description').value;
-            const language = document.getElementById('language').value;
+        if (form && submitBtn && statusDiv) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const headline = document.getElementById('headline').value;
+                const description = document.getElementById('description').value;
+                const language = document.getElementById('language').value;
 
-            if (!headline.trim()) {
-                showStatus('Please enter a headline', 'error');
-                return;
-            }
-            
-            if (!description.trim()) {
-                showStatus('Please enter a description', 'error');
-                return;
-            }
+                if (!headline.trim()) {
+                    showStatus('Please enter a headline', 'error');
+                    return;
+                }
+                
+                if (!description.trim()) {
+                    showStatus('Please enter a description', 'error');
+                    return;
+                }
 
             submitBtn.disabled = true;
             showStatus('<span class="spinner"></span> Generating video... This may take 1-2 minutes', 'loading');
@@ -1332,10 +1333,11 @@
             } finally {
                 submitBtn.disabled = false;
             }
-        });
+            });
+        }
 
         // LONG FORM EVENT LISTENER
-        if (formLong) {
+        if (formLong && submitBtnLong && statusDivLong) {
             formLong.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
