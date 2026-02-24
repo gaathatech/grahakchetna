@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, flash, redirect, url_for
 from script_service import generate_script
 from long_script_service import generate_long_script
 from tts_service import generate_voice
@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev_secret_for_flash')
 
 # Register uploader blueprints
 try:
@@ -42,6 +43,16 @@ try:
     app.register_blueprint(youtube_bp)
 except Exception:
     pass
+
+# RSS service (fetch & post)
+try:
+    from rss_service import fetch_and_post_to_wordpress
+except Exception:
+    fetch_and_post_to_wordpress = None
+try:
+    from rss_service import post_selected_articles
+except Exception:
+    post_selected_articles = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -105,6 +116,116 @@ def _get_video_duration(video_path):
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+@app.route('/fetch_rss', methods=['POST'])
+def fetch_rss():
+    """Fetch latest RSS articles and post to WordPress, then redirect home with a flash message."""
+    if fetch_and_post_to_wordpress is None:
+        flash('RSS service not available', 'error')
+        return redirect(url_for('home'))
+
+    try:
+        try:
+            max_articles = int(request.form.get('max_articles', 5))
+        except Exception:
+            max_articles = 5
+        dry_run = request.form.get('dry_run', 'false').lower() in ['1', 'true', 'yes']
+
+        results = fetch_and_post_to_wordpress(max_articles=max_articles, dry_run=dry_run)
+        if dry_run:
+            flash(f'RSS dry-run complete: {len(results)} articles evaluated (no posts).', 'success')
+        else:
+            posted = sum(1 for r in results if r.get('status') == 'posted')
+            flash(f'RSS fetch complete: {posted}/{len(results)} posted', 'success')
+    except Exception as e:
+        logger.error(f"RSS fetch/post failed: {e}")
+        flash(f'RSS fetch failed: {e}', 'error')
+
+    return redirect(url_for('home'))
+
+
+@app.route('/fetch_rss_preview', methods=['POST'])
+def fetch_rss_preview():
+    """Return a JSON preview (dry-run) of articles that would be posted."""
+    if fetch_and_post_to_wordpress is None:
+        return jsonify({'error': 'RSS service not available'}), 500
+
+    try:
+        try:
+            max_articles = int(request.form.get('max_articles', 5))
+        except Exception:
+            max_articles = 5
+
+        results = fetch_and_post_to_wordpress(max_articles=max_articles, dry_run=True)
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"RSS preview failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/rss_get_mapping', methods=['GET'])
+def rss_get_mapping():
+    try:
+        from rss_service import _load_category_map
+        return jsonify(_load_category_map())
+    except Exception as e:
+        logger.error(f"rss_get_mapping failed: {e}")
+        return jsonify({}), 500
+
+
+@app.route('/rss_save_mapping', methods=['POST'])
+def rss_save_mapping():
+    try:
+        data = None
+        if request.is_json:
+            data = request.get_json()
+        else:
+            raw = request.form.get('mapping')
+            import json
+            data = json.loads(raw) if raw else {}
+
+        if not isinstance(data, dict):
+            return jsonify({'error': 'mapping must be a JSON object'}), 400
+
+        from rss_service import _save_category_map
+        ok = _save_category_map(data)
+        return jsonify({'saved': bool(ok)})
+    except Exception as e:
+        logger.error(f"rss_save_mapping failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/fetch_rss_post_selected', methods=['POST'])
+def fetch_rss_post_selected():
+    """Post selected preview articles to WordPress. Accepts JSON {links:[...]}
+    or form field `links` as comma-separated.
+    Returns JSON results.
+    """
+    if post_selected_articles is None:
+        return jsonify({'error': 'RSS service not available'}), 500
+
+    try:
+        links = []
+        dry_run = False
+        if request.is_json:
+            data = request.get_json()
+            links = data.get('links', []) if isinstance(data, dict) else []
+            dry_run = bool(data.get('dry_run')) if isinstance(data, dict) else False
+        else:
+            raw = request.form.get('links')
+            if raw:
+                links = [l.strip() for l in raw.split(',') if l.strip()]
+            dry_run = request.form.get('dry_run', 'false').lower() in ['1', 'true', 'yes']
+
+        if not links:
+            return jsonify({'error': 'No links provided'}), 400
+
+        results = post_selected_articles(links=links, dry_run=dry_run)
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Posting selected RSS items failed: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/videos", methods=["GET"])
 def list_videos():

@@ -1,0 +1,15 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5002
+ * Running on http://10.0.2.32:5002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:rss_service:Dry-run: would post article: Bowen: Why Ukraine remains defiant and does not feel close to defeat
+INFO:rss_service:Dry-run: would post article: Number of zero-hours contracts hits record high ahead of crackdown
+INFO:werkzeug:127.0.0.1 - - [24/Feb/2026 06:06:29] "POST /fetch_rss_preview HTTP/1.1" 200 -
+INFO:rss_service:Dry-run: would post article: Bowen: Why Ukraine remains defiant and does not feel close to defeat
+INFO:rss_service:Dry-run: would post article: Russia soldiers tell BBC they saw fellow troops executed on commanders' orders
+INFO:rss_service:Dry-run: would post article: Number of zero-hours contracts hits record high ahead of crackdown
+INFO:werkzeug:127.0.0.1 - - [24/Feb/2026 06:09:08] "POST /fetch_rss_preview HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [24/Feb/2026 06:09:30] "[33mPOST /fetch_rss_post_selected HTTP/1.1[0m" 404 -

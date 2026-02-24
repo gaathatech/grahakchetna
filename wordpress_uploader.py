@@ -55,7 +55,84 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
         raise WordPressUploadError(str(e)) from e
 
 
-def create_post(title: str, content: str, wp_url: str, username: str, app_password: str, media_id: int = None, status: str = "publish", description: str = None, youtube_url: str = None, verify_ssl: bool = True) -> Dict[str, Any]:
+def _resolve_category_ids(wp_url: str, username: str, app_password: str, categories, verify_ssl: bool = True):
+    """Resolve category names or IDs to a list of category IDs.
+    If a category name does not exist, attempt to create it.
+    """
+    if not categories:
+        return []
+
+    endpoint = f"{wp_url.rstrip('/')}/wp-json/wp/v2/categories"
+    resolved = []
+    for cat in categories:
+        # If already an int-like ID, accept it
+        if isinstance(cat, int):
+            resolved.append(cat)
+            continue
+
+        name = str(cat).strip()
+        if not name:
+            continue
+
+        try:
+            # Try searching for existing category
+            resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+            resp.raise_for_status()
+            data = resp.json()
+            if data and isinstance(data, list) and len(data) > 0:
+                resolved.append(data[0].get('id'))
+                continue
+
+            # Not found; create it
+            create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+            create_resp.raise_for_status()
+            created = create_resp.json()
+            if created and 'id' in created:
+                resolved.append(created['id'])
+        except Exception as e:
+            logger.warning(f"Could not resolve/create category '{name}': {e}")
+            continue
+
+    return resolved
+
+
+def _resolve_tag_ids(wp_url: str, username: str, app_password: str, tags, verify_ssl: bool = True):
+    """Resolve tag names or IDs to a list of tag IDs. Create tag if missing."""
+    if not tags:
+        return []
+
+    endpoint = f"{wp_url.rstrip('/')}/wp-json/wp/v2/tags"
+    resolved = []
+    for t in tags:
+        if isinstance(t, int):
+            resolved.append(t)
+            continue
+
+        name = str(t).strip()
+        if not name:
+            continue
+
+        try:
+            resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+            resp.raise_for_status()
+            data = resp.json()
+            if data and isinstance(data, list) and len(data) > 0:
+                resolved.append(data[0].get('id'))
+                continue
+
+            create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+            create_resp.raise_for_status()
+            created = create_resp.json()
+            if created and 'id' in created:
+                resolved.append(created['id'])
+        except Exception as e:
+            logger.warning(f"Could not resolve/create tag '{name}': {e}")
+            continue
+
+    return resolved
+
+
+def create_post(title: str, content: str, wp_url: str, username: str, app_password: str, media_id: int = None, status: str = "publish", description: str = None, youtube_url: str = None, verify_ssl: bool = True, categories=None, tags=None) -> Dict[str, Any]:
     endpoint = f"{wp_url.rstrip('/')}/wp-json/wp/v2/posts"
     
     # Build post content
@@ -100,6 +177,19 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
     }
     if media_id is not None:
         payload["featured_media"] = media_id
+    # Resolve categories (names or ids) into IDs list
+    try:
+        cat_ids = _resolve_category_ids(wp_url, username, app_password, categories, verify_ssl=verify_ssl)
+        if cat_ids:
+            payload['categories'] = cat_ids
+    except Exception:
+        pass
+    try:
+        tag_ids = _resolve_tag_ids(wp_url, username, app_password, tags, verify_ssl=verify_ssl)
+        if tag_ids:
+            payload['tags'] = tag_ids
+    except Exception:
+        pass
 
     try:
         resp = requests.post(

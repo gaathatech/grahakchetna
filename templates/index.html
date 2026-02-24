@@ -727,6 +727,139 @@
     <h1>🎬 Grahak Chetna AI News Studio</h1>
     <p class="subtitle">Generate Professional News Videos with AI Narration</p>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="grid-column: 1 / -1; margin-bottom: 12px;">
+        {% for category, msg in messages %}
+            <div class="status show {{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div style="grid-column: 1 / -1; display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-direction:column;">
+        <form id="fetchRssForm" method="post" action="/fetch_rss" style="display:flex; gap:8px; align-items:center;">
+            <label style="color:#ccc; font-weight:600;">Max articles</label>
+            <input type="number" name="max_articles" min="1" max="50" value="5" style="width:80px; padding:8px; border-radius:6px; border:1px solid rgba(70,130,180,0.15); background:rgba(40,40,40,0.8); color:#fff;">
+            <label style="color:#ccc; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="dry_run" name="dry_run"> Dry-run</label>
+            <button type="submit">Fetch RSS & Post</button>
+            <button type="button" id="previewBtn">Preview (dry-run)</button>
+        </form>
+
+        <div id="rssPreview" style="width:100%; margin-top:8px; display:none;"></div>
+
+        <div style="width:100%; margin-top:8px;">
+            <h3 style="margin-bottom:6px;">Category mapping (feed title → site category)</h3>
+            <textarea id="mappingEditor" placeholder='{"BBC News":"World","CNN":"US"}' style="width:100%; min-height:120px; background:rgba(40,40,40,0.8); color:#fff; border-radius:6px; padding:8px; border:1px solid rgba(70,130,180,0.15);"></textarea>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button id="saveMappingBtn" type="button">Save mapping</button>
+                <div id="saveMapStatus" style="align-self:center"></div>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('previewBtn').addEventListener('click', async function (e) {
+                const max = document.querySelector('input[name="max_articles"]').value || 5;
+                const previewDiv = document.getElementById('rssPreview');
+                previewDiv.style.display = 'block';
+                previewDiv.innerHTML = '<div class="status loading"><span class="spinner"></span> Loading preview...</div>';
+
+                try {
+                    const body = new URLSearchParams();
+                    body.append('max_articles', max);
+
+                    const res = await fetch('/fetch_rss_preview', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+
+                    if (!res.ok) {
+                        const txt = await res.text();
+                        previewDiv.innerHTML = '<div class="status error">Preview failed: ' + res.status + '</div>';
+                        return;
+                    }
+
+                    const data = await res.json();
+                    if (!Array.isArray(data)) {
+                        previewDiv.innerHTML = '<div class="status error">No preview data</div>';
+                        return;
+                    }
+
+                    let html = '<div class="section"><h3 style="margin-bottom:8px;">Preview (' + data.length + ')</h3><ul style="list-style:none; padding-left:0;">';
+                    data.forEach((item, idx) => {
+                        const art = item.article || {};
+                        const title = (art.title || item.title || '').replace(/</g,'&lt;');
+                        const source = (art.source || '').replace(/</g,'&lt;');
+                        const tags = (item.tags || []).join(', ');
+                        const checked = idx === 0 ? 'checked' : '';
+                        html += '<li style="margin:8px 0; padding:8px; background:rgba(255,255,255,0.02); border-radius:6px; display:flex; gap:12px; align-items:center;">';
+                        html += '<input type="checkbox" class="preview-checkbox" data-link="' + (art.link || '') + '" ' + checked + '>';
+                        html += '<div style="flex:1">';
+                        html += '<div style="font-weight:600; color:#66b2ff;">' + title + '</div>';
+                        html += '<div style="font-size:0.9em; color:#cfeefe; margin-top:6px;"><strong>Source:</strong> ' + source + '</div>';
+                        html += '<div style="font-size:0.85em; color:#aaa; margin-top:4px;"><strong>Tags:</strong> ' + tags + '</div>';
+                        html += '</div>';
+                        html += '</li>';
+                    });
+                    html += '</ul></div>';
+                    previewDiv.innerHTML = html + '<div style="display:flex; gap:8px; margin-top:8px;"><button id="postSelectedBtn">Post selected</button><div id="postStatus" style="align-self:center"></div></div>';
+
+                    document.getElementById('postSelectedBtn').addEventListener('click', async function () {
+                        const boxes = Array.from(document.querySelectorAll('.preview-checkbox'));
+                        const selected = boxes.filter(b => b.checked).map(b => b.getAttribute('data-link')).filter(l => l);
+                        const statusDiv = document.getElementById('postStatus');
+                        if (!selected.length) {
+                            statusDiv.innerHTML = '<span class="status error">No items selected</span>';
+                            return;
+                        }
+
+                        statusDiv.innerHTML = '<span class="status loading"><span class="spinner"></span> Posting...</span>';
+
+                        try {
+                            const resp = await fetch('/fetch_rss_post_selected', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ links: selected })
+                            });
+                            const j = await resp.json();
+                            let success = 0;
+                            if (Array.isArray(j)) success = j.filter(r => r.status === 'posted').length;
+                            statusDiv.innerHTML = '<span class="status success">Posted: ' + success + '/' + (j.length || 0) + '</span>';
+                        } catch (err) {
+                            statusDiv.innerHTML = '<span class="status error">Post failed</span>';
+                        }
+                    });
+                    // save mapping button handler
+                    document.getElementById('saveMappingBtn').addEventListener('click', async function (){
+                        const editor = document.getElementById('mappingEditor');
+                        const status = document.getElementById('saveMapStatus');
+                        status.innerHTML = '<span class="status loading"><span class="spinner"></span> Saving...</span>';
+                        try {
+                            const payload = JSON.parse(editor.value || '{}');
+                            const resp = await fetch('/rss_save_mapping', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            const j = await resp.json();
+                            if (j && j.saved) {
+                                status.innerHTML = '<span class="status success">Saved</span>';
+                            } else {
+                                status.innerHTML = '<span class="status error">Save failed</span>';
+                            }
+                        } catch (err) {
+                            status.innerHTML = '<span class="status error">Invalid JSON</span>';
+                        }
+                    });
+
+                } catch (err) {
+                    previewDiv.innerHTML = '<div class="status error">Preview failed: ' + (err.message || err) + '</div>';
+                }
+            });
+        </script>
+    </div>
+
     <div class="container">
         <!-- CREDENTIAL STATUS BADGE -->
         <div style="grid-column: 1 / -1; background: rgba(20, 40, 60, 0.9); border: 1px solid rgba(30, 144, 255, 0.2); border-radius: 8px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px;">
@@ -1007,6 +1140,31 @@
                 console.error('Failed to check credentials:', e);
             }
         }
+                    // add select-all / deselect-all controls
+                    const controls = document.createElement('div');
+                    controls.style.marginTop = '8px';
+                    controls.innerHTML = '<button id="selectAll">Select all</button> <button id="deselectAll">Deselect all</button>';
+                    previewDiv.appendChild(controls);
+                    document.getElementById('selectAll').addEventListener('click', function (){
+                        document.querySelectorAll('.preview-checkbox').forEach(b=>b.checked=true);
+                    });
+                    document.getElementById('deselectAll').addEventListener('click', function (){
+                        document.querySelectorAll('.preview-checkbox').forEach(b=>b.checked=false);
+                    });
+
+                    // Load existing mapping into editor
+                    const mapEditor = document.getElementById('mappingEditor');
+                    if (mapEditor && mapEditor.value.trim() === '') {
+                        try {
+                            const r = await fetch('/rss_get_mapping');
+                            if (r.ok) {
+                                const j = await r.json();
+                                mapEditor.value = JSON.stringify(j, null, 2);
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
 
         // Check credentials on page load
         document.addEventListener('DOMContentLoaded', checkCredentials);
