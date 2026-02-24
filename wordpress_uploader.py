@@ -1,12 +1,25 @@
 import os
 import logging
+import ssl
 from typing import Tuple, Dict, Any
 
 import requests
 from requests.exceptions import SSLError
+from requests.adapters import HTTPAdapter
+from urllib3.util import create_urllib3_context
 import urllib3
 
 logger = logging.getLogger(__name__)
+
+
+class SSLAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        context = create_urllib3_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        context.protocol = ssl.PROTOCOL_TLSv1
+        kwargs['ssl_context'] = context
+        return super().init_poolmanager(*args, **kwargs)
 
 
 class WordPressUploadError(Exception):
@@ -63,16 +76,16 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
                         verify=False
                     )
                 else:
-                    # Try with HTTP
-                    logger.warning("Retrying media upload with HTTP instead of HTTPS")
-                    http_endpoint = endpoint.replace('https://', 'http://')
-                    resp = requests.post(
-                        http_endpoint,
+                    # Try with custom SSL adapter
+                    logger.warning("Retrying media upload with custom SSL adapter")
+                    session = requests.Session()
+                    session.mount('https://', SSLAdapter())
+                    resp = session.post(
+                        endpoint,
                         auth=(username, app_password),
                         files=files,
                         headers=headers,
-                        timeout=timeout,
-                        verify=False
+                        timeout=timeout
                     )
 
         resp.raise_for_status()
@@ -113,10 +126,11 @@ def _resolve_category_ids(wp_url: str, username: str, app_password: str, categor
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
                 else:
-                    # Try with HTTP
-                    logger.warning("Retrying category lookup with HTTP instead of HTTPS")
-                    http_endpoint = endpoint.replace('https://', 'http://')
-                    resp = requests.get(http_endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
+                    # Try with custom SSL adapter
+                    logger.warning("Retrying category lookup with custom SSL adapter")
+                    session = requests.Session()
+                    session.mount('https://', SSLAdapter())
+                    resp = session.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0:
@@ -133,10 +147,11 @@ def _resolve_category_ids(wp_url: str, username: str, app_password: str, categor
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
                 else:
-                    # Try with HTTP
-                    logger.warning("Retrying category create with HTTP instead of HTTPS")
-                    http_endpoint = endpoint.replace('https://', 'http://')
-                    create_resp = requests.post(http_endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
+                    # Try with custom SSL adapter
+                    logger.warning("Retrying category create with custom SSL adapter")
+                    session = requests.Session()
+                    session.mount('https://', SSLAdapter())
+                    create_resp = session.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10)
             create_resp.raise_for_status()
             created = create_resp.json()
             if created and 'id' in created:
@@ -174,10 +189,11 @@ def _resolve_tag_ids(wp_url: str, username: str, app_password: str, tags, verify
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
                 else:
-                    # Try with HTTP instead
-                    logger.warning("Retrying tag lookup with HTTP instead of HTTPS")
-                    http_endpoint = endpoint.replace('https://', 'http://')
-                    resp = requests.get(http_endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
+                    # Try with custom SSL adapter
+                    logger.warning("Retrying tag lookup with custom SSL adapter")
+                    session = requests.Session()
+                    session.mount('https://', SSLAdapter())
+                    resp = session.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0:
@@ -193,10 +209,11 @@ def _resolve_tag_ids(wp_url: str, username: str, app_password: str, tags, verify
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
                 else:
-                    # Try with HTTP
-                    logger.warning("Retrying tag create with HTTP instead of HTTPS")
-                    http_endpoint = endpoint.replace('https://', 'http://')
-                    create_resp = requests.post(http_endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
+                    # Try with custom SSL adapter
+                    logger.warning("Retrying tag create with custom SSL adapter")
+                    session = requests.Session()
+                    session.mount('https://', SSLAdapter())
+                    create_resp = session.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10)
             create_resp.raise_for_status()
             created = create_resp.json()
             if created and 'id' in created:
@@ -289,15 +306,15 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
                     verify=False
                 )
             else:
-                # Try with HTTP
-                logger.warning("Retrying post creation with HTTP instead of HTTPS")
-                http_endpoint = endpoint.replace('https://', 'http://')
-                resp = requests.post(
-                    http_endpoint,
+                # Try with custom SSL adapter
+                logger.warning("Retrying post creation with custom SSL adapter")
+                session = requests.Session()
+                session.mount('https://', SSLAdapter())
+                resp = session.post(
+                    endpoint,
                     auth=(username, app_password),
                     json=payload,
-                    timeout=30,
-                    verify=False
+                    timeout=30
                 )
         resp.raise_for_status()
         logger.info("✓ WordPress post created")
