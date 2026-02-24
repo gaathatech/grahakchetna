@@ -262,6 +262,21 @@ def get_video(filename):
     if ".." in filename or "/" in filename or "\\" in filename:
         return jsonify({"error": "Invalid filename"}), 400
     
+    # First check if video exists in manifest and use the full path from there
+    manifest = load_manifest()
+    video_entry = next((v for v in manifest["videos"] if v["filename"] == filename), None)
+    
+    if video_entry:
+        video_path = video_entry["path"]
+        if os.path.exists(video_path):
+            return send_file(
+                video_path, 
+                as_attachment=True,
+                download_name=filename,
+                mimetype='video/mp4'
+            )
+    
+    # Fallback to old location for backwards compatibility
     video_path = os.path.join(VIDEOS_DIR, filename)
     if os.path.exists(video_path):
         return send_file(
@@ -275,14 +290,35 @@ def get_video(filename):
 @app.route("/video/<filename>", methods=["DELETE"])
 def delete_video(filename):
     """Delete a specific video"""
+    # First check if video exists in manifest and use the full path from there
+    manifest = load_manifest()
+    video_entry = next((v for v in manifest["videos"] if v["filename"] == filename), None)
+    
+    if video_entry:
+        video_path = video_entry["path"]
+        if os.path.exists(video_path):
+            try:
+                os.remove(video_path)
+                # Update manifest
+                manifest["videos"] = [v for v in manifest["videos"] if v["filename"] != filename]
+                save_manifest(manifest)
+                return jsonify({"status": "deleted", "filename": filename})
+            except Exception as e:
+                logger.warning(f"Failed to delete video {filename}: {e}")
+                return jsonify({"error": f"Failed to delete: {str(e)}"}), 500
+    
+    # Fallback to old location for backwards compatibility
     video_path = os.path.join(VIDEOS_DIR, filename)
     if os.path.exists(video_path):
-        os.remove(video_path)
-        # Update manifest
-        manifest = load_manifest()
-        manifest["videos"] = [v for v in manifest["videos"] if v["filename"] != filename]
-        save_manifest(manifest)
-        return jsonify({"status": "deleted", "filename": filename})
+        try:
+            os.remove(video_path)
+            # Update manifest
+            manifest["videos"] = [v for v in manifest["videos"] if v["filename"] != filename]
+            save_manifest(manifest)
+            return jsonify({"status": "deleted", "filename": filename})
+        except Exception as e:
+            logger.warning(f"Failed to delete video {filename}: {e}")
+            return jsonify({"error": f"Failed to delete: {str(e)}"}), 500
     return jsonify({"error": "Video not found"}), 404
 
 @app.route("/generate", methods=["POST"])
