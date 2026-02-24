@@ -110,6 +110,9 @@ def fetch_and_post_to_wordpress(max_articles: int = 5, dry_run: bool = False) ->
     wp_user = os.getenv('WORDPRESS_USERNAME')
     wp_app_pass = os.getenv('WORDPRESS_APP_PASSWORD')
     verify_ssl = os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
+    # Special handling for grahakchetna.in due to SSL issues
+    if 'grahakchetna.in' in wp_url:
+        verify_ssl = False
     post_status = os.getenv('WP_POST_STATUS', 'publish')
     hashtags_env = os.getenv('WP_HASHTAGS')
     if hashtags_env:
@@ -132,8 +135,6 @@ def fetch_and_post_to_wordpress(max_articles: int = 5, dry_run: bool = False) ->
         if hashtags:
             content += "<p>" + " ".join(hashtags) + "</p>"
 
-        # Derive category from source feed title
-        category = art.get('source') or None
         # Derive tags from hashtags (strip leading #) and source name
         tags = [h.lstrip('#') for h in hashtags]
         if art.get('source'):
@@ -145,7 +146,7 @@ def fetch_and_post_to_wordpress(max_articles: int = 5, dry_run: bool = False) ->
         try:
             if dry_run:
                 # Do not perform network calls, just simulate
-                results.append({'article': art, 'status': 'dry-run', 'would_post': True, 'title': title, 'categories': [category] if category else [], 'tags': tags})
+                results.append({'article': art, 'status': 'dry-run', 'would_post': True, 'title': title, 'categories': [], 'tags': tags})
                 logger.info(f"Dry-run: would post article: {title}")
             else:
                 post_resp = create_post(
@@ -157,7 +158,7 @@ def fetch_and_post_to_wordpress(max_articles: int = 5, dry_run: bool = False) ->
                     description=art.get('description'),
                     verify_ssl=verify_ssl,
                     status=post_status,
-                    categories=[category] if category else None,
+                    categories=None,
                     tags=tags
                 )
                 results.append({'article': art, 'status': 'posted', 'response': post_resp})
@@ -219,6 +220,9 @@ def post_selected_articles(links: List[str], dry_run: bool = False, max_search: 
     wp_user = os.getenv('WORDPRESS_USERNAME')
     wp_app_pass = os.getenv('WORDPRESS_APP_PASSWORD')
     verify_ssl = os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
+    # Special handling for grahakchetna.in due to SSL issues
+    if 'grahakchetna.in' in wp_url:
+        verify_ssl = False
     post_status = os.getenv('WP_POST_STATUS', 'publish')
     hashtags_env = os.getenv('WP_HASHTAGS')
     if hashtags_env:
@@ -237,21 +241,13 @@ def post_selected_articles(links: List[str], dry_run: bool = False, max_search: 
         if hashtags:
             content += "<p>" + " ".join(hashtags) + "</p>"
 
-        category = art.get('source') or None
-        # Apply category mapping if available
-        try:
-            mapping = _load_category_map()
-            if mapping and isinstance(mapping, dict) and category in mapping:
-                category = mapping.get(category)
-        except Exception:
-            pass
         tags = [h.lstrip('#') for h in hashtags]
         if art.get('source'):
             tags.append(art.get('source').strip())
 
         try:
             if dry_run:
-                results.append({'article': art, 'status': 'dry-run', 'would_post': True, 'title': title, 'categories': [category] if category else [], 'tags': tags})
+                results.append({'article': art, 'status': 'dry-run', 'would_post': True, 'title': title, 'categories': [], 'tags': tags})
             else:
                 post_resp = create_post(
                     title=title,
@@ -262,7 +258,7 @@ def post_selected_articles(links: List[str], dry_run: bool = False, max_search: 
                     description=art.get('description'),
                     verify_ssl=verify_ssl,
                     status=post_status,
-                    categories=[category] if category else None,
+                    categories=None,
                     tags=tags
                 )
                 results.append({'article': art, 'status': 'posted', 'response': post_resp})

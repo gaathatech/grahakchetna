@@ -46,6 +46,9 @@ def post_to_wordpress_bp():
     try:
         # SSL verification: disable if WORDPRESS_VERIFY_SSL is set to false/0
         verify_ssl = os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
+        # Special handling for grahakchetna.in due to SSL issues
+        if 'grahakchetna.in' in page_url:
+            verify_ssl = False
         
         media_resp, post_resp = publish_video_as_post(
             video_path,
