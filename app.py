@@ -148,6 +148,74 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/rss", methods=["GET"])
+def rss_page():
+    """Separate RSS management UI page."""
+    return render_template("rss.html")
+
+
+# Quick routes to open specific UI tabs as separate pages (reuses index.html)
+@app.route('/short', methods=['GET'])
+def short_page():
+    return render_template('index.html', open_tab='create-short')
+
+
+@app.route('/long', methods=['GET'])
+def long_page():
+    return render_template('index.html', open_tab='create-long')
+
+
+@app.route('/wordpress_page', methods=['GET'])
+def wordpress_page():
+    return render_template('index.html', open_tab='wp-post')
+
+
+@app.route('/facebook_page', methods=['GET'])
+def facebook_page():
+    return render_template('index.html', open_tab='fb-post')
+
+
+@app.route('/instagram_page', methods=['GET'])
+def instagram_page():
+    return render_template('index.html', open_tab='ig-post')
+
+
+@app.route('/videos_page', methods=['GET'])
+def videos_page():
+    return render_template('index.html', open_tab='videos')
+
+
+# Dedicated routes to serve separate UI entry pages (lightweight templates that redirect)
+@app.route('/wordpress', methods=['GET'])
+def wordpress_ui_root():
+    return render_template('wordpress.html')
+
+
+@app.route('/facebook', methods=['GET'])
+def facebook_ui_root():
+    return render_template('facebook.html')
+
+
+@app.route('/instagram', methods=['GET'])
+def instagram_ui_root():
+    return render_template('instagram.html')
+
+
+@app.route('/short_ui', methods=['GET'])
+def short_ui_root():
+    return render_template('short.html')
+
+
+@app.route('/long_ui', methods=['GET'])
+def long_ui_root():
+    return render_template('long.html')
+
+
+@app.route('/videos_ui', methods=['GET'])
+def videos_ui_root():
+    return render_template('videos_ui.html')
+
+
 @app.route('/fetch_rss', methods=['POST'])
 def fetch_rss():
     """Fetch latest RSS articles and post to WordPress, then redirect home with a flash message."""
@@ -867,4 +935,10 @@ def post_to_wordpress():
 
 if __name__ == "__main__":
     ensure_directories()
-    app.run(host="0.0.0.0", port=5002, debug=False)
+    ensure_directories()
+    # Allow overriding port via PORT or FLASK_PORT environment variables for testing
+    try:
+        port = int(os.getenv('PORT') or os.getenv('FLASK_PORT') or 5002)
+    except Exception:
+        port = 5002
+    app.run(host="0.0.0.0", port=port, debug=False)

@@ -202,8 +202,6 @@ export TTS_OUTPUT_DIR="output"
 export ELEVENLABS_API_KEY="sk-..."
 
 # Optional: Azure Speech
-export AZURE_SPEECH_KEY="..."
-export AZURE_SPEECH_REGION="eastus"
 ```
 
 ### Default Settings

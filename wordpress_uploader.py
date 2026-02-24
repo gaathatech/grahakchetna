@@ -3,6 +3,8 @@ import logging
 from typing import Tuple, Dict, Any
 
 import requests
+from requests.exceptions import SSLError
+import urllib3
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +39,31 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
     try:
         with open(video_path, "rb") as fh:
             files = {"file": (os.path.basename(video_path), fh, "video/mp4")}
-            resp = requests.post(
-                endpoint,
-                auth=(username, app_password),
-                files=files,
-                headers=headers,
-                timeout=timeout,
-                verify=verify_ssl
-            )
+            try:
+                resp = requests.post(
+                    endpoint,
+                    auth=(username, app_password),
+                    files=files,
+                    headers=headers,
+                    timeout=timeout,
+                    verify=verify_ssl
+                )
+            except SSLError as ssl_err:
+                # If SSL error and verification was requested, retry with verify=False
+                logger.warning(f"SSL error during media upload: {ssl_err}")
+                if verify_ssl:
+                    logger.warning("Retrying media upload with SSL verification disabled (verify=False)")
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    resp = requests.post(
+                        endpoint,
+                        auth=(username, app_password),
+                        files=files,
+                        headers=headers,
+                        timeout=timeout,
+                        verify=False
+                    )
+                else:
+                    raise
 
         resp.raise_for_status()
         logger.info("✓ WordPress media uploaded")
@@ -75,8 +94,16 @@ def _resolve_category_ids(wp_url: str, username: str, app_password: str, categor
             continue
 
         try:
-            # Try searching for existing category
-            resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+            try:
+                resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+            except SSLError as ssl_err:
+                logger.warning(f"SSL error when resolving category '{name}': {ssl_err}")
+                if verify_ssl:
+                    logger.warning("Retrying category lookup with SSL verification disabled (verify=False)")
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
+                else:
+                    raise
             resp.raise_for_status()
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0:
@@ -84,7 +111,16 @@ def _resolve_category_ids(wp_url: str, username: str, app_password: str, categor
                 continue
 
             # Not found; create it
-            create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+            try:
+                create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+            except SSLError as ssl_err:
+                logger.warning(f"SSL error when creating category '{name}': {ssl_err}")
+                if verify_ssl:
+                    logger.warning("Retrying category create with SSL verification disabled (verify=False)")
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
+                else:
+                    raise
             create_resp.raise_for_status()
             created = create_resp.json()
             if created and 'id' in created:
@@ -113,14 +149,32 @@ def _resolve_tag_ids(wp_url: str, username: str, app_password: str, tags, verify
             continue
 
         try:
-            resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+            try:
+                resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+            except SSLError as ssl_err:
+                logger.warning(f"SSL error when resolving tag '{name}': {ssl_err}")
+                if verify_ssl:
+                    logger.warning("Retrying tag lookup with SSL verification disabled (verify=False)")
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
+                else:
+                    raise
             resp.raise_for_status()
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0:
                 resolved.append(data[0].get('id'))
                 continue
 
-            create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+            try:
+                create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+            except SSLError as ssl_err:
+                logger.warning(f"SSL error when creating tag '{name}': {ssl_err}")
+                if verify_ssl:
+                    logger.warning("Retrying tag create with SSL verification disabled (verify=False)")
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
+                else:
+                    raise
             create_resp.raise_for_status()
             created = create_resp.json()
             if created and 'id' in created:
@@ -192,13 +246,28 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
         pass
 
     try:
-        resp = requests.post(
-            endpoint,
-            auth=(username, app_password),
-            json=payload,
-            timeout=30,
-            verify=verify_ssl
-        )
+        try:
+            resp = requests.post(
+                endpoint,
+                auth=(username, app_password),
+                json=payload,
+                timeout=30,
+                verify=verify_ssl
+            )
+        except SSLError as ssl_err:
+            logger.warning(f"SSL error when creating post: {ssl_err}")
+            if verify_ssl:
+                logger.warning("Retrying post creation with SSL verification disabled (verify=False)")
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                resp = requests.post(
+                    endpoint,
+                    auth=(username, app_password),
+                    json=payload,
+                    timeout=30,
+                    verify=False
+                )
+            else:
+                raise
         resp.raise_for_status()
         logger.info("✓ WordPress post created")
         return resp.json()

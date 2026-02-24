@@ -70,8 +70,6 @@ VALID_VOICES = {
 }
 
 ELEVEN_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-AZURE_API_KEY = os.getenv("AZURE_SPEECH_KEY")
-AZURE_REGION = os.getenv("AZURE_SPEECH_REGION", "eastus")
 
 DEFAULT_OUTPUT_DIR = os.getenv("TTS_OUTPUT_DIR", "output")
 CACHE_DIR = os.path.join(DEFAULT_OUTPUT_DIR, "cache")
@@ -341,71 +339,6 @@ def _is_retryable_error(error: Exception) -> bool:
     # Default: consider retryable (safer approach)
     logger.info(f"↻ Unknown error - treating as RETRYABLE: {error_type}")
     return True
-
-
-# ======================================
-# AZURE TTS FALLBACK
-# ======================================
-
-async def _azure_tts(text: str, output_path: str, voice: Optional[str] = None) -> bool:
-    """
-    Azure Speech Synthesis fallback.
-    
-    Args:
-        text: Text to synthesize
-        output_path: Path to save MP3 file
-        voice: Optional voice name (uses best_voice if not specified)
-    
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        if not AZURE_API_KEY:
-            logger.info("Azure TTS: API key not configured, skipping")
-            return False
-        
-        import azure.cognitiveservices.speech as speechsdk
-        
-        # Get validated voice
-        selected_voice = get_best_voice(voice)
-        
-        logger.info(f"Trying Azure TTS (region: {AZURE_REGION}, voice: {selected_voice})")
-        
-        speech_config = speechsdk.SpeechConfig(
-            subscription=AZURE_API_KEY,
-            region=AZURE_REGION
-        )
-        
-        # Use validated voice
-        speech_config.speech_synthesis_voice_name = selected_voice
-        
-        # Save to file
-        audio_config = speechsdk.audio.AudioOutputConfig(filename=output_path)
-        
-        synthesizer = speechsdk.SpeechSynthesizer(
-            speech_config=speech_config,
-            audio_config=audio_config
-        )
-        
-        result = synthesizer.speak_text(text)
-        
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            logger.info(f"✓ Azure TTS succeeded with voice: {selected_voice}")
-            return True
-        else:
-            logger.warning(f"Azure TTS synthesis not completed: {result.reason}")
-            if os.path.exists(output_path):
-                os.remove(output_path)
-            return False
-            
-    except ImportError:
-        logger.warning("Azure SDK not installed (azure-cognitiveservices-speech)")
-        return False
-    except Exception as e:
-        logger.warning(f"Azure TTS failed: {type(e).__name__}: {e}")
-        if os.path.exists(output_path):
-            os.remove(output_path)
-        return False
 
 
 
@@ -840,27 +773,28 @@ async def generate_voice_async(
         os.remove(output_path)
     
     # =========================================
-    # STEP 4: Try Azure TTS (1 attempt)
+    # STEP 4: Try ElevenLabs TTS (if configured)
+    # ElevenLabs is preferred over Azure when API key is present.
     # =========================================
     logger.info("=" * 60)
-    logger.info(f"Provider 2: Azure TTS (voice: {selected_voice})")
+    logger.info(f"Provider 2: ElevenLabs TTS (voice: {selected_voice})")
     logger.info("=" * 60)
-    attempted_providers.append("Azure TTS")
-    
+    attempted_providers.append("ElevenLabs")
+
     try:
-        success = await _azure_tts(processed_text, output_path, voice=selected_voice)
-        
+        success = await _elevenlabs_tts(processed_text, output_path)
+
         if success and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            logger.info("✓✓✓ SUCCESS: Azure TTS ✓✓✓")
+            logger.info("✓✓✓ SUCCESS: ElevenLabs TTS ✓✓✓")
             # Cache the result
             os.makedirs(os.path.dirname(cache_path), exist_ok=True)
             os.replace(output_path, cache_path)
             os.replace(cache_path, output_path)
             return output_path, None
     except Exception as e:
-        logger.warning(f"Azure TTS error: {type(e).__name__}: {e}")
-        error_details["azure_tts"] = {"error": str(e), "type": type(e).__name__}
-    
+        logger.warning(f"ElevenLabs TTS error: {type(e).__name__}: {e}")
+        error_details["elevenlabs_tts"] = {"error": str(e), "type": type(e).__name__}
+
     if os.path.exists(output_path):
         os.remove(output_path)
     

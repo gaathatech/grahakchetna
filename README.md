@@ -261,4 +261,24 @@ This repository recently had a Google OAuth client secret committed and subseque
 
 License
 This repository contains internal code and assets — follow your project's licensing and distribution rules.
+
+## Recent Changes (Feb 2026)
+
+- UI: extracted an independent RSS manager page at `/rss` and added lightweight per-feature entry pages that open the corresponding UI tab:
+  - `/wordpress`, `/facebook`, `/instagram`, `/short_ui`, `/long_ui`, `/videos_ui` (these redirect to the in-app tab views)
+- TTS: removed Azure TTS provider; fallback chain is now: `Edge TTS` → `ElevenLabs` → `gTTS` → `pyttsx3`. Set `ELEVENLABS_API_KEY` in `.env` to enable ElevenLabs.
+- WordPress uploader: improved SSL handling — on TLS/SSL errors the uploader retries once with verification disabled. When WordPress SSL verification is disabled, the web UI shows a visible warning banner.
+- Tests: added `mock_wp.py` to allow local testing of `/wordpress/post` flows without a live WordPress instance.
+
+## How to access per-feature UI pages
+
+- Main UI (all tabs): `/` or `/` (renders `templates/index.html`)
+- Short video UI (standalone entry): `/short_ui` (redirects to short tab)
+- Long video UI (standalone entry): `/long_ui` (redirects to long tab)
+- WordPress UI (standalone entry): `/wordpress` (redirects to WordPress tab)
+- Facebook UI (standalone entry): `/facebook` (redirects to Facebook tab)
+- Instagram UI (standalone entry): `/instagram` (redirects to Instagram tab)
+- Videos library: `/videos_ui` (redirects to videos tab)
+
+These lightweight pages make it easier to open a single feature from bookmarks or external links. They currently redirect to the existing tabbed UI but can be extended to host feature-specific templates in the future.
 ```

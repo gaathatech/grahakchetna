@@ -8,7 +8,6 @@ import asyncio
 import logging
 from tts_service import (
     _edge_tts_with_smart_retry,
-    _azure_tts,
     _elevenlabs_tts,
     _get_or_create_event_loop,
     DEFAULT_OUTPUT_DIR,
@@ -31,17 +30,7 @@ async def run_tests():
     except Exception as e:
         logger.exception("Edge TTS failed")
 
-    # 2) Azure
-    if os.getenv("AZURE_SPEECH_KEY"):
-        azure_out = os.path.join(DEFAULT_OUTPUT_DIR, "azure_test.mp3")
-        logger.info("Running Azure TTS test...")
-        try:
-            ok = await _azure_tts(text, azure_out)
-            logger.info(f"Azure TTS result: {ok}, file_exists={os.path.exists(azure_out)}")
-        except Exception as e:
-            logger.exception("Azure TTS failed")
-    else:
-        logger.info("Skipping Azure TTS test (AZURE_SPEECH_KEY not set)")
+    # Azure removed — ElevenLabs is used as a configured fallback instead
 
     # 3) ElevenLabs
     if os.getenv("ELEVENLABS_API_KEY"):

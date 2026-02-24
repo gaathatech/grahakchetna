@@ -139,8 +139,6 @@ If Edge TTS fails with `NoAudioReceived`:
 export TTS_OUTPUT_DIR="output"
 
 # Optional: Azure Speech credentials
-export AZURE_SPEECH_KEY="your-key"
-export AZURE_SPEECH_REGION="eastus"
 
 # Optional: ElevenLabs key for premium quality
 export ELEVENLABS_API_KEY="sk-..."

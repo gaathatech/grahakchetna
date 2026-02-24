@@ -359,8 +359,6 @@ def generate_video():
 # TTS Service
 TTS_OUTPUT_DIR="output"                    # Default output directory
 ELEVENLABS_API_KEY="xxx"                   # ElevenLabs API key (optional)
-AZURE_SPEECH_KEY="xxx"                     # Azure Speech key (optional)
-AZURE_SPEECH_REGION="eastus"               # Azure region
 ```
 
 **Configurable Constants:**
