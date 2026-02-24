@@ -39,9 +39,17 @@ def post_to_facebook():
 
     if not page_id or not page_access_token:
         return jsonify({"error": "Facebook credentials not configured"}), 400
-
+    # Sanitize token locally and mask for logs
     try:
-        resp = upload_reel(video_path=video_path, caption=caption, page_id=page_id, page_access_token=page_access_token)
+        tok = page_access_token.strip().strip('"').strip("'")
+        if tok.endswith('>'):
+            tok = tok.rstrip('>')
+        # Mask token for logs
+        masked = (tok[:6] + '...' + tok[-4:]) if len(tok) > 12 else '***'
+        import logging
+        logging.getLogger(__name__).info(f"Using PAGE_ACCESS_TOKEN: {masked}")
+
+        resp = upload_reel(video_path=video_path, caption=caption, page_id=page_id, page_access_token=tok)
         return jsonify({"status": "posted", "response": resp})
     except FacebookReelUploadError as e:
         return jsonify({"error": str(e)}), 500

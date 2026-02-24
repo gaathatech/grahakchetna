@@ -163,6 +163,13 @@ class FacebookReelUploader:
 
         except requests.exceptions.Timeout:
             raise FacebookReelUploadError("START phase request timeout")
+        except requests.exceptions.HTTPError as e:
+            # Log response body for debugging
+            try:
+                logger.error(f"START phase HTTP error: {e} - response: {response.text}")
+            except Exception:
+                logger.error(f"START phase HTTP error: {e}")
+            raise FacebookReelUploadError(f"START phase failed: {str(e)}")
         except requests.exceptions.RequestException as e:
             error_msg = f"START phase failed: {str(e)}"
             logger.error(error_msg)
@@ -219,6 +226,12 @@ class FacebookReelUploader:
             raise FacebookReelUploadError(
                 f"UPLOAD phase request timeout (timeout={self.timeout}s)"
             )
+        except requests.exceptions.HTTPError as e:
+            try:
+                logger.error(f"UPLOAD phase HTTP error: {e} - response: {response.text}")
+            except Exception:
+                logger.error(f"UPLOAD phase HTTP error: {e}")
+            raise FacebookReelUploadError(f"UPLOAD phase failed: {str(e)}")
         except requests.exceptions.RequestException as e:
             error_msg = f"UPLOAD phase failed: {str(e)}"
             logger.error(error_msg)
@@ -254,28 +267,34 @@ class FacebookReelUploader:
             "access_token": self.page_access_token
         }
 
-        try:
-            response = requests.post(url, params=params, timeout=REQUEST_TIMEOUT)
-            response.raise_for_status()
+            try:
+                response = requests.post(url, params=params, timeout=REQUEST_TIMEOUT)
+                response.raise_for_status()
 
-            data = response.json()
+                data = response.json()
 
-            if "id" not in data:
-                logger.warning(f"No reel ID in FINISH response: {data}")
+                if "id" not in data:
+                    logger.warning(f"No reel ID in FINISH response: {data}")
+                    return data
+
+                reel_id = data["id"]
+                logger.info(f"✓ FINISH phase successful. Reel ID: {reel_id}")
+                print(f"\n✓ Successfully uploaded Facebook Reel! ID: {reel_id}\n")
+
                 return data
 
-            reel_id = data["id"]
-            logger.info(f"✓ FINISH phase successful. Reel ID: {reel_id}")
-            print(f"\n✓ Successfully uploaded Facebook Reel! ID: {reel_id}\n")
-
-            return data
-
-        except requests.exceptions.Timeout:
-            raise FacebookReelUploadError("FINISH phase request timeout")
-        except requests.exceptions.RequestException as e:
-            error_msg = f"FINISH phase failed: {str(e)}"
-            logger.error(error_msg)
-            raise FacebookReelUploadError(error_msg)
+            except requests.exceptions.Timeout:
+                raise FacebookReelUploadError("FINISH phase request timeout")
+            except requests.exceptions.HTTPError as e:
+                try:
+                    logger.error(f"FINISH phase HTTP error: {e} - response: {response.text}")
+                except Exception:
+                    logger.error(f"FINISH phase HTTP error: {e}")
+                raise FacebookReelUploadError(f"FINISH phase failed: {str(e)}")
+            except requests.exceptions.RequestException as e:
+                error_msg = f"FINISH phase failed: {str(e)}"
+                logger.error(error_msg)
+                raise FacebookReelUploadError(error_msg)
 
     def upload(self, video_path: str, caption: str) -> Dict:
         """
@@ -359,6 +378,13 @@ def upload_reel(
     Raises:
         FacebookReelUploadError: On upload failures
     """
+    # Sanitize token (strip whitespace and accidental surrounding characters)
+    if isinstance(page_access_token, str):
+        page_access_token = page_access_token.strip().strip('"').strip("'").strip()
+        # Remove a trailing '>' if accidentally copied from some shells or URLs
+        if page_access_token.endswith('>'):
+            page_access_token = page_access_token.rstrip('>')
+
     # Validate parameters
     FacebookReelUploadValidator.validate_parameters(caption, page_id, page_access_token)
     FacebookReelUploadValidator.validate_video_path(video_path)
