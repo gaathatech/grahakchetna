@@ -11,16 +11,6 @@
       "size_mb": 0.27
     },
     {
-      "id": "20260224_091645_109",
-      "filename": "video_20260224_091636_395.mp4",
-      "path": "videos/video_20260224_091636_395.mp4",
-      "headline": "Hello",
-      "description": "Hello",
-      "language": "english",
-      "created_at": "2026-02-24T09:16:45.109483",
-      "size_mb": 0.27
-    },
-    {
       "id": "20260224_083505_003",
       "filename": "long_video_20260224_083041_792.mp4",
       "path": "videos/long/long_video_20260224_083041_792.mp4",
@@ -41,16 +31,6 @@
       "size_mb": 0.85
     },
     {
-      "id": "20260224_082958_931",
-      "filename": "video_20260224_082901_168.mp4",
-      "path": "videos/video_20260224_082901_168.mp4",
-      "headline": "Breaking News: Latest Technology Updates",
-      "description": "A comprehensive update on the latest developments in artificial intelligence and machine learning technologies that are reshaping the industry.",
-      "language": "en",
-      "created_at": "2026-02-24T08:29:58.931912",
-      "size_mb": 0.85
-    },
-    {
       "id": "20260223_091846_847",
       "filename": "video_20260223_091543_943.mp4",
       "path": "videos/video_20260223_091543_943.mp4",
@@ -58,16 +38,6 @@
       "description": "Nemesio \u201cEl Mencho\u201d Oseguera Cervantes, leader of the powerful Jalisco New Generation Cartel, was killed during a military operation in Tapalpa, Jalisco. Wounded in the raid, he died while being transported to Mexico City.\r\n\r\nHis death marks one of the biggest victories in Mexico\u2019s war on cartels.\r\n\r\nBut the aftermath was explosive.\r\n\r\nCartel members torched vehicles, blocked highways, and triggered panic across multiple states. Cities like Guadalajara saw residents shelter indoors as schools shut down.\r\n\r\nSecurity forces reported casualties, injuries, arrests, and the seizure of armored vehicles and rocket launchers.\r\n\r\nAs tensions rise, the operation signals a major turning point in Mexico\u2019s fight against organized crime.",
       "language": "english",
       "created_at": "2026-02-23T09:18:46.847667",
-      "size_mb": 3.19
-    },
-    {
-      "id": "20260223_091846_847",
-      "filename": "video_20260223_091543_943.mp4",
-      "path": "videos/video_20260223_091543_943.mp4",
-      "headline": "Mexico\u2019s most wanted cartel boss is dead.",
-      "description": "Nemesio \u201cEl Mencho\u201d Oseguera Cervantes, leader of the powerful Jalisco New Generation Cartel, was killed during a military operation in Tapalpa, Jalisco. Wounded in the raid, he died while being transported to Mexico City.\r\n\r\nHis death marks one of the biggest victories in Mexico\u2019s war on cartels.\r\n\r\nBut the aftermath was explosive.\r\n\r\nCartel members torched vehicles, blocked highways, and triggered panic across multiple states. Cities like Guadalajara saw residents shelter indoors as schools shut down.\r\n\r\nSecurity forces reported casualties, injuries, arrests, and the seizure of armored vehicles and rocket launchers.\r\n\r\nAs tensions rise, the operation signals a major turning point in Mexico\u2019s fight against organized crime.",
-      "language": "english",
-      "created_at": "2026-02-23T09:18:46.847057",
       "size_mb": 3.19
     },
     {
@@ -81,16 +51,6 @@
       "size_mb": 0.24
     },
     {
-      "id": "20260223_091425_477",
-      "filename": "video_20260223_091418_154.mp4",
-      "path": "videos/video_20260223_091418_154.mp4",
-      "headline": "test",
-      "description": "test",
-      "language": "english",
-      "created_at": "2026-02-23T09:14:25.478009",
-      "size_mb": 0.24
-    },
-    {
       "id": "20260223_091405_897",
       "filename": "video_20260223_091352_119.mp4",
       "path": "videos/video_20260223_091352_119.mp4",
@@ -98,16 +58,6 @@
       "description": "Test Description",
       "language": "english",
       "created_at": "2026-02-23T09:14:05.897708",
-      "size_mb": 0.32
-    },
-    {
-      "id": "20260223_091405_897",
-      "filename": "video_20260223_091352_119.mp4",
-      "path": "videos/video_20260223_091352_119.mp4",
-      "headline": "Test Headline",
-      "description": "Test Description",
-      "language": "english",
-      "created_at": "2026-02-23T09:14:05.897177",
       "size_mb": 0.32
     },
     {
@@ -121,16 +71,6 @@
       "size_mb": 3.97
     },
     {
-      "id": "20260223_084802_269",
-      "filename": "video_20260223_084453_267.mp4",
-      "path": "videos/video_20260223_084453_267.mp4",
-      "headline": "El Mencho Killed in Mexico Military Raid | CJNG Leader\u2019s Death Sparks Nationwide Violence",
-      "description": "Mexico\u2019s most wanted cartel boss is dead.\r\n\r\nNemesio \u201cEl Mencho\u201d Oseguera Cervantes, leader of the powerful Jalisco New Generation Cartel, was killed during a military operation in Tapalpa, Jalisco. Wounded in the raid, he died while being transported to Mexico City.\r\n\r\nHis death marks one of the biggest victories in Mexico\u2019s war on cartels.\r\n\r\nBut the aftermath was explosive.\r\n\r\nCartel members torched vehicles, blocked highways, and triggered panic across multiple states. Cities like Guadalajara saw residents shelter indoors as schools shut down.\r\n\r\nSecurity forces reported casualties, injuries, arrests, and the seizure of armored vehicles and rocket launchers.\r\n\r\nAs tensions rise, the operation signals a major turning point in Mexico\u2019s fight against organized crime.",
-      "language": "english",
-      "created_at": "2026-02-23T08:48:02.269964",
-      "size_mb": 3.97
-    },
-    {
       "id": "20260221_125954_574",
       "filename": "video_20260221_125530_140.mp4",
       "path": "videos/video_20260221_125530_140.mp4",
@@ -138,16 +78,6 @@
       "description": "The Ministry of Steel, Government of India, and Brazil\u2019s Ministry of Mines and Energy have signed a landmark Memorandum of Understanding in New Delhi.\r\n\r\nThe agreement was exchanged in the presence of Prime Minister Narendra Modi and President Luiz In\u00e1cio Lula da Silva at Hyderabad House.\r\n\r\nThe focus?\r\n\r\nStrengthening cooperation across the entire steel value chain \u2014 from mineral exploration to advanced processing technologies.\r\n\r\nThe partnership will promote investment in mining infrastructure, recycling technologies, automation, and even the use of Artificial Intelligence in geoscientific data analysis.\r\n\r\nBrazil, one of the world\u2019s largest producers of iron ore and key steelmaking minerals like manganese, nickel, and niobium, becomes a crucial partner in ensuring stable raw material access for India.\r\n\r\nWith India\u2019s steel capacity already at 218 million tonnes \u2014 and expanding rapidly \u2014 this MoU strengthens supply chain resilience and supports sustainable, technology-driven growth.\r\n\r\nIndia and Brazil are not just signing an agreement.\r\n\r\nThey are building a strategic steel alliance for the future.",
       "language": "english",
       "created_at": "2026-02-21T12:59:54.574969",
-      "size_mb": 5.46
-    },
-    {
-      "id": "20260221_125954_574",
-      "filename": "video_20260221_125530_140.mp4",
-      "path": "videos/video_20260221_125530_140.mp4",
-      "headline": "India and Brazil have taken a major step toward securing the future of steel.",
-      "description": "The Ministry of Steel, Government of India, and Brazil\u2019s Ministry of Mines and Energy have signed a landmark Memorandum of Understanding in New Delhi.\r\n\r\nThe agreement was exchanged in the presence of Prime Minister Narendra Modi and President Luiz In\u00e1cio Lula da Silva at Hyderabad House.\r\n\r\nThe focus?\r\n\r\nStrengthening cooperation across the entire steel value chain \u2014 from mineral exploration to advanced processing technologies.\r\n\r\nThe partnership will promote investment in mining infrastructure, recycling technologies, automation, and even the use of Artificial Intelligence in geoscientific data analysis.\r\n\r\nBrazil, one of the world\u2019s largest producers of iron ore and key steelmaking minerals like manganese, nickel, and niobium, becomes a crucial partner in ensuring stable raw material access for India.\r\n\r\nWith India\u2019s steel capacity already at 218 million tonnes \u2014 and expanding rapidly \u2014 this MoU strengthens supply chain resilience and supports sustainable, technology-driven growth.\r\n\r\nIndia and Brazil are not just signing an agreement.\r\n\r\nThey are building a strategic steel alliance for the future.",
-      "language": "english",
-      "created_at": "2026-02-21T12:59:54.574451",
       "size_mb": 5.46
     },
     {

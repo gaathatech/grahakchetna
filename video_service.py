@@ -620,33 +620,4 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         audio_codec="aac",
     )
 
-    # Auto-add to manifest if videos folder exists
-    try:
-        os.makedirs(VIDEOS_DIR, exist_ok=True)
-        if os.path.exists(VIDEO_MANIFEST):
-            try:
-                with open(VIDEO_MANIFEST, 'r') as f:
-                    manifest = json.load(f)
-            except Exception:
-                manifest = {"videos": []}
-
-            entry = {
-                "id": datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3],
-                "filename": os.path.basename(output_path),
-                "path": output_path,
-                "headline": title,
-                "description": description,
-                "language": language,
-                "created_at": datetime.now().isoformat(),
-                "size_mb": round(os.path.getsize(output_path) / (1024*1024), 2)
-            }
-
-            manifest["videos"] = manifest.get("videos", [])
-            manifest["videos"].insert(0, entry)
-
-            with open(VIDEO_MANIFEST, 'w') as f:
-                json.dump(manifest, f, indent=2)
-    except Exception:
-        pass
-
     return output_path
