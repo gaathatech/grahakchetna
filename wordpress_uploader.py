@@ -17,7 +17,6 @@ class SSLAdapter(HTTPAdapter):
         context = create_urllib3_context()
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
-        context.protocol = ssl.PROTOCOL_TLSv1
         kwargs['ssl_context'] = context
         return super().init_poolmanager(*args, **kwargs)
 
@@ -52,6 +51,9 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
     try:
         with open(video_path, "rb") as fh:
             files = {"file": (os.path.basename(video_path), fh, "video/mp4")}
+            # For SSL-problematic hosts, use verify=False directly to avoid retries
+            actual_verify = False if not verify_ssl else verify_ssl
+            
             try:
                 resp = requests.post(
                     endpoint,
@@ -59,12 +61,11 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
                     files=files,
                     headers=headers,
                     timeout=timeout,
-                    verify=verify_ssl
+                    verify=actual_verify
                 )
             except SSLError as ssl_err:
-                # If SSL error and verification was requested, retry with verify=False
                 logger.warning(f"SSL error during media upload: {ssl_err}")
-                if verify_ssl:
+                if actual_verify:
                     logger.warning("Retrying media upload with SSL verification disabled (verify=False)")
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     resp = requests.post(
@@ -76,17 +77,7 @@ def upload_media(video_path: str, wp_url: str, username: str, app_password: str,
                         verify=False
                     )
                 else:
-                    # Try with custom SSL adapter
-                    logger.warning("Retrying media upload with custom SSL adapter")
-                    session = requests.Session()
-                    session.mount('https://', SSLAdapter())
-                    resp = session.post(
-                        endpoint,
-                        auth=(username, app_password),
-                        files=files,
-                        headers=headers,
-                        timeout=timeout
-                    )
+                    raise
 
         resp.raise_for_status()
         logger.info("✓ WordPress media uploaded")
@@ -117,20 +108,19 @@ def _resolve_category_ids(wp_url: str, username: str, app_password: str, categor
             continue
 
         try:
+            # For SSL-problematic hosts, use verify=False directly to avoid retries
+            actual_verify = False if not verify_ssl else verify_ssl
+            
             try:
-                resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+                resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=actual_verify)
             except SSLError as ssl_err:
                 logger.warning(f"SSL error when resolving category '{name}': {ssl_err}")
-                if verify_ssl:
+                if actual_verify:
                     logger.warning("Retrying category lookup with SSL verification disabled (verify=False)")
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
                 else:
-                    # Try with custom SSL adapter
-                    logger.warning("Retrying category lookup with custom SSL adapter")
-                    session = requests.Session()
-                    session.mount('https://', SSLAdapter())
-                    resp = session.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10)
+                    raise
             resp.raise_for_status()
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0:
@@ -139,19 +129,15 @@ def _resolve_category_ids(wp_url: str, username: str, app_password: str, categor
 
             # Not found; create it
             try:
-                create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+                create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=actual_verify)
             except SSLError as ssl_err:
                 logger.warning(f"SSL error when creating category '{name}': {ssl_err}")
-                if verify_ssl:
+                if actual_verify:
                     logger.warning("Retrying category create with SSL verification disabled (verify=False)")
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
                 else:
-                    # Try with custom SSL adapter
-                    logger.warning("Retrying category create with custom SSL adapter")
-                    session = requests.Session()
-                    session.mount('https://', SSLAdapter())
-                    create_resp = session.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10)
+                    raise
             create_resp.raise_for_status()
             created = create_resp.json()
             if created and 'id' in created:
@@ -180,20 +166,19 @@ def _resolve_tag_ids(wp_url: str, username: str, app_password: str, tags, verify
             continue
 
         try:
+            # For SSL-problematic hosts, use verify=False directly to avoid retries
+            actual_verify = False if not verify_ssl else verify_ssl
+            
             try:
-                resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=verify_ssl)
+                resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=actual_verify)
             except SSLError as ssl_err:
                 logger.warning(f"SSL error when resolving tag '{name}': {ssl_err}")
-                if verify_ssl:
+                if actual_verify:
                     logger.warning("Retrying tag lookup with SSL verification disabled (verify=False)")
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     resp = requests.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10, verify=False)
                 else:
-                    # Try with custom SSL adapter
-                    logger.warning("Retrying tag lookup with custom SSL adapter")
-                    session = requests.Session()
-                    session.mount('https://', SSLAdapter())
-                    resp = session.get(endpoint, auth=(username, app_password), params={"search": name}, timeout=10)
+                    raise
             resp.raise_for_status()
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0:
@@ -201,19 +186,15 @@ def _resolve_tag_ids(wp_url: str, username: str, app_password: str, tags, verify
                 continue
 
             try:
-                create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=verify_ssl)
+                create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=actual_verify)
             except SSLError as ssl_err:
                 logger.warning(f"SSL error when creating tag '{name}': {ssl_err}")
-                if verify_ssl:
+                if actual_verify:
                     logger.warning("Retrying tag create with SSL verification disabled (verify=False)")
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     create_resp = requests.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10, verify=False)
                 else:
-                    # Try with custom SSL adapter
-                    logger.warning("Retrying tag create with custom SSL adapter")
-                    session = requests.Session()
-                    session.mount('https://', SSLAdapter())
-                    create_resp = session.post(endpoint, auth=(username, app_password), json={"name": name}, timeout=10)
+                    raise
             create_resp.raise_for_status()
             created = create_resp.json()
             if created and 'id' in created:
@@ -285,17 +266,20 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
         pass
 
     try:
+        # For SSL-problematic hosts, use verify=False directly to avoid retries
+        actual_verify = False if not verify_ssl else verify_ssl
+        
         try:
             resp = requests.post(
                 endpoint,
                 auth=(username, app_password),
                 json=payload,
                 timeout=30,
-                verify=verify_ssl
+                verify=actual_verify
             )
         except SSLError as ssl_err:
             logger.warning(f"SSL error when creating post: {ssl_err}")
-            if verify_ssl:
+            if actual_verify:
                 logger.warning("Retrying post creation with SSL verification disabled (verify=False)")
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                 resp = requests.post(
@@ -306,16 +290,7 @@ def create_post(title: str, content: str, wp_url: str, username: str, app_passwo
                     verify=False
                 )
             else:
-                # Try with custom SSL adapter
-                logger.warning("Retrying post creation with custom SSL adapter")
-                session = requests.Session()
-                session.mount('https://', SSLAdapter())
-                resp = session.post(
-                    endpoint,
-                    auth=(username, app_password),
-                    json=payload,
-                    timeout=30
-                )
+                raise
         resp.raise_for_status()
         logger.info("✓ WordPress post created")
         return resp.json()

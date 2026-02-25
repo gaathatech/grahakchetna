@@ -111,7 +111,7 @@ def fetch_and_post_to_wordpress(max_articles: int = 5, dry_run: bool = False) ->
     wp_app_pass = os.getenv('WORDPRESS_APP_PASSWORD')
     verify_ssl = os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
     # Special handling for grahakchetna.in due to SSL issues
-    if 'grahakchetna.in' in wp_url:
+    if wp_url and 'grahakchetna.in' in wp_url:
         verify_ssl = False
     post_status = os.getenv('WP_POST_STATUS', 'publish')
     hashtags_env = os.getenv('WP_HASHTAGS')
@@ -221,7 +221,7 @@ def post_selected_articles(links: List[str], dry_run: bool = False, max_search: 
     wp_app_pass = os.getenv('WORDPRESS_APP_PASSWORD')
     verify_ssl = os.getenv('WORDPRESS_VERIFY_SSL', 'true').lower() not in ['false', '0', 'no']
     # Special handling for grahakchetna.in due to SSL issues
-    if 'grahakchetna.in' in wp_url:
+    if wp_url and 'grahakchetna.in' in wp_url:
         verify_ssl = False
     post_status = os.getenv('WP_POST_STATUS', 'publish')
     hashtags_env = os.getenv('WP_HASHTAGS')

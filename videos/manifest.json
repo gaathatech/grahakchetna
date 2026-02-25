@@ -1,6 +1,16 @@
 {
   "videos": [
     {
+      "id": "20260225_103409_583",
+      "filename": "long_video_20260225_103042_359.mp4",
+      "path": "videos/long/long_video_20260225_103042_359.mp4",
+      "headline": "Modi in Israel: Strategic Partnership Set for New Goals",
+      "description": "Prime Minister Narendra Modi begins his two-day Israel visit, calling it a historic step to deepen the India-Israel Strategic Partnership. Netanyahu and President Herzog welcome the visit as ties strengthen across defence, technology and innovation.\r\nHigh-Retention Shorts Script:\r\nThis could redefine India\u2013Israel ties.\r\nPrime Minister Narendra Modi has landed in Israel for a crucial two-day State visit \u2014 his second visit to the country. And he says this trip will set new goals for the India\u2013Israel Strategic Partnership.\r\nModi and Israeli Prime Minister Benjamin Netanyahu will review progress and expand cooperation in defence, security, science and technology, innovation, agriculture, water management, trade, and people-to-people ties.\r\nBefore departure, PM Modi said the partnership has seen remarkable growth in recent years \u2014 and this visit will advance a shared vision for a resilient, innovative and prosperous future.\r\nIsraeli President Isaac Herzog says Israel is ready to welcome him.\r\nAnd Netanyahu has called Modi\u2019s arrival a historic moment \u2014 even describing him not just as a partner, but a personal friend.\r\nDiplomacy. Defence. Innovation.\r\nIndia and Israel are entering their next strategic chapter.",
+      "language": "english",
+      "created_at": "2026-02-25T10:34:09.583425",
+      "size_mb": 4.46
+    },
+    {
       "id": "20260225_054810_286",
       "filename": "long_video_20260225_054456_859.mp4",
       "path": "videos/long/long_video_20260225_054456_859.mp4",
@@ -80,7 +90,6 @@
       "created_at": "2026-02-23T09:18:46.847667",
       "size_mb": 3.19
     },
-    
     {
       "id": "20260223_084802_270",
       "filename": "video_20260223_084453_267.mp4",

@@ -382,19 +382,19 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
-    # Anchor - static position
+    # Anchor - perfect position (left side, lower middle for better framing)
     anchor = (
         ImageClip("static/anchor.png")
         .resize(height=750)
-        .set_position((40, "center"))
+        .set_position((40, 450))
         .set_duration(duration)
     )
 
-    # Logo
+    # Logo - moved to right corner
     logo = (
         ImageClip("static/logo.jpg")
         .resize(height=100)
-        .set_position(("center", 40))
+        .set_position((WIDTH - 130, 40))
         .set_duration(duration)
     )
 
@@ -451,11 +451,11 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         ticker_bg = None
 
     # ============= DESCRIPTION (RIGHT SIDE, OPPOSITE ANCHOR) =============
-    # Position opposite to anchor (anchor is at x=40, so desc is at right side)
-    desc_x = 430  # Right side, opposite anchor
-    desc_start_y = 350
-    desc_width = 600
-    desc_box_height = 1100  # Fixed box height
+    # Position on right side with better frame layout
+    desc_x = 550  # More to the right for better layout
+    desc_start_y = 280
+    desc_width = 500  # Increased width for better frame
+    desc_box_height = 900  # Decreased height for shorter scrolling segments
     
     # Create description text clipped to box
     desc_img_path, desc_height = create_boxed_text_image(
@@ -547,11 +547,22 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         bold=True,
         max_width=WIDTH - 100
     )
-    breaking_text = ImageClip(breaking_text_img_path)
+    breaking_text_img = ImageClip(breaking_text_img_path)
+    breaking_text_width = breaking_text_img.w
+    
+    # Create ticker animation - text moves from right to left
+    def breaking_ticker_position(t):
+        # Ticker duration matches video duration for continuous loop
+        ticker_duration = 8.0  # Time for one complete scroll
+        cycle_time = t % ticker_duration
+        # Start from right (WIDTH) and move to left (-breaking_text_width)
+        x_pos = WIDTH - (cycle_time / ticker_duration) * (WIDTH + breaking_text_width)
+        return (x_pos, breaking_bar_y + 25)
+    
     breaking_text = (
-        breaking_text
-        .set_position(("center", breaking_bar_y + 25))
+        breaking_text_img
         .set_duration(duration)
+        .set_position(breaking_ticker_position)
     )
 
     # AI label
