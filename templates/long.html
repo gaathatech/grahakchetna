@@ -325,6 +325,14 @@
                     <option value="auto">Auto</option>
                 </select>
 
+                <label for="story_file_0">Upload Image or Video (optional)</label>
+                <input type="file" id="story_file_0" name="story_file_0" accept="image/*,video/*">
+
+                <div id="mediaPreviewWrap" style="margin-bottom:12px; display:none;">
+                    <img id="mediaPreviewImg" src="" alt="preview" style="max-width:100%; display:none; border-radius:8px;" />
+                    <video id="mediaPreviewVideo" src="" style="max-width:100%; display:none; border-radius:8px;" autoplay muted loop playsinline></video>
+                </div>
+
                 <button type="submit" id="submitBtn">Generate Video</button>
                 
                 <div id="status" class="status"></div>
@@ -378,6 +386,46 @@
         document.addEventListener('DOMContentLoaded', function(){
             populateModels('auto');
             document.getElementById('voice_provider').addEventListener('change', (e) => populateModels(e.target.value));
+            // Preview setup for uploaded media
+            const fileInput = document.getElementById('story_file_0');
+            const previewWrap = document.getElementById('mediaPreviewWrap');
+            const previewImg = document.getElementById('mediaPreviewImg');
+            const previewVideo = document.getElementById('mediaPreviewVideo');
+            if (fileInput) {
+                fileInput.addEventListener('change', (ev) => {
+                    const f = ev.target.files && ev.target.files[0];
+                    if (!f) {
+                        previewWrap.style.display = 'none';
+                        previewImg.style.display = 'none';
+                        previewVideo.style.display = 'none';
+                        previewImg.src = '';
+                        previewVideo.src = '';
+                        return;
+                    }
+
+                    const url = URL.createObjectURL(f);
+                    previewWrap.style.display = 'block';
+                    if (f.type && f.type.indexOf('video') === 0) {
+                        previewImg.style.display = 'none';
+                        previewImg.src = '';
+                        previewVideo.src = url;
+                        previewVideo.style.display = 'block';
+                        // ensure it plays and loops while generation runs
+                        previewVideo.play().catch(() => {});
+                    } else {
+                        previewVideo.pause();
+                        previewVideo.style.display = 'none';
+                        previewVideo.src = '';
+                        previewImg.src = url;
+                        previewImg.style.display = 'block';
+                    }
+
+                    // Revoke object URL when page is unloaded or new file chosen
+                    previewVideo.onloadeddata = previewImg.onload = () => {
+                        setTimeout(() => { try { URL.revokeObjectURL(url); } catch(e){} }, 60000);
+                    };
+                });
+            }
             
             // Check credentials
             fetch('/config/credentials')
@@ -464,6 +512,12 @@
                 formData.append('voice_provider', document.getElementById('voice_provider').value);
                 formData.append('voice_model', document.getElementById('voice_model').value);
                 formData.append('video_length', document.getElementById('video_length').value);
+
+                // Attach uploaded media (if any)
+                const uploadInput = document.getElementById('story_file_0');
+                if (uploadInput && uploadInput.files && uploadInput.files[0]) {
+                    formData.append('story_file_0', uploadInput.files[0]);
+                }
 
                 const response = await fetch('/generate-long', {
                     method: 'POST',

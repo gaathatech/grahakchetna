@@ -557,83 +557,116 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     except Exception:
         ticker_bg = None
 
-    # ============= RIGHT SIDE CONTENT (DYNAMIC) =============
-    # Position on right side - optimized for 9:16 vertical format
-    
-    # Right content box dimensions
-    right_content_x = int(WIDTH * 0.55)  # Right side (5% from right = WIDTH * 0.5 + some offset)
-    right_content_width = int(WIDTH * 0.45)  # 45% of screen width
-    right_content_min_height = 200
-    
-    # Check if media is available and valid
+    # ============= RIGHT SIDE CONTENT (SHORT LAYOUT: FIXED BOX) =============
+    # Position on right side - for short layout we restore a fixed box positioned
+    # between the headline bar and breaking bar to avoid overlap and provide
+    # consistent scrolling behavior for long descriptions.
+
+    # Keep a right-side X position and width similar to earlier design
+    right_content_x = int(WIDTH * 0.55)
+    right_content_width = int(WIDTH * 0.45)
+
+    # Check for media first (images/videos). If media exists we show it as before.
     has_media = media_path and os.path.exists(media_path)
-    
+
     if has_media:
         logger.info(f"Media available: {media_path} - displaying media on right side")
-        
-        # Load media (image or video)
         try:
             if media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
-                # Video media
                 media_clip = VideoFileClip(media_path)
                 media_clip = media_clip.resize((right_content_width, int(right_content_width * media_clip.h / media_clip.w)))
                 media_clip = media_clip.subclip(0, min(media_clip.duration, duration))
-                # Loop media if shorter than video duration
                 if media_clip.duration < duration:
                     media_clip = concatenate_videoclips([media_clip] * int(duration / media_clip.duration + 1)).subclip(0, duration)
             else:
-                # Image media
                 media_img = ImageClip(media_path)
-                # Resize to fit right side width while maintaining aspect ratio
                 media_aspect = media_img.w / media_img.h if media_img.h > 0 else 1
                 media_height = int(right_content_width / media_aspect)
-                media_clip = media_img.resize((right_content_width, media_height))
-                media_clip = media_clip.set_duration(duration)
-            
-            # Center media vertically
+                media_clip = media_img.resize((right_content_width, media_height)).set_duration(duration)
+
             media_height = media_clip.h
-            right_content_y = int((HEIGHT - media_height) / 2)  # Center vertically
-            
+            right_content_y = int((HEIGHT - media_height) / 2)
             media_clip = media_clip.set_position((right_content_x, right_content_y))
             right_content_clip = media_clip
+            right_bg_box = None
             use_text_box = False
-            
         except Exception as e:
             logger.warning(f"Failed to load media {media_path}: {e} - falling back to text box")
             has_media = False
             use_text_box = True
     else:
         use_text_box = True
-    
-    # Create right content text box if no media or media loading failed
+
+    # If no media, use a fixed description box positioned between the headline
+    # bar and breaking bar to prevent overlap (restored from older short-layout).
     if use_text_box:
-        logger.info("No media available or failed to load - displaying headline text box on right side")
-        
-        # Create right content box with the story description/script
-        # Headline is already shown in the top ticker; use description here
-        right_box_img_path, right_box_width, right_box_height = create_right_content_box(
-            description,  # show description/script in the right-side box
-            fontsize=32,
+        logger.info("Using fixed-position description box on right side (short layout)")
+
+        # Fixed dimensions and positions (based on previous short layout)
+        desc_x = right_content_x
+        desc_start_y = headline_bar_y + headline_bar_height + 10  # just below headline bar
+        # Ensure we leave space above the breaking bar
+        bottom_limit = breaking_bar_y - 20
+        # Use a fixed box width and height suitable for short layout
+        desc_width = 500
+        desc_box_height = min(900, bottom_limit - desc_start_y) if bottom_limit > desc_start_y + 100 else 700
+
+        # Create description text clipped to box
+        desc_img_path, desc_height = create_boxed_text_image(
+            description,
+            fontsize=40,
             color=(255, 255, 255),
-            bold=True,
+            bold=False,
+            box_width=desc_width,
+            box_height=desc_box_height,
             language=language
         )
-        
-        # Center text box vertically
-        right_content_y = int((HEIGHT - right_box_height) / 2)  # Center vertically
-        
-        right_content_clip = ImageClip(right_box_img_path).set_duration(duration)
-        right_content_clip = right_content_clip.set_position((right_content_x, right_content_y))
-        
-        # Optionally add a semi-transparent background behind the text box (visual enhancement)
-        right_bg_box = (
-            ColorClip((right_box_width, right_box_height), color=(0, 0, 0))
-            .set_opacity(0.3)
-            .set_position((right_content_x, right_content_y))
+
+        # Background box and optional border
+        desc_bg_box = (
+            ColorClip((desc_width, desc_box_height), color=(0, 0, 0))
+            .set_opacity(0.6)
+            .set_position((desc_x, desc_start_y))
             .set_duration(duration)
         )
-    else:
-        right_bg_box = None
+
+        desc_border = (
+            ColorClip((desc_width, 3), color=(255, 215, 0))
+            .set_position((desc_x, desc_start_y))
+            .set_duration(duration)
+        )
+
+        # If text is taller than the box, create scrolling animation with masking
+        if desc_height > desc_box_height:
+            logger.info(f"Description scrolling enabled (height {desc_height} > box {desc_box_height})")
+            from PIL import Image as PILImage
+            import numpy as np
+
+            full_img = PILImage.open(desc_img_path)
+
+            def desc_make_frame(t):
+                scroll_duration = duration * 0.35
+                if t < scroll_duration:
+                    scroll_distance = desc_height - desc_box_height
+                    y_scroll = int((t / scroll_duration) * scroll_distance)
+                else:
+                    y_scroll = int(desc_height - desc_box_height)
+
+                cropped = full_img.crop((0, y_scroll, desc_width, y_scroll + desc_box_height))
+                if cropped.mode == 'RGBA':
+                    cropped = cropped.convert('RGB')
+                return np.array(cropped)
+
+            from moviepy.video.VideoClip import VideoClip
+            desc_clip = VideoClip(make_frame=desc_make_frame, duration=duration)
+            desc_clip = desc_clip.set_position((desc_x, desc_start_y))
+        else:
+            desc_clip = ImageClip(desc_img_path).set_duration(duration)
+            desc_clip = desc_clip.set_position((desc_x, desc_start_y))
+
+        # Adopt unified variable names used later in composition
+        right_content_clip = desc_clip
+        right_bg_box = desc_bg_box
     
     # ============= BOTTOM BREAKING NEWS BAR =============
     # Use same headline text for ticker consistency
