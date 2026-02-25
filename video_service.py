@@ -557,8 +557,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     except Exception:
         ticker_bg = None
 
-# Define breaking bar Y early so right-side layout can reference it
-breaking_bar_y = HEIGHT - 220
+    # Define breaking bar Y early so right-side layout can reference it
+    breaking_bar_y = HEIGHT - 220
 
     # ============= RIGHT SIDE CONTENT (SHORT LAYOUT: FIXED BOX) =============
     # Position on right side - for short layout we restore a fixed box positioned
