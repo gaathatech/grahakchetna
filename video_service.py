@@ -557,6 +557,9 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     except Exception:
         ticker_bg = None
 
+# Define breaking bar Y early so right-side layout can reference it
+breaking_bar_y = HEIGHT - 220
+
     # ============= RIGHT SIDE CONTENT (SHORT LAYOUT: FIXED BOX) =============
     # Position on right side - for short layout we restore a fixed box positioned
     # between the headline bar and breaking bar to avoid overlap and provide
@@ -670,8 +673,6 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     
     # ============= BOTTOM BREAKING NEWS BAR =============
     # Use same headline text for ticker consistency
-    breaking_bar_y = HEIGHT - 220
-
     breaking_bar = (
         ColorClip((WIDTH, 130), color=COLOR_ACCENT_RED)
         .set_position(("center", breaking_bar_y))
