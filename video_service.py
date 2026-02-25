@@ -306,9 +306,14 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
         if found:
             font = found
     
-    # Create image with extra width for scrolling
+    # Create image with extra width for scrolling (wider for long headlines)
     img_height = fontsize + 30
-    img_width = max(1200, len(text) * 20)  # Extra width for scrolling
+    # Use the video WIDTH to size ticker appropriately; fall back to 1200
+    try:
+        base_width = max(1200, int(getattr(__import__("video_service"), 'WIDTH', 1080) * 1.2))
+    except Exception:
+        base_width = 1400
+    img_width = max(base_width, len(text) * 25)
     shadow_offset = 3
     
     # Create image
@@ -428,9 +433,22 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         # Speed: move across screen in duration seconds, then loop
         scroll_speed = WIDTH + 4500  # Total distance to scroll - increased for faster speed
         x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
-        return (x_pos, headline_bar_y + 35)
+        # Center ticker vertically inside the headline bar (tight)
+        y_center = int(headline_bar_y + (headline_bar_height - ticker_height) / 2)
+        return (x_pos, y_center)
     
     ticker_clip = ticker_clip.set_position(make_ticker_position)
+
+    # Background behind ticker text: semi-transparent black (80% opacity)
+    try:
+        ticker_bg = (
+            ColorClip((WIDTH, ticker_height + 20), color=(0, 0, 0))
+            .set_opacity(0.8)
+            .set_position(("center", int(headline_bar_y + (headline_bar_height - (ticker_height + 20)) / 2)))
+            .set_duration(duration)
+        )
+    except Exception:
+        ticker_bg = None
 
     # ============= DESCRIPTION (RIGHT SIDE, OPPOSITE ANCHOR) =============
     # Position opposite to anchor (anchor is at x=40, so desc is at right side)
@@ -571,6 +589,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
             logo,
             headline_bar,
             headline_bar_border,
+            # Ticker background (if created) followed by ticker text
+            ticker_bg if 'ticker_bg' in locals() and ticker_bg is not None else None,
             ticker_clip,
             desc_bg_box,
             desc_clip,

@@ -13,6 +13,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+import traceback
 
 # Load environment variables
 load_dotenv()
@@ -370,6 +371,24 @@ def get_video(filename):
         )
     return jsonify({"error": "Video not found"}), 404
 
+
+@app.route("/preview/<filename>", methods=["GET"])
+def preview_video(filename):
+    """Serve video inline for quick preview in browser."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return jsonify({"error": "Invalid filename"}), 400
+
+    manifest = load_manifest()
+    video_entry = next((v for v in manifest["videos"] if v["filename"] == filename), None)
+    if video_entry and os.path.exists(video_entry["path"]):
+        return send_file(video_entry["path"], as_attachment=False, mimetype='video/mp4')
+
+    video_path = os.path.join(VIDEOS_DIR, filename)
+    if os.path.exists(video_path):
+        return send_file(video_path, as_attachment=False, mimetype='video/mp4')
+
+    return jsonify({"error": "Video not found"}), 404
+
 @app.route("/video/<filename>", methods=["DELETE"])
 def delete_video(filename):
     """Delete a specific video"""
@@ -617,72 +636,120 @@ def generate_long():
     - green_screen: File upload (image or video for green screen overlay)
     """
     try:
-        # Support both JSON and form data
-        headline = None
-        description = None
+        # Support both JSON/form multi-story and legacy single-story form
         language = "english"
         green_screen_media = None
-        
+        stories = []
+        story_media = []
+
         if request.is_json:
             data = request.get_json()
-            headline = data.get("title")
+            # Accept {title, description} as single story
+            title = data.get("title")
             description = data.get("description")
             language = data.get("language", "english")
+            if title and description:
+                stories = [{"headline": title, "description": description}]
         else:
-            headline = request.form.get("title")
-            description = request.form.get("description")
             language = request.form.get("language", "english")
-            
-            # Handle green screen file upload
-            if 'green_screen' in request.files:
+            # Multi-story form submission (stories JSON) preferred
+            if 'stories' in request.form:
                 try:
-                    gs_file = request.files['green_screen']
-                    if gs_file and gs_file.filename:
-                        from werkzeug.utils import secure_filename
-                        filename = secure_filename(gs_file.filename)
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        gs_filename = f"gs_{timestamp}_{filename}"
-                        gs_path = os.path.join("uploads", gs_filename)
-                        os.makedirs("uploads", exist_ok=True)
-                        gs_file.save(gs_path)
-                        green_screen_media = gs_path
-                        logger.info(f"✓ Green screen media uploaded: {gs_filename}")
+                    import json as _json
+                    stories = _json.loads(request.form.get('stories') or '[]')
                 except Exception as e:
-                    logger.warning(f"Failed to save green screen upload: {e}")
-        
-        # If no green screen uploaded, fetch from Pexels API
-        if not green_screen_media:
-            logger.info("📸 No green screen uploaded, fetching from Pexels API...")
-            from long_video_service import fetch_image_from_pexels
-            pexels_image = fetch_image_from_pexels(headline)
-            if pexels_image:
-                green_screen_media = pexels_image
-                logger.info(f"✓ Using Pexels image as green screen")
+                    logger.error(f"Failed to parse stories JSON: {e}")
+                    return jsonify({"error": "Invalid stories JSON"}), 400
             else:
-                logger.info("⚠️ Pexels API unavailable, will use placeholder green screen")
+                # Legacy single-story form fields (accept either 'title' or 'headline')
+                title = request.form.get('title') or request.form.get('headline')
+                description = request.form.get('description')
+                if title and description:
+                    stories = [{"headline": title, "description": description}]
+
+            # Handle per-story file uploads: story_file_0, story_file_1, ...
+            from werkzeug.utils import secure_filename
+            os.makedirs('uploads', exist_ok=True)
+            # Save any uploaded story files
+            i = 0
+            while True:
+                key = f'story_file_{i}'
+                if key not in request.files:
+                    break
+                f = request.files.get(key)
+                if f and getattr(f, 'filename', None):
+                    try:
+                        filename = secure_filename(f.filename)
+                        ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+                        outname = f'story_{i}_{ts}_{filename}'
+                        outpath = os.path.join('uploads', outname)
+                        f.save(outpath)
+                        story_media.append(outpath)
+                        logger.info(f'✓ Saved story upload: {outpath}')
+                    except Exception as e:
+                        logger.warning(f'Failed to save story upload {key}: {e}')
+                i += 1
+
+            # pick first uploaded media if any
+            if story_media:
+                green_screen_media = story_media[0]
+
+        # If still no green screen uploaded, attempt Pexels for first story headline
+        if not green_screen_media and stories:
+            logger.info('📸 No green screen uploaded for stories, fetching from Pexels API...')
+            from pexels_helper import fetch_image_from_pexels
+            first_headline = stories[0].get('headline') if isinstance(stories, list) and len(stories) > 0 else None
+            if first_headline:
+                pexels_image = fetch_image_from_pexels(first_headline)
+                if pexels_image:
+                    green_screen_media = pexels_image
+                    logger.info('✓ Using Pexels image as green screen')
+                else:
+                    logger.info('⚠️ Pexels API unavailable or no image found; placeholder will be used')
+
+        if not stories:
+            return jsonify({"error": "title and description required (or provide stories)"}), 400
         
-        if not headline or not description:
-            return jsonify({"error": "title and description required"}), 400
+        # Log high-level start (headline set later after combining stories)
+        try:
+            preview_headline = stories[0].get('headline') if stories and len(stories) > 0 else 'Long Video'
+        except Exception:
+            preview_headline = 'Long Video'
+        logger.info(f"🎬 Starting long-form video generation: {preview_headline} (stories={len(stories)})")
         
-        logger.info(f"🎬 Starting long-form video generation: {headline}")
-        
-        # 1️⃣ Generate Long Script (1000-1500 words)
-        logger.info("📝 Step 1: Generating long-form script...")
-        script_result = generate_long_script(headline, description, language)
-        
-        if not script_result.get("success"):
-            error_msg = script_result.get("error", "Script generation failed")
-            logger.error(f"Script generation failed: {error_msg}")
-            return jsonify({
-                "status": "failed",
-                "stage": "script_generation",
-                "error": error_msg
-            }), 400
-        
-        script_text = script_result.get("script")
-        word_count = script_result.get("word_count", 0)
-        
-        logger.info(f"✓ Script generated ({word_count} words)")
+        # 1️⃣ Generate Long Script(s) for each story and concatenate
+        logger.info('📝 Step 1: Generating long-form script for stories...')
+        combined_scripts = []
+        total_words = 0
+        for s in stories:
+            h = s.get('headline') or ''
+            d = s.get('description') or ''
+            if not h or not d:
+                logger.error('Story missing headline or description')
+                return jsonify({'error': 'Each story requires headline and description'}), 400
+            logger.info(f'Generating script for story: {h[:80]}')
+            script_result = generate_long_script(h, d, language)
+            if not script_result.get('success'):
+                error_msg = script_result.get('error', 'Script generation failed')
+                logger.error(f'Script generation failed for story "{h}": {error_msg}')
+                return jsonify({ 'status': 'failed', 'stage': 'script_generation', 'error': error_msg }), 400
+            piece = script_result.get('script')
+            wc = script_result.get('word_count', 0)
+            combined_scripts.append(piece)
+            total_words += wc
+
+        # Join scripts with a clear separator to allow natural pauses
+        script_text = '\n\n---\n\n'.join(combined_scripts)
+        word_count = total_words
+        logger.info(f'✓ Combined script generated ({word_count} words total)')
+
+        # Prepare combined metadata for video (use joined headlines/descriptions)
+        try:
+            headline = ' | '.join([s.get('headline','') for s in stories if s.get('headline')])
+            description = '\n\n'.join([s.get('description','') for s in stories if s.get('description')])
+        except Exception:
+            headline = stories[0].get('headline') if stories else 'Long Video'
+            description = stories[0].get('description') if stories else ''
         
         # 2️⃣ Generate TTS Audio using existing tts_service
         logger.info("🎤 Step 2: Generating voice narration...")
@@ -716,11 +783,11 @@ def generate_long():
         
         try:
             video_path = generate_long_video(
-                headline=headline,
-                description=description,
+                stories=stories,
                 audio_path=audio_path,
                 language=language,
                 output_path=output_video_path,
+                story_medias=story_media,
                 green_screen_media=green_screen_media
             )
             logger.info(f"✓ Video generated: {os.path.basename(video_path)}")
@@ -767,10 +834,12 @@ def generate_long():
         }), 200
     
     except Exception as e:
-        logger.error(f"Long-form generation failed: {str(e)}")
+        tb = traceback.format_exc()
+        logger.error(f"Long-form generation failed: {str(e)}\n{tb}")
         return jsonify({
             "status": "failed",
-            "error": str(e)
+            "error": str(e),
+            "traceback": tb
         }), 500
 
 
@@ -916,6 +985,12 @@ def post_to_wordpress():
     except Exception as e:
         logger.error(f"Unexpected error in post-to-wordpress: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/wordpress/post', methods=['POST'])
+def wordpress_post_route():
+    """HTTP endpoint wrapper for `post_to_wordpress` to accept form requests."""
+    return post_to_wordpress()
 
 
 if __name__ == "__main__":

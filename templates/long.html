@@ -470,7 +470,8 @@
                         document.getElementById('status').classList.remove('show');
                     }, 5000);
                 } else {
-                    showStatus('✗ ' + (data.error || 'Failed to generate video'), 'error');
+                    const detail = data.error || data.traceback || data.message || JSON.stringify(data);
+                    showStatus('✗ ' + (detail || 'Failed to generate video'), 'error');
                 }
             } catch (error) {
                 showStatus('✗ Error: ' + error.message, 'error');

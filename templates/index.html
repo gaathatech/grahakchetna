@@ -3,17 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta http-equiv="refresh" content="0; url=/">
     <title>Grahak AI News Studio</title>
-    <style>body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
-</head>
-<body>
-    <div>
-        <p>Redirecting to Short Video page…</p>
-        <p>If your browser doesn't redirect, <a href="/">click here</a>.</p>
-    </div>
-</body>
-</html>
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -822,34 +813,37 @@
         <!-- ============= TAB 2: CREATE LONG VIDEO ============= -->
         <div id="create-long" class="tab-content section">
             <h2>▶ Create Long Video (Full Duration)</h2>
-            <form id="generateFormLong" method="POST" action="/generate-long">
-                <label for="headline2">Headline</label>
-                <input type="text" id="headline2" name="headline" placeholder="Breaking News: Major Development..." required>
+            <form id="generateFormLong" method="POST" action="/generate-long" enctype="multipart/form-data">
+                <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                    <label style="margin:0">Language</label>
+                    <select id="language2" name="language" required style="max-width:220px;">
+                        <option value="english">🇬🇧 English</option>
+                        <option value="hindi">🇮🇳 Hindi</option>
+                        <option value="gujarati">🇮🇳 Gujarati</option>
+                    </select>
 
-                <label for="description2">Description</label>
-                <textarea id="description2" name="description" placeholder="Provide detailed description of the news story..." required></textarea>
-
-                <label for="language2">Language</label>
-                <select id="language2" name="language" required>
-                    <option value="english">🇬🇧 English</option>
-                    <option value="hindi">🇮🇳 Hindi</option>
-                    <option value="gujarati">🇮🇳 Gujarati</option>
-                </select>
+                    <label style="margin:0">Voice Provider</label>
+                    <select id="voice_provider2" name="voice_provider" style="max-width:220px;">
+                        <option value="auto">Auto (recommended)</option>
+                        <option value="edge">Edge TTS</option>
+                        <option value="eleven">ElevenLabs</option>
+                        <option value="gtts">gTTS</option>
+                    </select>
+                </div>
 
                 <input type="hidden" id="video_length2" name="video_length" value="full">
 
-                <label for="voice_provider2">Voice Provider</label>
-                <select id="voice_provider2" name="voice_provider">
-                    <option value="auto">Auto (recommended)</option>
-                    <option value="edge">Edge TTS</option>
-                    <option value="eleven">ElevenLabs</option>
-                    <option value="gtts">gTTS</option>
-                </select>
+                <h3 style="margin-top:6px">Stories (add one or more)</h3>
+                <div id="storiesContainer">
+                    <!-- Template story block inserted by JS -->
+                </div>
 
-                <label for="voice_model2">Voice Model</label>
-                <select id="voice_model2" name="voice_model">
-                    <option value="auto">Auto</option>
-                </select>
+                <div style="display:flex;gap:8px;margin-bottom:12px;">
+                    <button type="button" id="addStoryBtn">+ Add Story</button>
+                    <button type="button" id="clearStoriesBtn">Clear Stories</button>
+                </div>
+
+                <small style="display:block;color:#aaa;margin-bottom:10px">Each story may include an optional image/video upload (used as green screen/visual). If none provided, the system will attempt to fetch a suitable image.</small>
 
                 <button type="submit" id="submitBtnLong">Generate Video</button>
                 
@@ -1299,7 +1293,8 @@
                         loadVideos();
                         switchTab('videos'); // Switch to videos tab to show the new video
                     } else {
-                        showStatusInDiv(status, '✗ ' + (data.error || 'Failed to generate video'), 'error');
+                        const detail = data.error || data.traceback || data.message || JSON.stringify(data);
+                        showStatusInDiv(status, '✗ ' + (detail || 'Failed to generate video'), 'error');
                     }
                 } catch (error) {
                     showStatusInDiv(status, '✗ Error: ' + error.message, 'error');
@@ -1411,35 +1406,138 @@
 
         // INSTAGRAM POSTING FORM
         const igPostForm = document.getElementById('igPostForm');
-        if (igPostForm) {
-            igPostForm.addEventListener('submit', async (e) => {
+            // Story UI management
+            const storiesContainer = document.getElementById('storiesContainer');
+            const addStoryBtn = document.getElementById('addStoryBtn');
+            const clearStoriesBtn = document.getElementById('clearStoriesBtn');
+
+            function createStoryBlock(index, title = '', desc = '') {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'story-block';
+                wrapper.style.border = '1px solid rgba(255,255,255,0.04)';
+                wrapper.style.padding = '10px';
+                wrapper.style.marginBottom = '8px';
+
+                wrapper.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                        <strong>Story ${index+1}</strong>
+                        <div style="display:flex;gap:6px">
+                            <button type="button" class="move-up">↑</button>
+                            <button type="button" class="move-down">↓</button>
+                            <button type="button" class="remove-story">✖</button>
+                        </div>
+                    </div>
+                    <label>Headline</label>
+                    <input type="text" name="story_headline_${index}" class="story-headline" value="${title}" placeholder="Story headline" required>
+
+                    <label>Description</label>
+                    <textarea name="story_description_${index}" class="story-description" placeholder="Story description" required>${desc}</textarea>
+
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:200px;">
+                            <label>Source</label>
+                            <input type="text" name="story_source_${index}" class="story-source" placeholder="Source name (e.g. Reuters)">
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <label>Source URL</label>
+                            <input type="url" name="story_source_url_${index}" class="story-source-url" placeholder="https://">
+                        </div>
+                        <div style="flex:1;min-width:160px;">
+                            <label>Date</label>
+                            <input type="date" name="story_date_${index}" class="story-date">
+                        </div>
+                        <div style="flex:1;min-width:160px;">
+                            <label>Tags</label>
+                            <input type="text" name="story_tags_${index}" class="story-tags" placeholder="tag1, tag2">
+                        </div>
+                    </div>
+
+                    <label>Optional image/video (green screen)</label>
+                    <input type="file" name="story_file_${index}" accept="image/*,video/*">
+                `;
+
+                storiesContainer.appendChild(wrapper);
+
+                wrapper.querySelector('.remove-story').addEventListener('click', () => {
+                    wrapper.remove();
+                    rebuildStoryIndexes();
+                });
+                wrapper.querySelector('.move-up').addEventListener('click', () => {
+                    const prev = wrapper.previousElementSibling;
+                    if (prev) storiesContainer.insertBefore(wrapper, prev);
+                    rebuildStoryIndexes();
+                });
+                wrapper.querySelector('.move-down').addEventListener('click', () => {
+                    const next = wrapper.nextElementSibling;
+                    if (next) storiesContainer.insertBefore(next, wrapper);
+                    rebuildStoryIndexes();
+                });
+            }
+
+            function rebuildStoryIndexes() {
+                Array.from(storiesContainer.children).forEach((child, i) => {
+                    child.querySelector('strong').textContent = `Story ${i+1}`;
+                    const h = child.querySelector('.story-headline');
+                    const d = child.querySelector('.story-description');
+                    const f = child.querySelector('input[type=file]');
+                    const s = child.querySelector('.story-source');
+                    const su = child.querySelector('.story-source-url');
+                    const t = child.querySelector('.story-tags');
+                    const dt = child.querySelector('.story-date');
+                    if (h) h.name = `story_headline_${i}`;
+                    if (d) d.name = `story_description_${i}`;
+                    if (f) f.name = `story_file_${i}`;
+                    if (s) s.name = `story_source_${i}`;
+                    if (su) su.name = `story_source_url_${i}`;
+                    if (t) t.name = `story_tags_${i}`;
+                    if (dt) dt.name = `story_date_${i}`;
+                });
+            }
+
+            // initialize with one story
+            createStoryBlock(0);
+
+            addStoryBtn.addEventListener('click', () => {
+                const idx = storiesContainer.children.length;
+                createStoryBlock(idx);
+            });
+
+            clearStoriesBtn.addEventListener('click', () => {
+                storiesContainer.innerHTML = '';
+                createStoryBlock(0);
+            });
+
+            // Submit handler collects stories into JSON and appends files
+            formLong.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const fileInput = document.getElementById('igFileUpload');
-                const caption = document.getElementById('igCaption').value.trim();
-                const postType = document.querySelector('input[name="igPostType"]:checked')?.value || 'api';
-                const status = document.getElementById('igStatus');
 
-                if (!fileInput.files.length) {
-                    showStatusInDiv(status, 'Please select a video file', 'error');
-                    return;
-                }
-
-                if (postType === 'web') {
-                    // For web share, we can't really share a file directly
-                    showStatusInDiv(status, 'For web share, please use your device\'s native share feature', 'info');
-                    return;
-                }
-
-                showStatusInDiv(status, '<span class="spinner"></span> Posting to Instagram...', 'loading');
-                const igSubmitBtn = document.getElementById('igSubmitBtn');
-                igSubmitBtn.disabled = true;
+                const status = document.getElementById('statusLong');
+                submitBtnLong.disabled = true;
+                showStatusInDiv(status, '<span class="spinner"></span> Generating video... This may take several minutes', 'loading');
 
                 try {
                     const formData = new FormData();
-                    formData.append('video', fileInput.files[0]);
-                    formData.append('caption', caption);
+                    const stories = [];
+                    Array.from(storiesContainer.children).forEach((child, i) => {
+                        const h = (child.querySelector('.story-headline') || {}).value || '';
+                        const d = (child.querySelector('.story-description') || {}).value || '';
+                        const s = (child.querySelector('.story-source') || {}).value || '';
+                        const su = (child.querySelector('.story-source-url') || {}).value || '';
+                        const t = (child.querySelector('.story-tags') || {}).value || '';
+                        const dt = (child.querySelector('.story-date') || {}).value || '';
+                        stories.push({ headline: h, description: d, source: s, source_url: su, tags: t, date: dt });
+                        const f = child.querySelector('input[type=file]');
+                        if (f && f.files && f.files[0]) {
+                            formData.append(`story_file_${i}`, f.files[0]);
+                        }
+                    });
 
-                    const response = await fetch('/instagram/post', {
+                    formData.append('stories', JSON.stringify(stories));
+                    formData.append('language', document.getElementById('language2').value);
+                    formData.append('voice_provider', document.getElementById('voice_provider2').value);
+                    formData.append('video_length', document.getElementById('video_length2').value);
+
+                    const response = await fetch('/generate-long', {
                         method: 'POST',
                         body: formData
                     });
@@ -1447,25 +1545,23 @@
                     let data = await response.json().catch(() => ({}));
 
                     if (response.ok) {
-                        showStatusInDiv(status, '✓ Posted to Instagram successfully!', 'success');
-                        igPostForm.reset();
-                        document.getElementById('igFileName').textContent = '';
-                        setTimeout(() => status.classList.remove('show'), 3000);
+                        showStatusInDiv(status, '✓ Video generated successfully!', 'success');
+                        formLong.reset();
+                        storiesContainer.innerHTML = '';
+                        createStoryBlock(0);
+                        setTimeout(() => { status.classList.remove('show'); }, 3000);
+                        loadVideos();
                     } else {
-                        showStatusInDiv(status, '✗ ' + (data.error || 'Upload failed'), 'error');
+                        showStatusInDiv(status, '✗ ' + (data.error || 'Failed to generate video'), 'error');
                     }
                 } catch (error) {
                     showStatusInDiv(status, '✗ Error: ' + error.message, 'error');
                 } finally {
-                    igSubmitBtn.disabled = false;
+                    submitBtnLong.disabled = false;
                 }
             });
-        }
-
-        function createShort() {
-            document.getElementById('video_length').value = 'short';
-            submitBtn.click();
-        }
+        
+            });
 
         function createLong() {
             document.getElementById('video_length').value = 'long';

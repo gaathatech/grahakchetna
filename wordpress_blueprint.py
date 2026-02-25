@@ -27,10 +27,19 @@ def post_to_wordpress_bp():
     if not video_path:
         filename = request.form.get('filename')
         if filename:
-            video_path = os.path.join('videos', filename)
+            candidates = [
+                os.path.join('videos', filename),
+                os.path.join('videos', 'long', filename),
+                os.path.join('videos', 'short', filename),
+                filename,
+            ]
+            for p in candidates:
+                if os.path.exists(p):
+                    video_path = p
+                    break
     
     if not video_path or not os.path.exists(video_path):
-        return jsonify({"error": "video file required"}), 400
+        return jsonify({"error": "video file required. checked videos/, videos/long/, videos/short/ and absolute path"}), 400
 
     headline = request.form.get('headline') or filename
     description = request.form.get('description') or ''
