@@ -80,26 +80,7 @@
       "created_at": "2026-02-23T09:18:46.847667",
       "size_mb": 3.19
     },
-    {
-      "id": "20260223_091425_478",
-      "filename": "video_20260223_091418_154.mp4",
-      "path": "videos/video_20260223_091418_154.mp4",
-      "headline": "test",
-      "description": "test",
-      "language": "english",
-      "created_at": "2026-02-23T09:14:25.478584",
-      "size_mb": 0.24
-    },
-    {
-      "id": "20260223_091405_897",
-      "filename": "video_20260223_091352_119.mp4",
-      "path": "videos/video_20260223_091352_119.mp4",
-      "headline": "Test Headline",
-      "description": "Test Description",
-      "language": "english",
-      "created_at": "2026-02-23T09:14:05.897708",
-      "size_mb": 0.32
-    },
+    
     {
       "id": "20260223_084802_270",
       "filename": "video_20260223_084453_267.mp4",

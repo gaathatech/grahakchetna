@@ -462,12 +462,9 @@ def generate():
     output_video_path = os.path.join(VIDEOS_DIR, video_filename)
     
     # 4️⃣ Generate Video with custom output path
-    # Map video_length to max_duration (seconds)
+    # Do not force-trim audio here — let the video length follow the generated audio.
+    # If a caller wants to cap duration, they can pass a value; by default use None.
     max_duration = None
-    if video_length == "short":
-        max_duration = 15
-    elif video_length == "long":
-        max_duration = 120
 
     video_path = generate_video(headline, description, audio_path, language=language, output_path=output_video_path, max_duration=max_duration)
 
@@ -531,15 +528,11 @@ def generate_and_post():
         output_video_path = os.path.join(VIDEOS_DIR, video_filename)
         
         # 4️⃣ Generate Video
-        # Map video_length to max_duration (seconds)
+        # Do not force-trim audio here — let the video length follow the generated audio.
         max_duration = None
-        if video_length == "short":
-            max_duration = 15
-        elif video_length == "long":
-            max_duration = 120
 
         video_path = generate_video(
-            headline, description, audio_path, 
+            headline, description, audio_path,
             language=language, output_path=output_video_path, max_duration=max_duration
         )
         if not video_path:
