@@ -610,9 +610,13 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         desc_start_y = headline_bar_y + headline_bar_height + 10  # just below headline bar
         # Ensure we leave space above the breaking bar
         bottom_limit = breaking_bar_y - 20
-        # Use a fixed box width and height suitable for short layout
-        desc_width = 500
-        desc_box_height = min(900, bottom_limit - desc_start_y) if bottom_limit > desc_start_y + 100 else 700
+        # Separate widths and heights for short (1080x1920) and long (1920x1080) videos
+        if WIDTH == 1080:
+            desc_width = 500      # Short video: vertical 1080x1920
+            desc_box_height = 700
+        else:
+            desc_width = 800      # Long video: horizontal 1920x1080 (proportional 1.6x)
+            desc_box_height = 600
 
         # Create description text clipped to box
         desc_img_path, desc_height = create_boxed_text_image(
