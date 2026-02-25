@@ -192,6 +192,30 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Right-side content box (reference for video layout design) */
+        .right-content-box {
+            position: absolute;
+            top: 20%;
+            right: 5%;
+            width: 45%;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: left;
+        }
+
+        .right-content-box h2 {
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 1.4;
+            color: #fff;
+        }
+        
         /* Mobile optimizations */
         @media (max-width: 768px) {
             .nav {

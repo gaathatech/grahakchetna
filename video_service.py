@@ -1,5 +1,6 @@
 from moviepy.editor import *
 from moviepy.audio.fx import all as afx
+from moviepy.video.compositing.concatenate import concatenate_videoclips
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 import tempfile
@@ -333,10 +334,113 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
     return temp_file.name, img_height
 
 
-def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None):
+def create_right_content_box(text, fontsize=32, color=(255, 255, 255), bold=True, language="en"):
+    """Create a right-side content box with headline text.
+    
+    This is displayed on the right side when no media is available.
+    Design: semi-transparent background with text centered vertically.
+    Dimensions optimized for 1080x1920 (9:16) vertical format.
+    
+    Returns: (image_path, width, height)
+    """
+    if language in ["gujarati", "hindi"]:
+        font_path = FONT_GUJARATI_BOLD if bold else FONT_GUJARATI
+    else:
+        font_path = FONT_BOLD if bold else FONT_REGULAR
+    
+    try:
+        if font_path:
+            font = ImageFont.truetype(font_path, fontsize)
+        else:
+            font = ImageFont.load_default()
+    except Exception:
+        font = ImageFont.load_default()
+    
+    # Ensure font can render text
+    try:
+        font.getbbox(text)
+    except Exception:
+        found = _find_working_font_for_text(text, fontsize)
+        if found:
+            font = found
+    
+    # Right content box dimensions (optimized for 9:16 format)
+    box_width = int(WIDTH * 0.45)  # 45% of screen width
+    box_height = 200  # min-height
+    padding = 25
+    
+    # Wrap text to fit within box
+    lines = []
+    words = text.split()
+    current_line = ""
+    
+    for word in words:
+        test_line = current_line + word + " "
+        bbox = font.getbbox(test_line)
+        line_width = bbox[2] - bbox[0]
+        
+        if line_width > (box_width - padding - padding) and current_line:
+            lines.append(current_line.strip())
+            current_line = word + " "
+        else:
+            current_line = test_line
+    
+    if current_line:
+        lines.append(current_line.strip())
+    
+    # Calculate actual image dimensions
+    line_height = fontsize + 8
+    text_height = len(lines) * line_height
+    img_height = max(box_height, text_height + padding * 2)
+    img_width = box_width + padding * 2
+    
+    # Create image with transparency
+    img = Image.new("RGBA", (img_width, img_height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    
+    # Draw semi-transparent background with blur effect (simulated with darker overlay)
+    # Background: rgba(0, 0, 0, 0.45) == 45% opacity black
+    shadow_offset = 3
+    
+    # Draw rounded corner background (approximated with rectangle)
+    bg_coords = [(padding // 2, padding // 2), 
+                 (img_width - padding // 2, img_height - padding // 2)]
+    draw.rectangle(bg_coords, fill=(0, 0, 0, 115))  # 0.45 * 255 ≈ 115
+    
+    # Draw text with shadow for better readability
+    y = padding
+    for line in lines:
+        # Shadow
+        draw.text((padding + shadow_offset, y + shadow_offset), line, font=font, 
+                 fill=(*COLOR_SHADOW, 180))
+        # Main text
+        draw.text((padding, y), line, font=font, fill=(*color, 255))
+        y += line_height
+    
+    # Save to temp file
+    temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    img.save(temp_file.name)
+    temp_file.close()
+    
+    return temp_file.name, img_width, img_height
+
+
+def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None, media_path=None):
     """Generate a video from provided audio and assets.
 
-    max_duration: optional float (seconds). If provided, audio will be trimmed to this length.
+    Args:
+        title: Headline text (used for ticker and right content box if no media)
+        description: Description text (used for description box on right side if media unavailable)
+        audio_path: Path to narration audio file
+        language: Language for text rendering ("en", "gujarati", "hindi")
+        use_female_anchor: Whether to use female anchor
+        output_path: Custom output path
+        max_duration: Optional max duration in seconds
+        media_path: Optional path to media file (image or video) to display on right side.
+                    If provided, media is shown instead of description text.
+
+    Returns:
+        Path to generated video file
     """
     if output_path is None:
         output_path = "static/final_video.mp4"
@@ -382,11 +486,13 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
-    # Anchor - perfect position (left side, lower middle for better framing)
+    # Anchor - perfect position (left side, centered vertically)
+    anchor_height = 750
+    anchor_y = int((HEIGHT - anchor_height) / 2)  # Center vertically
     anchor = (
         ImageClip("static/anchor.png")
-        .resize(height=750)
-        .set_position((40, 450))
+        .resize(height=anchor_height)
+        .set_position((40, anchor_y))
         .set_duration(duration)
     )
 
@@ -416,9 +522,10 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
-    # Create scrolling ticker text
+    # Create scrolling ticker text using headline (same variable for ticker and right box)
+    headline = title  # Use headline variable consistently
     ticker_img_path, ticker_height = create_ticker_text_image(
-        title,
+        headline,
         fontsize=50,
         color=(255, 255, 255),
         bold=True,
@@ -450,81 +557,85 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     except Exception:
         ticker_bg = None
 
-    # ============= DESCRIPTION (RIGHT SIDE, OPPOSITE ANCHOR) =============
-    # Position on right side with better frame layout
-    desc_x = 550  # More to the right for better layout
-    desc_start_y = 280
-    desc_width = 500  # Increased width for better frame
-    desc_box_height = 900  # Decreased height for shorter scrolling segments
+    # ============= RIGHT SIDE CONTENT (DYNAMIC) =============
+    # Position on right side - optimized for 9:16 vertical format
     
-    # Create description text clipped to box
-    desc_img_path, desc_height = create_boxed_text_image(
-        description,
-        fontsize=40,
-        color=(255, 255, 255),
-        bold=False,
-        box_width=desc_width,
-        box_height=desc_box_height,
-        language=language
-    )
+    # Right content box dimensions
+    right_content_x = int(WIDTH * 0.55)  # Right side (5% from right = WIDTH * 0.5 + some offset)
+    right_content_width = int(WIDTH * 0.45)  # 45% of screen width
+    right_content_min_height = 200
     
-    logger.info(f"Description text height: {desc_height}, box height: {desc_box_height}")
+    # Check if media is available and valid
+    has_media = media_path and os.path.exists(media_path)
     
-    # Create fixed background box for description area (visual container)
-    desc_bg_box = (
-        ColorClip((desc_width, desc_box_height), color=(0, 0, 0))
-        .set_opacity(0.6)
-        .set_position((desc_x, desc_start_y))
-        .set_duration(duration)
-    )
-    
-    # Create border for description box
-    desc_border = (
-        ColorClip((desc_width, 3), color=(255, 215, 0))
-        .set_position((desc_x, desc_start_y))
-        .set_duration(duration)
-    )
-    
-    # If text is too tall for the box, create scrolling animation with proper masking
-    if desc_height > desc_box_height:
-        logger.info(f"Description scrolling enabled (height {desc_height} > box {desc_box_height})")
+    if has_media:
+        logger.info(f"Media available: {media_path} - displaying media on right side")
         
-        from PIL import Image as PILImage
-        import numpy as np
-        
-        # Load the full description image once
-        full_img = PILImage.open(desc_img_path)
-        
-        # Create a custom clip that handles internal cropping for scrolling
-        def desc_make_frame(t):
-            # Calculate scroll position
-            scroll_duration = duration * 0.35  # Faster scrolling - reduced from 0.6
-            if t < scroll_duration:
-                # Scroll from top to bottom of text
-                scroll_distance = desc_height - desc_box_height
-                y_scroll = int((t / scroll_duration) * scroll_distance)
+        # Load media (image or video)
+        try:
+            if media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
+                # Video media
+                media_clip = VideoFileClip(media_path)
+                media_clip = media_clip.resize((right_content_width, int(right_content_width * media_clip.h / media_clip.w)))
+                media_clip = media_clip.subclip(0, min(media_clip.duration, duration))
+                # Loop media if shorter than video duration
+                if media_clip.duration < duration:
+                    media_clip = concatenate_videoclips([media_clip] * int(duration / media_clip.duration + 1)).subclip(0, duration)
             else:
-                # Pause at bottom after scrolling
-                y_scroll = int(desc_height - desc_box_height)
+                # Image media
+                media_img = ImageClip(media_path)
+                # Resize to fit right side width while maintaining aspect ratio
+                media_aspect = media_img.w / media_img.h if media_img.h > 0 else 1
+                media_height = int(right_content_width / media_aspect)
+                media_clip = media_img.resize((right_content_width, media_height))
+                media_clip = media_clip.set_duration(duration)
             
-            # Crop the image to show only the visible box portion
-            # Box shows from y_scroll to y_scroll + desc_box_height
-            cropped = full_img.crop((0, y_scroll, desc_width, y_scroll + desc_box_height))
-            # Convert to RGB to match video composition format
-            if cropped.mode == 'RGBA':
-                cropped = cropped.convert('RGB')
-            return np.array(cropped)
-        
-        from moviepy.video.VideoClip import VideoClip
-        desc_clip = VideoClip(make_frame=desc_make_frame, duration=duration)
-        desc_clip = desc_clip.set_position((desc_x, desc_start_y))
+            # Center media vertically
+            media_height = media_clip.h
+            right_content_y = int((HEIGHT - media_height) / 2)  # Center vertically
+            
+            media_clip = media_clip.set_position((right_content_x, right_content_y))
+            right_content_clip = media_clip
+            use_text_box = False
+            
+        except Exception as e:
+            logger.warning(f"Failed to load media {media_path}: {e} - falling back to text box")
+            has_media = False
+            use_text_box = True
     else:
-        # No scrolling needed, static position
-        logger.info("Description static (fits in box)")
-        desc_clip = ImageClip(desc_img_path).set_duration(duration)
-        desc_clip = desc_clip.set_position((desc_x, desc_start_y))
-
+        use_text_box = True
+    
+    # Create right content text box if no media or media loading failed
+    if use_text_box:
+        logger.info("No media available or failed to load - displaying headline text box on right side")
+        
+        # Create right content box with headline text
+        right_box_img_path, right_box_width, right_box_height = create_right_content_box(
+            headline,  # Use same headline for consistency
+            fontsize=32,
+            color=(255, 255, 255),
+            bold=True,
+            language=language
+        )
+        
+        # Center text box vertically
+        right_content_y = int((HEIGHT - right_box_height) / 2)  # Center vertically
+        
+        right_content_clip = ImageClip(right_box_img_path).set_duration(duration)
+        right_content_clip = right_content_clip.set_position((right_content_x, right_content_y))
+        
+        # Optionally add a semi-transparent background behind the text box (visual enhancement)
+        right_bg_box = (
+            ColorClip((right_box_width, right_box_height), color=(0, 0, 0))
+            .set_opacity(0.3)
+            .set_position((right_content_x, right_content_y))
+            .set_duration(duration)
+        )
+    else:
+        right_bg_box = None
+    
     # ============= BOTTOM BREAKING NEWS BAR =============
+    # Use same headline text for ticker consistency
     breaking_bar_y = HEIGHT - 220
 
     breaking_bar = (
@@ -603,8 +714,9 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
             # Ticker background (if created) followed by ticker text
             ticker_bg if 'ticker_bg' in locals() and ticker_bg is not None else None,
             ticker_clip,
-            desc_bg_box,
-            desc_clip,
+            # Right side content - either media or text box
+            right_bg_box if 'right_bg_box' in locals() and right_bg_box is not None else None,
+            right_content_clip,
             breaking_bar,
             breaking_bar_border,
             breaking_text,

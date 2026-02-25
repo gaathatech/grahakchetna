@@ -21,7 +21,7 @@ VIDEOS_DIR = "videos"
 LONG_VIDEOS_DIR = os.path.join(VIDEOS_DIR, "long")
 
 
-def generate_long_video(stories, audio_path, language="en", output_path=None, max_duration=None, story_medias=None, green_screen_media=None, **kwargs):
+def generate_long_video(stories, audio_path, language="en", output_path=None, max_duration=None, story_medias=None, media_path=None, green_screen_media=None, **kwargs):
     """Generate a horizontal long-form video using the short-video layout.
 
     Args:
@@ -31,6 +31,10 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
         output_path: optional output path; if not provided an auto-named
                      file is created under `videos/long/`.
         max_duration: optional max duration forwarded to `generate_video`
+        story_medias: (deprecated) list of media files
+        media_path: optional path to media file (image or video) to display on right side.
+                    If provided, media is shown instead of description text.
+        green_screen_media: (deprecated) green screen media path
 
     Returns:
         path to generated video file
@@ -55,6 +59,11 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
     if not os.path.exists(audio_path):
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
+    # Determine which media to use (media_path takes precedence)
+    effective_media_path = media_path
+    if not effective_media_path and story_medias and len(story_medias) > 0:
+        effective_media_path = story_medias[0]  # Use first media from list if available
+
     # Temporarily set the short-layout dimensions to 1920x1080
     original_w = getattr(video_service, "WIDTH", None)
     original_h = getattr(video_service, "HEIGHT", None)
@@ -63,7 +72,15 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
         video_service.HEIGHT = 1080
 
         logger.info("Generating long video using short layout (1920x1080)")
-        video_service.generate_video(title, description, audio_path, language=language, output_path=output_path, max_duration=max_duration)
+        video_service.generate_video(
+            title, 
+            description, 
+            audio_path, 
+            language=language, 
+            output_path=output_path, 
+            max_duration=max_duration,
+            media_path=effective_media_path
+        )
 
     finally:
         # Restore original constants
