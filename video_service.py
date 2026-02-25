@@ -609,9 +609,10 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     if use_text_box:
         logger.info("No media available or failed to load - displaying headline text box on right side")
         
-        # Create right content box with headline text
+        # Create right content box with the story description/script
+        # Headline is already shown in the top ticker; use description here
         right_box_img_path, right_box_width, right_box_height = create_right_content_box(
-            headline,  # Use same headline for consistency
+            description,  # show description/script in the right-side box
             fontsize=32,
             color=(255, 255, 255),
             bold=True,
