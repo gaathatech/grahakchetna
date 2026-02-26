@@ -742,26 +742,28 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     final_audio = CompositeAudioClip([music, voice])
 
-    main_video = CompositeVideoClip(
-        [
-            bg,
-            overlay,
-            anchor,
-            logo,
-            headline_bar,
-            headline_bar_border,
-            # Ticker background (if created) followed by ticker text
-            ticker_bg if 'ticker_bg' in locals() and ticker_bg is not None else None,
-            ticker_clip,
-            # Right side content - either media or text box
-            right_bg_box if 'right_bg_box' in locals() and right_bg_box is not None else None,
-            right_content_clip,
-            breaking_bar,
-            breaking_bar_border,
-            breaking_text,
-            ai_label,
-        ]
-    ).set_audio(final_audio)
+    # Build clip list and filter out any None values to avoid moviepy errors
+    clips = [
+        bg,
+        overlay,
+        anchor,
+        logo,
+        headline_bar,
+        headline_bar_border,
+        # Ticker background (if created) followed by ticker text
+        ticker_bg if 'ticker_bg' in locals() and ticker_bg is not None else None,
+        ticker_clip,
+        # Right side content - either media or text box
+        right_bg_box if 'right_bg_box' in locals() and right_bg_box is not None else None,
+        right_content_clip,
+        breaking_bar,
+        breaking_bar_border,
+        breaking_text,
+        ai_label,
+    ]
+
+    clips = [c for c in clips if c is not None]
+    main_video = CompositeVideoClip(clips).set_audio(final_audio)
 
     # Ending screen (3 sec)
     ending_duration = 3
