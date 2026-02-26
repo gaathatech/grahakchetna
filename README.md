@@ -1,5 +1,8 @@
 ```markdown
-# Grahakchetna — Grahak Chetna AI News Studio
+# Nexora Media Manager by Grahak Chetna
+
+*Developed by Hardikkumar Gajjar, Aidni Global LLP – Ahmedabad*
+
 
 Grahakchetna is a lightweight Flask-based service that generates AI-powered news videos in two formats:
 

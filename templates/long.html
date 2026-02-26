@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Grahak AI News Studio - Long Video</title>
+    <title>Nexora Media Manager by Grahak Chetna - Long Video</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -252,8 +252,8 @@
     </style>
 </head>
 <body>
-    <h1>🎬 Grahak Chetna AI News Studio</h1>
-    <p class="subtitle">Generate Professional News Videos with AI Narration</p>
+    <h1>🎬 Nexora Media Manager</h1>
+    <p class="subtitle">Generate Professional News Videos with AI Narration<br><small>by Grahak Chetna – Developed by Hardikkumar Gajjar, Aidni Global LLP, Ahmedabad</small></p>
 
     <div class="nav">
         <a href="/">Short Video</a>
@@ -262,6 +262,7 @@
         <a href="/facebook">Facebook</a>
         <a href="/instagram">Instagram</a>
         <a href="/videos">Videos</a>
+        <a href="/layout-designer">Layout Designer</a>
         <a href="/rss">RSS Manager</a>
     </div>
 
@@ -293,6 +294,86 @@
             </div>
         </div>
 
+        <!-- LAYOUT ADJUSTMENT SECTION -->
+        <div class="section">
+            <h2>🎨 Customize Video Layout</h2>
+            <p style="color: #aaa; margin-bottom: 20px; font-size: 0.9em;">Adjust how your media displays in the video. Changes preview in real-time.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                <!-- Media Position -->
+                <div>
+                    <label for="mediaPosition">Media Position</label>
+                    <select id="mediaPosition" name="mediaPosition">
+                        <option value="right">📌 Right Side (Default)</option>
+                        <option value="left">📌 Left Side</option>
+                        <option value="center">📌 Center/Full Width</option>
+                    </select>
+                </div>
+
+                <!-- Media Size -->
+                <div>
+                    <label for="mediaSize">Media Size</label>
+                    <select id="mediaSize" name="mediaSize">
+                        <option value="small">🎬 Small (35%)</option>
+                        <option value="medium" selected>🎬 Medium (50%)</option>
+                        <option value="large">🎬 Large (70%)</option>
+                        <option value="full">🎬 Full Width (100%)</option>
+                    </select>
+                </div>
+
+                <!-- Media Opacity -->
+                <div>
+                    <label for="mediaOpacity">Media Opacity</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="range" id="mediaOpacity" name="mediaOpacity" min="0" max="100" value="100" style="margin: 0;">
+                        <span id="opacityValue" style="min-width: 35px; color: #66b2ff;">100%</span>
+                    </div>
+                </div>
+
+                <!-- Text Alignment -->
+                <div>
+                    <label for="textAlignment">Text Alignment</label>
+                    <select id="textAlignment" name="textAlignment">
+                        <option value="center">⬅️➡️ Center (Default)</option>
+                        <option value="left">⬅️ Left Aligned</option>
+                        <option value="right">➡️ Right Aligned</option>
+                    </select>
+                </div>
+
+                <!-- Background Blur -->
+                <div>
+                    <label for="backgroundBlur">Background Blur</label>
+                    <select id="backgroundBlur" name="backgroundBlur">
+                        <option value="none">None</option>
+                        <option value="light" selected>Light</option>
+                        <option value="medium">Medium</option>
+                        <option value="heavy">Heavy</option>
+                    </select>
+                </div>
+
+                <!-- Layout Presets -->
+                <div>
+                    <label>Quick Layouts</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button type="button" class="layout-preset" data-layout="default" style="padding: 8px 15px; font-size: 0.9em;">Default</button>
+                        <button type="button" class="layout-preset" data-layout="cinema" style="padding: 8px 15px; font-size: 0.9em;">Cinema</button>
+                        <button type="button" class="layout-preset" data-layout="split" style="padding: 8px 15px; font-size: 0.9em;">Split</button>
+                        <button type="button" class="layout-preset" data-layout="focus" style="padding: 8px 15px; font-size: 0.9em;">Focus</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layout Preview -->
+            <div id="layoutPreview" style="margin-top: 25px; padding: 20px; background: rgba(40, 60, 80, 0.5); border-radius: 8px; border: 1px solid rgba(30, 144, 255, 0.2);">
+                <p style="color: #66b2ff; font-weight: 600; margin-bottom: 12px;">Layout Preview</p>
+                <div style="width: 100%; aspect-ratio: 16/9; background: rgba(0, 0, 0, 0.8); border-radius: 6px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                    <div id="previewLeft" style="position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: rgba(100, 100, 100, 0.3); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 0.9em;">Anchor</div>
+                    <div id="previewRight" style="position: absolute; right: 0; top: 0; bottom: 0; width: 50%; background: rgba(30, 144, 255, 0.1); display: flex; align-items: center; justify-content: center; color: #66b2ff; font-size: 0.9em;">📷 Media</div>
+                </div>
+                <p id="layoutDescription" style="color: #ccc; margin-top: 12px; font-size: 0.85em;">Default layout: Media on right (50%), full opacity</p>
+            </div>
+        </div>
+
         <!-- LONG VIDEO FORM -->
         <div class="section">
             <h2>▶ Create Long Video (Full Duration)</h2>
@@ -311,6 +392,13 @@
                 </select>
 
                 <input type="hidden" id="video_length" name="video_length" value="full">
+                
+                <!-- Layout Parameters (hidden) -->
+                <input type="hidden" id="layout_mediaPosition" name="layout_mediaPosition" value="right">
+                <input type="hidden" id="layout_mediaSize" name="layout_mediaSize" value="medium">
+                <input type="hidden" id="layout_mediaOpacity" name="layout_mediaOpacity" value="100">
+                <input type="hidden" id="layout_textAlignment" name="layout_textAlignment" value="center">
+                <input type="hidden" id="layout_backgroundBlur" name="layout_backgroundBlur" value="light">
 
                 <label for="voice_provider">Voice Provider</label>
                 <select id="voice_provider" name="voice_provider">
@@ -341,7 +429,116 @@
     </div>
 
     <script>
-        // Voice model lists
+        // ===== LAYOUT CONFIGURATION =====
+        const LAYOUT_PRESETS = {
+            default: {
+                mediaPosition: 'right',
+                mediaSize: 'medium',
+                mediaOpacity: 100,
+                textAlignment: 'center',
+                backgroundBlur: 'light',
+                description: 'Default layout: Media on right (50%), full opacity'
+            },
+            cinema: {
+                mediaPosition: 'center',
+                mediaSize: 'full',
+                mediaOpacity: 80,
+                textAlignment: 'center',
+                backgroundBlur: 'heavy',
+                description: 'Cinema layout: Full-width media with heavy blur background'
+            },
+            split: {
+                mediaPosition: 'left',
+                mediaSize: 'medium',
+                mediaOpacity: 100,
+                textAlignment: 'right',
+                backgroundBlur: 'none',
+                description: 'Split layout: Media on left, text on right'
+            },
+            focus: {
+                mediaPosition: 'center',
+                mediaSize: 'large',
+                mediaOpacity: 90,
+                textAlignment: 'center',
+                backgroundBlur: 'medium',
+                description: 'Focus layout: Large centered media with medium blur'
+            }
+        };
+
+        function updatePreview() {
+            const position = document.getElementById('mediaPosition').value;
+            const size = document.getElementById('mediaSize').value;
+            const opacity = document.getElementById('mediaOpacity').value;
+            const previewRight = document.getElementById('previewRight');
+            const previewLeft = document.getElementById('previewLeft');
+            
+            let sizePercent = 50;
+            if (size === 'small') sizePercent = 35;
+            else if (size === 'medium') sizePercent = 50;
+            else if (size === 'large') sizePercent = 70;
+            else if (size === 'full') sizePercent = 100;
+            
+            previewRight.style.opacity = opacity / 100;
+            previewLeft.style.opacity = (100 - opacity) / 100;
+            
+            if (position === 'right') {
+                previewRight.style.width = sizePercent + '%';
+                previewRight.style.right = '0';
+                previewRight.style.left = 'auto';
+                previewLeft.style.width = (100 - sizePercent) + '%';
+            } else if (position === 'left') {
+                previewRight.style.width = sizePercent + '%';
+                previewRight.style.left = '0';
+                previewRight.style.right = 'auto';
+                previewLeft.style.width = (100 - sizePercent) + '%';
+            } else if (position === 'center') {
+                previewRight.style.width = '100%';
+                previewRight.style.left = '0';
+                previewRight.style.right = 'auto';
+                previewLeft.style.display = 'none';
+            }
+            
+            // Update description
+            const alignment = document.getElementById('textAlignment').value;
+            const blur = document.getElementById('backgroundBlur').value;
+            let desc = `Position: ${position} | Size: ${size} (${sizePercent}%) | Opacity: ${opacity}% | Alignment: ${alignment} | Blur: ${blur}`;
+            document.getElementById('layoutDescription').textContent = desc;
+        }
+
+        function applyLayoutPreset(presetName) {
+            const preset = LAYOUT_PRESETS[presetName];
+            if (!preset) return;
+            
+            document.getElementById('mediaPosition').value = preset.mediaPosition;
+            document.getElementById('mediaSize').value = preset.mediaSize;
+            document.getElementById('mediaOpacity').value = preset.mediaOpacity;
+            document.getElementById('textAlignment').value = preset.textAlignment;
+            document.getElementById('backgroundBlur').value = preset.backgroundBlur;
+            
+            // Update opacity display
+            document.getElementById('opacityValue').textContent = preset.mediaOpacity + '%';
+            document.getElementById('layoutDescription').textContent = preset.description;
+            
+            // Hide anchor in preview for center/full layouts
+            const previewLeft = document.getElementById('previewLeft');
+            if (preset.mediaPosition === 'center' && preset.mediaSize === 'full') {
+                previewLeft.style.display = 'none';
+            } else {
+                previewLeft.style.display = 'flex';
+            }
+            
+            updatePreview();
+        }
+
+        function syncLayoutHiddenFields() {
+            document.getElementById('layout_mediaPosition').value = document.getElementById('mediaPosition').value;
+            document.getElementById('layout_mediaSize').value = document.getElementById('mediaSize').value;
+            document.getElementById('layout_mediaOpacity').value = document.getElementById('mediaOpacity').value;
+            document.getElementById('layout_textAlignment').value = document.getElementById('textAlignment').value;
+            document.getElementById('layout_backgroundBlur').value = document.getElementById('backgroundBlur').value;
+        }
+
+        // ===== VOICE MODEL LISTS =====
         const MODELS = {
             edge: [
                 {id: 'en-US-GuyNeural', label: 'Edge — en-US Guy (male)'} ,
@@ -384,9 +581,31 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function(){
+            // ===== LAYOUT SETUP =====
             populateModels('auto');
             document.getElementById('voice_provider').addEventListener('change', (e) => populateModels(e.target.value));
-            // Preview setup for uploaded media
+            
+            // Layout controls event listeners
+            document.getElementById('mediaPosition').addEventListener('change', updatePreview);
+            document.getElementById('mediaSize').addEventListener('change', updatePreview);
+            document.getElementById('mediaOpacity').addEventListener('input', function() {
+                document.getElementById('opacityValue').textContent = this.value + '%';
+                updatePreview();
+            });
+            document.getElementById('textAlignment').addEventListener('change', updatePreview);
+            document.getElementById('backgroundBlur').addEventListener('change', updatePreview);
+            
+            // Layout preset buttons
+            document.querySelectorAll('.layout-preset').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    applyLayoutPreset(this.dataset.layout);
+                });
+            });
+            
+            updatePreview();
+            
+            // ===== MEDIA PREVIEW SETUP =====
             const fileInput = document.getElementById('story_file_0');
             const previewWrap = document.getElementById('mediaPreviewWrap');
             const previewImg = document.getElementById('mediaPreviewImg');
@@ -486,6 +705,9 @@
         document.getElementById('generateFormLong').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Sync layout settings to hidden fields
+            syncLayoutHiddenFields();
+            
             const headline = document.getElementById('headline').value;
             const description = document.getElementById('description').value;
             const language = document.getElementById('language').value;
@@ -512,6 +734,13 @@
                 formData.append('voice_provider', document.getElementById('voice_provider').value);
                 formData.append('voice_model', document.getElementById('voice_model').value);
                 formData.append('video_length', document.getElementById('video_length').value);
+                
+                // Add layout parameters
+                formData.append('layout_mediaPosition', document.getElementById('layout_mediaPosition').value);
+                formData.append('layout_mediaSize', document.getElementById('layout_mediaSize').value);
+                formData.append('layout_mediaOpacity', document.getElementById('layout_mediaOpacity').value);
+                formData.append('layout_textAlignment', document.getElementById('layout_textAlignment').value);
+                formData.append('layout_backgroundBlur', document.getElementById('layout_backgroundBlur').value);
 
                 // Attach uploaded media (if any)
                 const uploadInput = document.getElementById('story_file_0');

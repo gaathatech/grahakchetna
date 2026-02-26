@@ -1,4 +1,6 @@
-# ✅ COMPLETION SUMMARY - Grahak Chetna AI News Studio
+# ✅ COMPLETION SUMMARY - Nexora Media Manager by Grahak Chetna
+
+*Developed by Hardikkumar Gajjar, Aidni Global LLP – Ahmedabad*
 
 **Date:** February 16, 2026  
 **Status:** 🎉 **FULLY COMPLETED & TESTED**

@@ -1,4 +1,6 @@
-# 🎬 Grahak Chetna AI News Studio - Implementation Report
+# 🎬 Nexora Media Manager by Grahak Chetna - Implementation Report
+
+*Developed by Hardikkumar Gajjar, Aidni Global LLP – Ahmedabad*
 
 **Date:** February 16, 2026  
 **Status:** ✅ **COMPLETE & PRODUCTION READY**

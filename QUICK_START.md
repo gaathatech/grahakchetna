@@ -1,4 +1,6 @@
-# 🚀 Quick Start Guide - Grahak Chetna AI News Studio
+# 🚀 Quick Start Guide - Nexora Media Manager by Grahak Chetna
+
+*Developed by Hardikkumar Gajjar, Aidni Global LLP – Ahmedabad*
 
 ## System Status
 ✅ **All systems operational and ready to use**

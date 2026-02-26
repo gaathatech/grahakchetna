@@ -21,7 +21,9 @@ VIDEOS_DIR = "videos"
 LONG_VIDEOS_DIR = os.path.join(VIDEOS_DIR, "long")
 
 
-def generate_long_video(stories, audio_path, language="en", output_path=None, max_duration=None, story_medias=None, media_path=None, green_screen_media=None, **kwargs):
+def generate_long_video(stories, audio_path, language="en", output_path=None, max_duration=None, story_medias=None, media_path=None, green_screen_media=None, 
+                       layout_mediaPosition="right", layout_mediaSize="medium", layout_mediaOpacity=100, 
+                       layout_textAlignment="center", layout_backgroundBlur="light", **kwargs):
     """Generate a horizontal long-form video using the short-video layout.
 
     Args:
@@ -35,6 +37,11 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
         media_path: optional path to media file (image or video) to display on right side.
                     If provided, media is shown instead of description text.
         green_screen_media: (deprecated) green screen media path
+        layout_mediaPosition: Position of media ('left', 'right', 'center')
+        layout_mediaSize: Size of media ('small', 'medium', 'large', 'full')
+        layout_mediaOpacity: Opacity of media (0-100)
+        layout_textAlignment: Text alignment ('left', 'center', 'right')
+        layout_backgroundBlur: Background blur effect ('none', 'light', 'medium', 'heavy')
 
     Returns:
         path to generated video file
@@ -79,7 +86,12 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
             language=language, 
             output_path=output_path, 
             max_duration=max_duration,
-            media_path=effective_media_path
+            media_path=effective_media_path,
+            layout_mediaPosition=layout_mediaPosition,
+            layout_mediaSize=layout_mediaSize,
+            layout_mediaOpacity=layout_mediaOpacity,
+            layout_textAlignment=layout_textAlignment,
+            layout_backgroundBlur=layout_backgroundBlur
         )
 
     finally:

@@ -1,0 +1,17 @@
+{
+  "youtube_channel": "https://www.youtube.com/@GrahakChetna",
+  "facebook_page_id": "YOUR_FACEBOOK_PAGE_ID",
+  "instagram_account": "your_instagram_handle",
+  "wordpress_url": "https://your-wordpress-site.com",
+  "wordpress_username": "your_wordpress_username",
+  "wordpress_app_password": "your_wordpress_app_password",
+  "download_dir": "downloads/youtube",
+  "check_interval": 300,
+  "max_videos": 5,
+  "auto_post_facebook": true,
+  "auto_post_instagram": true,
+  "auto_post_wordpress": true,
+  "wordpress_include_youtube_link": true,
+  "add_hashtags": true,
+  "hashtags": "#YouTubeShorts #Repost #ViralVideo #Trending"
+}

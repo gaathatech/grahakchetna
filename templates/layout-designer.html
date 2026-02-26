@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Grahak AI - Layout Designer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .nav {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(30, 144, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav a {
+            color: #66b2ff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .nav a:hover, .nav a.active {
+            background: rgba(30, 144, 255, 0.1);
+        }
+
+        .layout-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .controls-panel, .preview-panel {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid rgba(30, 144, 255, 0.2);
+            border-radius: 8px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            color: #66b2ff;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(30, 144, 255, 0.2);
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s;
+            border: 1px solid rgba(30, 144, 255, 0.1);
+            margin-bottom: -1px;
+        }
+
+        .tab-btn.active {
+            background: rgba(30, 144, 255, 0.2);
+            color: #66b2ff;
+            border: 1px solid rgba(30, 144, 255, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            border-left: 3px solid #66b2ff;
+        }
+
+        .section h3 {
+            color: #66b2ff;
+            margin-bottom: 15px;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-group.full {
+            grid-template-columns: 1fr;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        input[type="number"], input[type="text"], input[type="color"], select {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(40, 40, 40, 0.8);
+            border: 1px solid rgba(70, 130, 180, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.9em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .range-display {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .range-value {
+            min-width: 45px;
+            text-align: right;
+            color: #66b2ff;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        button {
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 144, 255, 0.3);
+        }
+
+        button.secondary {
+            background: rgba(30, 144, 255, 0.2);
+            border: 1px solid rgba(30, 144, 255, 0.4);
+        }
+
+        button.secondary:hover {
+            background: rgba(30, 144, 255, 0.3);
+        }
+
+        button.danger {
+            background: rgba(220, 53, 69, 0.3);
+            border: 1px solid #dc3545;
+        }
+
+        button.danger:hover {
+            background: rgba(220, 53, 69, 0.5);
+        }
+
+        /* PREVIEW PANEL */
+        .preview-container {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border: 2px solid rgba(30, 144, 255, 0.3);
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+
+        .preview-short {
+            aspect-ratio: 9 / 16;
+        }
+
+        .preview-long {
+            aspect-ratio: 16 / 9;
+        }
+
+        .preview-element {
+            position: absolute;
+            border: 1px dashed rgba(30, 144, 255, 0.5);
+        }
+
+        .preview-element.selected {
+            border: 2px solid #66b2ff;
+            background: rgba(30, 144, 255, 0.1);
+        }
+
+        .preview-anchor {
+            background: rgba(100, 100, 100, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 11px;
+        }
+
+        .preview-media {
+            background: rgba(30, 144, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #66b2ff;
+        }
+
+        .preview-headline {
+            background: rgba(220, 20, 60, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .preview-breaking {
+            background: rgba(220, 20, 60, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .preset-buttons button {
+            padding: 8px 15px;
+            font-size: 0.85em;
+            margin: 0;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+
+        .status.error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .layouts-list {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .layout-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(30, 144, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .layout-item:last-child {
+            border-bottom: none;
+        }
+
+        .layout-item button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            margin: 0;
+        }
+
+        .color-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            .layout-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Professional Layout Designer</h1>
+        <p class="subtitle">Customize every element of your video layout - Media, Anchor, Text, and more</p>
+
+        <div class="nav">
+            <a href="/">Home</a>
+            <a href="/short" >Short Video</a>
+            <a href="/long">Long Video</a>
+            <a href="/layout-designer" class="active">Layout Designer</a>
+            <a href="/videos">Videos Archive</a>
+        </div>
+
+        <div class="layout-wrapper">
+            <!-- CONTROLS PANEL -->
+            <div class="controls-panel">
+                <h2>⚙️ Layout Controls</h2>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="short">📱 Short Format (9:16)</button>
+                    <button class="tab-btn" data-tab="long">📺 Long Format (16:9)</button>
+                </div>
+
+                <!-- SHORT VIDEO TAB -->
+                <div class="tab-content active" id="tab-short">
+                    <!-- ANCHOR CONTROLS -->
+                    <div class="section">
+                        <h3>👤 Anchor Settings</h3>
+                        <div class="control-group">
+                            <label>X Position (%)</label>
+                            <input type="number" class="layout-input" data-key="anchor_x" value="0" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position (%)</label>
+                            <input type="number" class="layout-input" data-key="anchor_y" value="20" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Width (%)</label>
+                            <input type="number" class="layout-input" data-key="anchor_width" value="40" min="10" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Height (%)</label>
+                            <input type="number" class="layout-input" data-key="anchor_height" value="60" min="10" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Opacity</label>
+                            <input type="range" class="layout-input" data-key="anchor_opacity" value="100" min="0" max="100">
+                            <div class="range-value" id="anchor_opacity_val">100%</div>
+                        </div>
+                    </div>
+
+                    <!-- MEDIA CONTROLS -->
+                    <div class="section">
+                        <h3>📷 Media Settings (Advanced)</h3>
+                        <div class="control-group full">
+                            <label>📍 Position Mode</label>
+                            <select class="layout-input" data-key="media_position_mode">
+                                <option value="percent" selected>Percentage (%)</option>
+                                <option value="pixels">Pixels (px)</option>
+                                <option value="auto">Auto-center</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>X Position</label>
+                            <input type="number" class="layout-input" data-key="media_x" value="50" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position</label>
+                            <input type="number" class="layout-input" data-key="media_y" value="20" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Width</label>
+                            <input type="number" class="layout-input" data-key="media_width" value="45" min="10" max="100">
+                            <small>10-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Height</label>
+                            <input type="number" class="layout-input" data-key="media_height" value="55" min="10" max="100">
+                            <small>10-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Aspect Ratio Lock</label>
+                            <select class="layout-input" data-key="media_aspect_lock">
+                                <option value="off" selected>Off</option>
+                                <option value="16:9">16:9 (Landscape)</option>
+                                <option value="9:16">9:16 (Portrait)</option>
+                                <option value="1:1">1:1 (Square)</option>
+                                <option value="4:3">4:3 (Classic)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Zoom/Scale (%)</label>
+                            <input type="number" class="layout-input" data-key="media_scale" value="100" min="50" max="150">
+                            <small>50-150% (100=normal)</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Rotation (degrees)</label>
+                            <input type="number" class="layout-input" data-key="media_rotation" value="0" min="-45" max="45">
+                            <small>-45 to +45°</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Opacity (%)</label>
+                            <input type="range" class="layout-input" data-key="media_opacity" value="100" min="0" max="100">
+                            <div class="range-value" id="media_opacity_val">100%</div>
+                        </div>
+                        <div class="control-group full">
+                            <label>Object Fit</label>
+                            <select class="layout-input" data-key="media_objectfit">
+                                <option value="cover" selected>Cover (Crop)</option>
+                                <option value="contain">Contain (Full visible)</option>
+                                <option value="fill">Fill (Stretch)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- HEADLINE BAR CONTROLS -->
+                    <div class="section">
+                        <h3>📢 Headline Bar</h3>
+                        <div class="control-group">
+                            <label>Y Position (%)</label>
+                            <input type="number" class="layout-input" data-key="headline_y" value="10" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Height (%)</label>
+                            <input type="number" class="layout-input" data-key="headline_height" value="8" min="5" max="20">
+                        </div>
+                        <div class="color-group">
+                            <label>Color</label>
+                            <input type="color" class="layout-input" data-key="headline_color" value="#dc143c">
+                        </div>
+                        <div class="control-group">
+                            <label>Font Size</label>
+                            <input type="number" class="layout-input" data-key="headline_fontsize" value="50" min="20" max="100">
+                        </div>
+                    </div>
+
+                    <!-- BREAKING NEWS BAR -->
+                    <div class="section">
+                        <h3>🔔 Breaking News Bar</h3>
+                        <div class="control-group full">
+                            <label>Breaking Text</label>
+                            <input type="text" class="layout-input" data-key="breaking_text" value="अगर आपके इलाके में कोई घटना हो तो Contact करें">
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position (from bottom, %)</label>
+                            <input type="number" class="layout-input" data-key="breaking_y" value="10" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Height (%)</label>
+                            <input type="number" class="layout-input" data-key="breaking_height" value="8" min="5" max="20">
+                        </div>
+                        <div class="color-group">
+                            <label>Color</label>
+                            <input type="color" class="layout-input" data-key="breaking_color" value="#dc143c">
+                        </div>
+                        <div class="control-group">
+                            <label>Font Size</label>
+                            <input type="number" class="layout-input" data-key="breaking_fontsize" value="40" min="20" max="80">
+                        </div>
+                    </div>
+
+                    <!-- TEXT BOX SETTINGS -->
+                    <div class="section">
+                        <h3>📝 Description Text Box (Advanced)</h3>
+                        <div class="control-group full">
+                            <label>📍 Position Mode</label>
+                            <select class="layout-input" data-key="textbox_position_mode">
+                                <option value="percent" selected>Percentage (%)</option>
+                                <option value="pixels">Pixels (px)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>X Position</label>
+                            <input type="number" class="layout-input" data-key="textbox_x" value="50" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position</label>
+                            <input type="number" class="layout-input" data-key="textbox_y" value="35" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Width</label>
+                            <input type="number" class="layout-input" data-key="textbox_width" value="45" min="10" max="100">
+                            <small>10-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Height</label>
+                            <input type="number" class="layout-input" data-key="textbox_height" value="40" min="10" max="80">
+                            <small>10-80%</small>
+                        </div>
+                        
+                        <!-- TEXT SPACING CONTROLS -->
+                        <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                            <h4 style="margin: 5px 0; font-size: 0.9em; color: #aaa;">Spacing</h4>
+                            <div class="control-group">
+                                <label>Line Height (em)</label>
+                                <input type="number" class="layout-input" data-key="textbox_lineheight" value="1.4" min="0.8" max="3" step="0.1">
+                                <small>0.8-3.0 (1.0=normal)</small>
+                            </div>
+                            <div class="control-group">
+                                <label>Letter Spacing (px)</label>
+                                <input type="number" class="layout-input" data-key="textbox_letterspacing" value="0" min="-2" max="5" step="0.5">
+                                <small>-2 to +5px</small>
+                            </div>
+                            <div class="control-group">
+                                <label>Word Spacing (px)</label>
+                                <input type="number" class="layout-input" data-key="textbox_wordspacing" value="0" min="-2" max="8" step="0.5">
+                                <small>-2 to +8px</small>
+                            </div>
+                        </div>
+
+                        <!-- TEXT ALIGNMENT -->
+                        <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                            <h4 style="margin: 5px 0; font-size: 0.9em; color: #aaa;">Alignment & Wrap</h4>
+                            <div class="control-group full">
+                                <label>Text Alignment</label>
+                                <select class="layout-input" data-key="textbox_align">
+                                    <option value="left">Left</option>
+                                    <option value="center" selected>Center</option>
+                                    <option value="right">Right</option>
+                                    <option value="justify">Justify</option>
+                                </select>
+                            </div>
+                            <div class="control-group full">
+                                <label>Vertical Alignment</label>
+                                <select class="layout-input" data-key="textbox_valign">
+                                    <option value="top">Top</option>
+                                    <option value="middle" selected>Middle</option>
+                                    <option value="bottom">Bottom</option>
+                                </select>
+                            </div>
+                            <div class="control-group full">
+                                <label>Text Wrapping</label>
+                                <select class="layout-input" data-key="textbox_wrap">
+                                    <option value="normal" selected>Normal (Wrap)</option>
+                                    <option value="nowrap">No Wrap (Single line)</option>
+                                    <option value="pre-wrap">Preserve spacing</option>
+                                </select>
+                            </div>
+                            <div class="control-group full">
+                                <label>Overflow Handling</label>
+                                <select class="layout-input" data-key="textbox_overflow">
+                                    <option value="visible">Visible</option>
+                                    <option value="hidden" selected>Hidden (Crop)</option>
+                                    <option value="ellipsis">Ellipsis (...)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- STYLING -->
+                        <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                            <h4 style="margin: 5px 0; font-size: 0.9em; color: #aaa;">Styling</h4>
+                            <div class="control-group">
+                                <label>Font Size (px)</label>
+                                <input type="number" class="layout-input" data-key="textbox_fontsize" value="32" min="16" max="60">
+                            </div>
+                            <div class="control-group full">
+                                <label>Font Style</label>
+                                <select class="layout-input" data-key="textbox_fontstyle">
+                                    <option value="normal" selected>Normal</option>
+                                    <option value="italic">Italic</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>Background Opacity (%)</label>
+                                <input type="range" class="layout-input" data-key="textbox_bg_opacity" value="60" min="0" max="100">
+                                <div class="range-value" id="textbox_bg_opacity_val">60%</div>
+                            </div>
+                            <div class="color-group">
+                                <label>Text Color</label>
+                                <input type="color" class="layout-input" data-key="textbox_color" value="#ffffff">
+                            </div>
+                            <div class="color-group">
+                                <label>Background Color</label>
+                                <input type="color" class="layout-input" data-key="textbox_bg_color" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ADVANCED TEXT STYLING -->
+                    <div class="section">
+                        <h3>✏️ Text Styling (Advanced)</h3>
+                        <div class="control-group">
+                            <label>Headline Text Shadow</label>
+                            <select class="layout-input" data-key="headline_shadow">
+                                <option value="none">None</option>
+                                <option value="small" selected>Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Breaking Text Shadow</label>
+                            <select class="layout-input" data-key="breaking_shadow">
+                                <option value="none">None</option>
+                                <option value="small" selected>Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Box Shadow</label>
+                            <select class="layout-input" data-key="textbox_shadow">
+                                <option value="none" selected>None</option>
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Font Weight (Text Box)</label>
+                            <select class="layout-input" data-key="textbox_fontweight">
+                                <option value="400">Normal</option>
+                                <option value="600" selected>Semi-Bold</option>
+                                <option value="700">Bold</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ELEMENT BORDERS & CORNERS -->
+                    <div class="section">
+                        <h3>🔲 Element Styling</h3>
+                        <div class="control-group">
+                            <label>Anchor Border Radius (%)</label>
+                            <input type="number" class="layout-input" data-key="anchor_border_radius" value="0" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Media Border Radius (%)</label>
+                            <input type="number" class="layout-input" data-key="media_border_radius" value="0" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Headline Bar Corners</label>
+                            <select class="layout-input" data-key="headline_corners">
+                                <option value="none" selected>Sharp</option>
+                                <option value="rounded">Rounded</option>
+                                <option value="pill">Pill</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Box Border</label>
+                            <select class="layout-input" data-key="textbox_border">
+                                <option value="none" selected>None</option>
+                                <option value="thin">Thin</option>
+                                <option value="medium">Medium</option>
+                                <option value="thick">Thick</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Border Color</label>
+                            <input type="color" class="layout-input" data-key="textbox_border_color" value="#66b2ff">
+                        </div>
+                    </div>
+
+                    <!-- SPACING & PADDING -->
+                    <div class="section">
+                        <h3>📏 Spacing & Margins</h3>
+                        <div class="control-group full">
+                            <label>Safe Area Margin (% - Mobile friendly)</label>
+                            <input type="number" class="layout-input" data-key="safe_margin" value="3" min="0" max="15">
+                            <small style="color: #888; font-size: 0.8em;">Accounts for phone notches and edges</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Box Padding (Interior)</label>
+                            <input type="number" class="layout-input" data-key="textbox_padding" value="15" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Element Gap/Spacing (%)</label>
+                            <input type="number" class="layout-input" data-key="element_gap" value="5" min="0" max="20">
+                        </div>
+                        <div class="control-group">
+                            <label>Anchor Bottom Clearance (%)</label>
+                            <input type="number" class="layout-input" data-key="anchor_bottom_clearance" value="5" min="0" max="30">
+                        </div>
+                    </div>
+
+                    <!-- COLOR PRESETS -->
+                    <div class="section">
+                        <h3>🎨 Color Presets</h3>
+                        <p style="font-size: 0.85em; color: #aaa; margin-bottom: 10px;">Quick apply common color schemes</p>
+                        <button type="button" class="color-preset" data-scheme="news" style="margin-right: 5px; margin-bottom: 5px;">📺 News (Red)</button>
+                        <button type="button" class="color-preset" data-scheme="urgent" style="margin-right: 5px; margin-bottom: 5px;">🚨 Urgent (Dark Red)</button>
+                        <button type="button" class="color-preset" data-scheme="info" style="margin-right: 5px; margin-bottom: 5px;">ℹ️ Info (Blue)</button>
+                        <button type="button" class="color-preset" data-scheme="sports" style="margin-right: 5px; margin-bottom: 5px;">⚽ Sports (Gold)</button>
+                        <button type="button" class="color-preset" data-scheme="tech" style="margin-right: 5px; margin-bottom: 5px;">💻 Tech (Cyan)</button>
+                    </div>
+
+                    <!-- ADVANCED EFFECTS -->
+                    <div class="section">
+                        <h3>✨ Advanced Settings</h3>
+                        <div class="control-group">
+                            <label>Vignette Effect</label>
+                            <select class="layout-input" data-key="vignette">
+                                <option value="none" selected>None</option>
+                                <option value="light">Light</option>
+                                <option value="medium">Medium</option>
+                                <option value="heavy">Heavy</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Header/Footer Fade</label>
+                            <select class="layout-input" data-key="edge_fade">
+                                <option value="none" selected>None</option>
+                                <option value="light">Light</option>
+                                <option value="medium">Medium</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Anchor Shadow Effect</label>
+                            <select class="layout-input" data-key="anchor_shadow_effect">
+                                <option value="none" selected>None</option>
+                                <option value="inner">Inner Glow</option>
+                                <option value="outer">Outer Glow</option>
+                                <option value="drop">Drop Shadow</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Animation Style</label>
+                            <select class="layout-input" data-key="animation_style">
+                                <option value="none" selected>None (Static)</option>
+                                <option value="fade">Fade In</option>
+                                <option value="slide">Slide In</option>
+                                <option value="scale">Scale In</option>
+                                <option value="bounce">Bounce</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- RESPONSIVE SETTINGS -->
+                    <div class="section">
+                        <h3>📱 Responsive & Mobile</h3>
+                        <div class="control-group full">
+                            <label>Lockdown Position (Prevent Overlap)</label>
+                            <select class="layout-input" data-key="position_lock">
+                                <option value="off" selected>Off</option>
+                                <option value="smart">Smart (Auto-adjust if overlap)</option>
+                                <option value="strict">Strict (Fixed positions)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Readability Mode</label>
+                            <select class="layout-input" data-key="readability_mode">
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High Contrast</option>
+                                <option value="accessible">Accessible (WCAG)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Minimum Tap Target Size</label>
+                            <select class="layout-input" data-key="tap_size">
+                                <option value="off" selected>Off</option>
+                                <option value="small">Small (44px)</option>
+                                <option value="large">Large (56px)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- BACKGROUND EFFECTS -->
+                    <div class="section">
+                        <h3>🌫️ Effects</h3>
+                        <div class="control-group">
+                            <label>Overall Overlay Opacity (%)</label>
+                            <input type="number" class="layout-input" data-key="overlay_opacity" value="15" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Background Blur</label>
+                            <select class="layout-input" data-key="bg_blur">
+                                <option value="none">None</option>
+                                <option value="light" selected>Light</option>
+                                <option value="medium">Medium</option>
+                                <option value="heavy">Heavy</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LONG VIDEO TAB -->
+                <div class="tab-content" id="tab-long">
+                    <!-- ANCHOR CONTROLS -->
+                    <div class="section">
+                        <h3>👤 Anchor Settings</h3>
+                        <div class="control-group">
+                            <label>X Position (%)</label>
+                            <input type="number" class="layout-input long" data-key="anchor_x" value="0" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position (%)</label>
+                            <input type="number" class="layout-input long" data-key="anchor_y" value="15" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Width (%)</label>
+                            <input type="number" class="layout-input long" data-key="anchor_width" value="35" min="10" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Height (%)</label>
+                            <input type="number" class="layout-input long" data-key="anchor_height" value="70" min="10" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Opacity</label>
+                            <input type="range" class="layout-input long" data-key="anchor_opacity" value="100" min="0" max="100">
+                            <div class="range-value" id="anchor_opacity_val_long">100%</div>
+                        </div>
+                    </div>
+
+                    <!-- MEDIA CONTROLS -->
+                    <div class="section">
+                        <h3>📷 Media Settings (Advanced)</h3>
+                        <div class="control-group full">
+                            <label>📍 Position Mode</label>
+                            <select class="layout-input long" data-key="media_position_mode">
+                                <option value="percent" selected>Percentage (%)</option>
+                                <option value="pixels">Pixels (px)</option>
+                                <option value="auto">Auto-center</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>X Position</label>
+                            <input type="number" class="layout-input long" data-key="media_x" value="40" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position</label>
+                            <input type="number" class="layout-input long" data-key="media_y" value="10" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Width</label>
+                            <input type="number" class="layout-input long" data-key="media_width" value="50" min="10" max="100">
+                            <small>10-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Height</label>
+                            <input type="number" class="layout-input long" data-key="media_height" value="80" min="10" max="100">
+                            <small>10-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Aspect Ratio Lock</label>
+                            <select class="layout-input long" data-key="media_aspect_lock">
+                                <option value="off" selected>Off</option>
+                                <option value="16:9">16:9 (Landscape)</option>
+                                <option value="9:16">9:16 (Portrait)</option>
+                                <option value="1:1">1:1 (Square)</option>
+                                <option value="4:3">4:3 (Classic)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Zoom/Scale (%)</label>
+                            <input type="number" class="layout-input long" data-key="media_scale" value="100" min="50" max="150">
+                            <small>50-150% (100=normal)</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Rotation (degrees)</label>
+                            <input type="number" class="layout-input long" data-key="media_rotation" value="0" min="-45" max="45">
+                            <small>-45 to +45°</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Opacity (%)</label>
+                            <input type="range" class="layout-input long" data-key="media_opacity" value="100" min="0" max="100">
+                            <div class="range-value" id="media_opacity_val_long">100%</div>
+                        </div>
+                        <div class="control-group full">
+                            <label>Object Fit</label>
+                            <select class="layout-input long" data-key="media_objectfit">
+                                <option value="cover" selected>Cover (Crop)</option>
+                                <option value="contain">Contain (Full visible)</option>
+                                <option value="fill">Fill (Stretch)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- HEADLINE BAR CONTROLS -->
+                    <div class="section">
+                        <h3>📢 Headline Bar</h3>
+                        <div class="control-group">
+                            <label>Y Position (%)</label>
+                            <input type="number" class="layout-input long" data-key="headline_y" value="8" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Height (%)</label>
+                            <input type="number" class="layout-input long" data-key="headline_height" value="10" min="5" max="20">
+                        </div>
+                        <div class="color-group">
+                            <label>Color</label>
+                            <input type="color" class="layout-input long" data-key="headline_color" value="#dc143c">
+                        </div>
+                        <div class="control-group">
+                            <label>Font Size</label>
+                            <input type="number" class="layout-input long" data-key="headline_fontsize" value="50" min="20" max="100">
+                        </div>
+                    </div>
+
+                    <!-- BREAKING NEWS BAR -->
+                    <div class="section">
+                        <h3>🔔 Breaking News Bar</h3>
+                        <div class="control-group full">
+                            <label>Breaking Text</label>
+                            <input type="text" class="layout-input long" data-key="breaking_text" value="अगर आपके इलाके में कोई घटना हो तो Contact करें">
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position (from bottom, %)</label>
+                            <input type="number" class="layout-input long" data-key="breaking_y" value="8" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Height (%)</label>
+                            <input type="number" class="layout-input long" data-key="breaking_height" value="10" min="5" max="20">
+                        </div>
+                        <div class="color-group">
+                            <label>Color</label>
+                            <input type="color" class="layout-input long" data-key="breaking_color" value="#dc143c">
+                        </div>
+                        <div class="control-group">
+                            <label>Font Size</label>
+                            <input type="number" class="layout-input long" data-key="breaking_fontsize" value="40" min="20" max="80">
+                        </div>
+                    </div>
+
+                    <!-- TEXT BOX SETTINGS -->
+                    <div class="section">
+                        <h3>📝 Description Text Box (Advanced)</h3>
+                        <div class="control-group full">
+                            <label>📍 Position Mode</label>
+                            <select class="layout-input long" data-key="textbox_position_mode">
+                                <option value="percent" selected>Percentage (%)</option>
+                                <option value="pixels">Pixels (px)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>X Position</label>
+                            <input type="number" class="layout-input long" data-key="textbox_x" value="40" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Y Position</label>
+                            <input type="number" class="layout-input long" data-key="textbox_y" value="30" min="0" max="100">
+                            <small>0-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Width</label>
+                            <input type="number" class="layout-input long" data-key="textbox_width" value="50" min="10" max="100">
+                            <small>10-100%</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Height</label>
+                            <input type="number" class="layout-input long" data-key="textbox_height" value="50" min="10" max="80">
+                            <small>10-80%</small>
+                        </div>
+                        
+                        <!-- TEXT SPACING CONTROLS -->
+                        <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                            <h4 style="margin: 5px 0; font-size: 0.9em; color: #aaa;">Spacing</h4>
+                            <div class="control-group">
+                                <label>Line Height (em)</label>
+                                <input type="number" class="layout-input long" data-key="textbox_lineheight" value="1.4" min="0.8" max="3" step="0.1">
+                                <small>0.8-3.0 (1.0=normal)</small>
+                            </div>
+                            <div class="control-group">
+                                <label>Letter Spacing (px)</label>
+                                <input type="number" class="layout-input long" data-key="textbox_letterspacing" value="0" min="-2" max="5" step="0.5">
+                                <small>-2 to +5px</small>
+                            </div>
+                            <div class="control-group">
+                                <label>Word Spacing (px)</label>
+                                <input type="number" class="layout-input long" data-key="textbox_wordspacing" value="0" min="-2" max="8" step="0.5">
+                                <small>-2 to +8px</small>
+                            </div>
+                        </div>
+
+                        <!-- TEXT ALIGNMENT -->
+                        <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                            <h4 style="margin: 5px 0; font-size: 0.9em; color: #aaa;">Alignment & Wrap</h4>
+                            <div class="control-group full">
+                                <label>Text Alignment</label>
+                                <select class="layout-input long" data-key="textbox_align">
+                                    <option value="left">Left</option>
+                                    <option value="center" selected>Center</option>
+                                    <option value="right">Right</option>
+                                    <option value="justify">Justify</option>
+                                </select>
+                            </div>
+                            <div class="control-group full">
+                                <label>Vertical Alignment</label>
+                                <select class="layout-input long" data-key="textbox_valign">
+                                    <option value="top">Top</option>
+                                    <option value="middle" selected>Middle</option>
+                                    <option value="bottom">Bottom</option>
+                                </select>
+                            </div>
+                            <div class="control-group full">
+                                <label>Text Wrapping</label>
+                                <select class="layout-input long" data-key="textbox_wrap">
+                                    <option value="normal" selected>Normal (Wrap)</option>
+                                    <option value="nowrap">No Wrap (Single line)</option>
+                                    <option value="pre-wrap">Preserve spacing</option>
+                                </select>
+                            </div>
+                            <div class="control-group full">
+                                <label>Overflow Handling</label>
+                                <select class="layout-input long" data-key="textbox_overflow">
+                                    <option value="visible">Visible</option>
+                                    <option value="hidden" selected>Hidden (Crop)</option>
+                                    <option value="ellipsis">Ellipsis (...)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- STYLING -->
+                        <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                            <h4 style="margin: 5px 0; font-size: 0.9em; color: #aaa;">Styling</h4>
+                            <div class="control-group">
+                                <label>Font Size (px)</label>
+                                <input type="number" class="layout-input long" data-key="textbox_fontsize" value="32" min="16" max="60">
+                            </div>
+                            <div class="control-group full">
+                                <label>Font Style</label>
+                                <select class="layout-input long" data-key="textbox_fontstyle">
+                                    <option value="normal" selected>Normal</option>
+                                    <option value="italic">Italic</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label>Background Opacity (%)</label>
+                                <input type="range" class="layout-input long" data-key="textbox_bg_opacity" value="60" min="0" max="100">
+                                <div class="range-value" id="textbox_bg_opacity_val_long">60%</div>
+                            </div>
+                            <div class="color-group">
+                                <label>Text Color</label>
+                                <input type="color" class="layout-input long" data-key="textbox_color" value="#ffffff">
+                            </div>
+                            <div class="color-group">
+                                <label>Background Color</label>
+                                <input type="color" class="layout-input long" data-key="textbox_bg_color" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ADVANCED TEXT STYLING -->
+                    <div class="section">
+                        <h3>✏️ Text Styling (Advanced)</h3>
+                        <div class="control-group">
+                            <label>Headline Text Shadow</label>
+                            <select class="layout-input long" data-key="headline_shadow">
+                                <option value="none">None</option>
+                                <option value="small" selected>Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Breaking Text Shadow</label>
+                            <select class="layout-input long" data-key="breaking_shadow">
+                                <option value="none">None</option>
+                                <option value="small" selected>Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Box Shadow</label>
+                            <select class="layout-input long" data-key="textbox_shadow">
+                                <option value="none" selected>None</option>
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Font Weight (Text Box)</label>
+                            <select class="layout-input long" data-key="textbox_fontweight">
+                                <option value="400">Normal</option>
+                                <option value="600" selected>Semi-Bold</option>
+                                <option value="700">Bold</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ELEMENT BORDERS & CORNERS -->
+                    <div class="section">
+                        <h3>🔲 Element Styling</h3>
+                        <div class="control-group">
+                            <label>Anchor Border Radius (%)</label>
+                            <input type="number" class="layout-input long" data-key="anchor_border_radius" value="0" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Media Border Radius (%)</label>
+                            <input type="number" class="layout-input long" data-key="media_border_radius" value="0" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Headline Bar Corners</label>
+                            <select class="layout-input long" data-key="headline_corners">
+                                <option value="none" selected>Sharp</option>
+                                <option value="rounded">Rounded</option>
+                                <option value="pill">Pill</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Box Border</label>
+                            <select class="layout-input long" data-key="textbox_border">
+                                <option value="none" selected>None</option>
+                                <option value="thin">Thin</option>
+                                <option value="medium">Medium</option>
+                                <option value="thick">Thick</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Border Color</label>
+                            <input type="color" class="layout-input long" data-key="textbox_border_color" value="#66b2ff">
+                        </div>
+                    </div>
+
+                    <!-- SPACING & PADDING -->
+                    <div class="section">
+                        <h3>📏 Spacing & Margins</h3>
+                        <div class="control-group full">
+                            <label>Safe Area Margin (% - Mobile friendly)</label>
+                            <input type="number" class="layout-input long" data-key="safe_margin" value="3" min="0" max="15">
+                            <small style="color: #888; font-size: 0.8em;">Accounts for phone notches and edges</small>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Box Padding (Interior)</label>
+                            <input type="number" class="layout-input long" data-key="textbox_padding" value="15" min="0" max="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Element Gap/Spacing (%)</label>
+                            <input type="number" class="layout-input long" data-key="element_gap" value="5" min="0" max="20">
+                        </div>
+                        <div class="control-group">
+                            <label>Anchor Bottom Clearance (%)</label>
+                            <input type="number" class="layout-input long" data-key="anchor_bottom_clearance" value="5" min="0" max="30">
+                        </div>
+                    </div>
+
+                    <!-- COLOR PRESETS -->
+                    <div class="section">
+                        <h3>🎨 Color Presets</h3>
+                        <p style="font-size: 0.85em; color: #aaa; margin-bottom: 10px;">Quick apply common color schemes</p>
+                        <button type="button" class="color-preset long" data-scheme="news" style="margin-right: 5px; margin-bottom: 5px;">📺 News (Red)</button>
+                        <button type="button" class="color-preset long" data-scheme="urgent" style="margin-right: 5px; margin-bottom: 5px;">🚨 Urgent (Dark Red)</button>
+                        <button type="button" class="color-preset long" data-scheme="info" style="margin-right: 5px; margin-bottom: 5px;">ℹ️ Info (Blue)</button>
+                        <button type="button" class="color-preset long" data-scheme="sports" style="margin-right: 5px; margin-bottom: 5px;">⚽ Sports (Gold)</button>
+                        <button type="button" class="color-preset long" data-scheme="tech" style="margin-right: 5px; margin-bottom: 5px;">💻 Tech (Cyan)</button>
+                    </div>
+
+                    <!-- ADVANCED EFFECTS -->
+                    <div class="section">
+                        <h3>✨ Advanced Settings</h3>
+                        <div class="control-group">
+                            <label>Vignette Effect</label>
+                            <select class="layout-input long" data-key="vignette">
+                                <option value="none" selected>None</option>
+                                <option value="light">Light</option>
+                                <option value="medium">Medium</option>
+                                <option value="heavy">Heavy</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Header/Footer Fade</label>
+                            <select class="layout-input long" data-key="edge_fade">
+                                <option value="none" selected>None</option>
+                                <option value="light">Light</option>
+                                <option value="medium">Medium</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Anchor Shadow Effect</label>
+                            <select class="layout-input long" data-key="anchor_shadow_effect">
+                                <option value="none" selected>None</option>
+                                <option value="inner">Inner Glow</option>
+                                <option value="outer">Outer Glow</option>
+                                <option value="drop">Drop Shadow</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Animation Style</label>
+                            <select class="layout-input long" data-key="animation_style">
+                                <option value="none" selected>None (Static)</option>
+                                <option value="fade">Fade In</option>
+                                <option value="slide">Slide In</option>
+                                <option value="scale">Scale In</option>
+                                <option value="bounce">Bounce</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- RESPONSIVE SETTINGS -->
+                    <div class="section">
+                        <h3>📱 Responsive & Mobile</h3>
+                        <div class="control-group full">
+                            <label>Lockdown Position (Prevent Overlap)</label>
+                            <select class="layout-input long" data-key="position_lock">
+                                <option value="off" selected>Off</option>
+                                <option value="smart">Smart (Auto-adjust if overlap)</option>
+                                <option value="strict">Strict (Fixed positions)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Text Readability Mode</label>
+                            <select class="layout-input long" data-key="readability_mode">
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High Contrast</option>
+                                <option value="accessible">Accessible (WCAG)</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Minimum Tap Target Size</label>
+                            <select class="layout-input long" data-key="tap_size">
+                                <option value="off" selected>Off</option>
+                                <option value="small">Small (44px)</option>
+                                <option value="large">Large (56px)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- BACKGROUND EFFECTS -->
+                    <div class="section">
+                        <h3>🌫️ Effects</h3>
+                        <div class="control-group">
+                            <label>Overall Overlay Opacity (%)</label>
+                            <input type="number" class="layout-input long" data-key="overlay_opacity" value="15" min="0" max="100">
+                        </div>
+                        <div class="control-group">
+                            <label>Background Blur</label>
+                            <select class="layout-input long" data-key="bg_blur">
+                                <option value="none">None</option>
+                                <option value="light" selected>Light</option>
+                                <option value="medium">Medium</option>
+                                <option value="heavy">Heavy</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PREVIEW PANEL -->
+            <div class="preview-panel">
+                <h2>👁️ Live Preview</h2>
+                <div class="tabs">
+                    <button class="preview-tab-btn active" data-preview="short">📱 Short (9:16)</button>
+                    <button class="preview-tab-btn" data-preview="long">📺 Long (16:9)</button>
+                </div>
+                <div class="preview-container" id="preview-short">
+                    <div class="preview-element preview-anchor" id="p-anchor" style="left: 0%; top: 20%; width: 40%; height: 60%;">👤 Anchor</div>
+                    <div class="preview-element preview-media" id="p-media" style="left: 50%; top: 20%; width: 45%; height: 55%;">📷 Media</div>
+                    <div class="preview-element preview-headline" id="p-headline" style="left: 0%; top: 10%; width: 100%; height: 8%;">📢 Headline</div>
+                    <div class="preview-element preview-breaking" id="p-breaking" style="left: 0%; bottom: 10%; width: 100%; height: 8%;">🔔 Breaking News</div>
+                </div>
+                <div class="preview-container preview-long" id="preview-long" style="display: none;">
+                    <div class="preview-element preview-anchor" id="p-anchor-long" style="left: 0%; top: 15%; width: 35%; height: 70%;">👤 Anchor</div>
+                    <div class="preview-element preview-media" id="p-media-long" style="left: 40%; top: 10%; width: 50%; height: 80%;">📷 Media</div>
+                    <div class="preview-element preview-headline" id="p-headline-long" style="left: 0%; top: 8%; width: 100%; height: 10%;">📢 Headline</div>
+                    <div class="preview-element preview-breaking" id="p-breaking-long" style="left: 0%; bottom: 8%; width: 100%; height: 10%;">🔔 Breaking News</div>
+                </div>
+
+                <h3 style="margin-top: 25px; margin-bottom: 15px;">💾 Save & Load Layouts</h3>
+                <div class="control-group full">
+                    <label>Layout Name</label>
+                    <input type="text" id="layout-name" placeholder="e.g., Professional News Layout">
+                </div>
+                <button onclick="saveLayout()">💾 Save Current Layout</button>
+                <button class="secondary" onclick="loadDefaults()">🔄 Reset to Defaults</button>
+
+                <h3 style="margin-top: 25px; margin-bottom: 15px;">📦 Saved Layouts</h3>
+                <div class="layouts-list" id="layouts-list">
+                    <div style="padding: 15px; color: #aaa; text-align: center;">No saved layouts yet</div>
+                </div>
+
+                <div class="status" id="status"></div>
+            </div>
+        </div>
+
+        <!-- BOTTOM ACTION BUTTONS -->
+        <div style="background: rgba(20, 20, 20, 0.9); border: 1px solid rgba(30, 144, 255, 0.2); border-radius: 8px; padding: 25px; text-align: center; margin-top: 30px;">
+            <button onclick="exportLayout()">📥 Export Layout Config</button>
+            <button class="secondary" onclick="importLayout()">📤 Import Layout Config</button>
+            <button onclick="applyToShort()">➡️ Use for Short Videos</button>
+            <button onclick="applyToLong()">➡️ Use for Long Videos</button>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'short';
+        let layouts = {};
+        const STORAGE_KEY = 'grahakchetna_layouts';
+
+        // Load layouts from localStorage
+        function loadLayouts() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                layouts = JSON.parse(stored);
+                updateLayoutsList();
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+                currentTab = tab;
+
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                this.classList.add('active');
+                document.getElementById('tab-' + tab).classList.add('active');
+
+                updatePreview();
+            });
+        });
+
+        // Preview tab switching
+        document.querySelectorAll('.preview-tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const preview = this.dataset.preview;
+
+                document.querySelectorAll('.preview-tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById('preview-short').style.display = 'none';
+                document.getElementById('preview-long').style.display = 'none';
+
+                this.classList.add('active');
+                document.getElementById('preview-' + preview).style.display = 'block';
+            });
+        });
+
+        // Update preview
+        function updatePreview() {
+            const inputs = document.querySelectorAll(`.layout-input${currentTab === 'short' ? ':not(.long)' : '.long'}`);
+            inputs.forEach(input => {
+                const key = input.dataset.key;
+                const value = input.value;
+                
+                const elemId = currentTab === 'short' ? 
+                    getPreviewElementId(key) : 
+                    getPreviewElementId(key) + '-long';
+                
+                const elem = document.getElementById(elemId);
+                if (!elem) return;
+
+                if (key.includes('_x')) {
+                    elem.style.left = value + '%';
+                } else if (key.includes('_y') && !key.includes('bottom')) {
+                    elem.style.top = value + '%';
+                } else if (key.includes('_y') && key === 'breaking_y') {
+                    elem.style.bottom = value + '%';
+                } else if (key.includes('_width')) {
+                    elem.style.width = value + '%';
+                } else if (key.includes('_height')) {
+                    elem.style.height = value + '%';
+                } else if (key.includes('_opacity')) {
+                    elem.style.opacity = value / 100;
+                }
+
+                // Update range value displays
+                if (input.type === 'range') {
+                    const display = document.getElementById(key + '_val' + (currentTab === 'long' ? '_long' : ''));
+                    if (display) display.textContent = value + '%';
+                }
+            });
+        }
+
+        function getPreviewElementId(key) {
+            if (key.includes('anchor')) return 'p-anchor';
+            if (key.includes('media')) return 'p-media';
+            if (key.includes('headline')) return 'p-headline';
+            if (key.includes('breaking')) return 'p-breaking';
+            return 'p-media';
+        }
+
+        // Update range displays on input
+        document.querySelectorAll('input[type="range"]').forEach(input => {
+            input.addEventListener('input', function() {
+                const display = document.getElementById(this.dataset.key + '_val' + (currentTab === 'long' ? '_long' : ''));
+                if (display) display.textContent = this.value + '%';
+                updatePreview();
+            });
+        });
+
+        document.querySelectorAll('.layout-input').forEach(input => {
+            input.addEventListener('change', updatePreview);
+            input.addEventListener('input', updatePreview);
+        });
+
+        function saveLayout() {
+            const name = document.getElementById('layout-name').value.trim();
+            if (!name) {
+                showStatus('Please enter a layout name', 'error');
+                return;
+            }
+
+            const layoutData = getCurrentLayoutData();
+            layouts[name] = {
+                ...layoutData,
+                timestamp: new Date().toISOString()
+            };
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts));
+            document.getElementById('layout-name').value = '';
+            updateLayoutsList();
+            showStatus('✓ Layout saved: ' + name, 'success');
+        }
+
+        function getCurrentLayoutData() {
+            const data = {
+                short: {},
+                long: {}
+            };
+
+            document.querySelectorAll('.layout-input:not(.long)').forEach(input => {
+                data.short[input.dataset.key] = input.value;
+            });
+
+            document.querySelectorAll('.layout-input.long').forEach(input => {
+                data.long[input.dataset.key] = input.value;
+            });
+
+            return data;
+        }
+
+        function updateLayoutsList() {
+            const list = document.getElementById('layouts-list');
+            if (Object.keys(layouts).length === 0) {
+                list.innerHTML = '<div style="padding: 15px; color: #aaa; text-align: center;">No saved layouts yet</div>';
+                return;
+            }
+
+            let html = '';
+            for (const name in layouts) {
+                html += `
+                    <div class="layout-item">
+                        <div><strong>${name}</strong></div>
+                        <div>
+                            <button class="secondary" onclick="loadLayout('${name}')">Load</button>
+                            <button class="danger" onclick="deleteLayout('${name}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }
+            list.innerHTML = html;
+        }
+
+        function loadLayout(name) {
+            const layout = layouts[name];
+            if (!layout) return;
+
+            document.querySelectorAll('.layout-input:not(.long)').forEach(input => {
+                if (layout.short[input.dataset.key]) {
+                    input.value = layout.short[input.dataset.key];
+                }
+            });
+
+            document.querySelectorAll('.layout-input.long').forEach(input => {
+                if (layout.long[input.dataset.key]) {
+                    input.value = layout.long[input.dataset.key];
+                }
+            });
+
+            currentTab = 'short';
+            document.querySelectorAll('.tab-btn')[0].click();
+            updatePreview();
+            showStatus('✓ Layout loaded: ' + name, 'success');
+        }
+
+        function deleteLayout(name) {
+            if (!confirm('Delete layout "' + name + '"?')) return;
+            delete layouts[name];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts));
+            updateLayoutsList();
+            showStatus('✓ Layout deleted', 'success');
+        }
+
+        function loadDefaults() {
+            if (!confirm('Reset all settings to defaults?')) return;
+            
+            // Reload page to reset
+            location.reload();
+        }
+
+        function exportLayout() {
+            const data = getCurrentLayoutData();
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'layout-config.json';
+            a.click();
+            showStatus('✓ Layout exported', 'success');
+        }
+
+        function importLayout() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        document.querySelectorAll('.layout-input:not(.long)').forEach(input => {
+                            if (data.short && data.short[input.dataset.key]) {
+                                input.value = data.short[input.dataset.key];
+                            }
+                        });
+
+                        document.querySelectorAll('.layout-input.long').forEach(input => {
+                            if (data.long && data.long[input.dataset.key]) {
+                                input.value = data.long[input.dataset.key];
+                            }
+                        });
+
+                        updatePreview();
+                        showStatus('✓ Layout imported', 'success');
+                    } catch (err) {
+                        showStatus('✗ Invalid layout file', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function applyToShort() {
+            const data = getCurrentLayoutData();
+            sessionStorage.setItem('layout_config', JSON.stringify(data));
+            window.location.href = '/short';
+        }
+
+        function applyToLong() {
+            const data = getCurrentLayoutData();
+            sessionStorage.setItem('layout_config', JSON.stringify(data));
+            window.location.href = '/long';
+        }
+
+        function showStatus(msg, type) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = 'status show ' + type;
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+
+        // Color Presets
+        const colorSchemes = {
+            news: {
+                headline_bg: '#dc143c',
+                headline_text: '#ffffff',
+                breaking_bg: '#8b0000',
+                breaking_text: '#ffffff',
+                accent: '#dc143c'
+            },
+            urgent: {
+                headline_bg: '#8b0000',
+                headline_text: '#ffffff',
+                breaking_bg: '#dc143c',
+                breaking_text: '#ffffff',
+                accent: '#8b0000'
+            },
+            info: {
+                headline_bg: '#0066ff',
+                headline_text: '#ffffff',
+                breaking_bg: '#003d99',
+                breaking_text: '#ffffff',
+                accent: '#0066ff'
+            },
+            sports: {
+                headline_bg: '#ffd700',
+                headline_text: '#000000',
+                breaking_bg: '#ff8c00',
+                breaking_text: '#ffffff',
+                accent: '#ffd700'
+            },
+            tech: {
+                headline_bg: '#00bfff',
+                headline_text: '#000000',
+                breaking_bg: '#00ced1',
+                breaking_text: '#ffffff',
+                accent: '#00bfff'
+            }
+        };
+
+        function applyColorScheme(scheme) {
+            const colors = colorSchemes[scheme];
+            if (!colors) return;
+
+            const inputs = document.querySelectorAll(`.color-preset${currentTab === 'long' ? '.long' : ':not(.long)'}`);
+            const tab = currentTab;
+
+            if (tab === 'short') {
+                document.querySelector('input[data-key="headline_bg"]:not(.long)').value = colors.headline_bg;
+                document.querySelector('input[data-key="headline_text"]:not(.long)').value = colors.headline_text;
+                document.querySelector('input[data-key="breaking_bg"]:not(.long)').value = colors.breaking_bg;
+                document.querySelector('input[data-key="breaking_text"]:not(.long)').value = colors.breaking_text;
+                document.querySelector('input[data-key="textbox_border_color"]:not(.long)').value = colors.accent;
+            } else {
+                document.querySelector('input[data-key="headline_bg"].long').value = colors.headline_bg;
+                document.querySelector('input[data-key="headline_text"].long').value = colors.headline_text;
+                document.querySelector('input[data-key="breaking_bg"].long').value = colors.breaking_bg;
+                document.querySelector('input[data-key="breaking_text"].long').value = colors.breaking_text;
+                document.querySelector('input[data-key="textbox_border_color"].long').value = colors.accent;
+            }
+
+            updatePreview();
+            showStatus('✓ Applied ' + scheme.toUpperCase() + ' color scheme', 'success');
+        }
+
+        // Color preset buttons
+        document.querySelectorAll('.color-preset').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const scheme = this.dataset.scheme;
+                applyColorScheme(scheme);
+            });
+        });
+
+        // Initialize
+        loadLayouts();
+        updatePreview();
+    </script>
+</body>
+</html>

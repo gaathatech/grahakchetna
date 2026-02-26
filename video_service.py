@@ -443,7 +443,9 @@ def create_right_content_box(text, fontsize=32, color=(255, 255, 255), bold=True
     return temp_file.name, img_width, img_height
 
 
-def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None, media_path=None):
+def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None, media_path=None, 
+                  layout_mediaPosition="right", layout_mediaSize="medium", layout_mediaOpacity=100, 
+                  layout_textAlignment="center", layout_backgroundBlur="light"):
     """Generate a video from provided audio and assets.
 
     Args:
@@ -456,6 +458,11 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         max_duration: Optional max duration in seconds
         media_path: Optional path to media file (image or video) to display on right side.
                     If provided, media is shown instead of description text.
+        layout_mediaPosition: Position of media ('left', 'right', 'center')
+        layout_mediaSize: Size of media ('small', 'medium', 'large', 'full')
+        layout_mediaOpacity: Opacity of media (0-100)
+        layout_textAlignment: Text alignment ('left', 'center', 'right')
+        layout_backgroundBlur: Background blur effect ('none', 'light', 'medium', 'heavy')
 
     Returns:
         Path to generated video file
@@ -501,7 +508,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     overlay = (
         ColorClip((WIDTH, HEIGHT), color=COLOR_OVERLAY_BG)
-        .set_opacity(0.15)  # Reduced opacity to show background image better
+        .set_opacity(0.15 if layout_backgroundBlur == "light" else (0.25 if layout_backgroundBlur == "medium" else (0.4 if layout_backgroundBlur == "heavy" else 0.08)))
         .set_duration(duration)
     )
 
@@ -579,14 +586,29 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     # Define breaking bar Y early so right-side layout can reference it
     breaking_bar_y = HEIGHT - 220
 
+    # ============= MEDIA POSITIONING BASED ON LAYOUT PARAMETERS =============
+    # Determine media width/height based on size parameter
+    size_map = {"small": 0.35, "medium": 0.5, "large": 0.7, "full": 1.0}
+    media_width_percent = size_map.get(layout_mediaSize, 0.5)
+    
+    # Calculate media dimensions
+    if layout_mediaPosition == "center" and layout_mediaSize == "full":
+        right_content_width = WIDTH
+        right_content_x = 0
+    elif layout_mediaPosition == "center":
+        right_content_width = int(WIDTH * media_width_percent)
+        right_content_x = int((WIDTH - right_content_width) / 2)
+    elif layout_mediaPosition == "left":
+        right_content_width = int(WIDTH * media_width_percent)
+        right_content_x = 0
+    else:  # right (default)
+        right_content_width = int(WIDTH * media_width_percent)
+        right_content_x = int(WIDTH * (1 - media_width_percent))
+
     # ============= RIGHT SIDE CONTENT (SHORT LAYOUT: FIXED BOX) =============
     # Position on right side - for short layout we restore a fixed box positioned
     # between the headline bar and breaking bar to avoid overlap and provide
     # consistent scrolling behavior for long descriptions.
-
-    # Keep a right-side X position and width similar to earlier design
-    right_content_x = int(WIDTH * 0.55)
-    right_content_width = int(WIDTH * 0.45)
 
     # Check for media first (images/videos). If media exists we show it as before.
     has_media = media_path and os.path.exists(media_path)
@@ -609,6 +631,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
             media_height = media_clip.h
             right_content_y = int((HEIGHT - media_height) / 2)
             media_clip = media_clip.set_position((right_content_x, right_content_y))
+            media_clip = media_clip.set_opacity(layout_mediaOpacity / 100.0)
             right_content_clip = media_clip
             right_bg_box = None
             use_text_box = False
@@ -652,7 +675,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         # Background box and optional border
         desc_bg_box = (
             ColorClip((desc_width, desc_box_height), color=(0, 0, 0))
-            .set_opacity(0.6)
+            .set_opacity(0.6 * (layout_mediaOpacity / 100.0))
             .set_position((desc_x, desc_start_y))
             .set_duration(duration)
         )

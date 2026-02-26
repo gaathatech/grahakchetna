@@ -63,12 +63,107 @@ logger = logging.getLogger(__name__)
 # Create videos directory for storing all generated videos
 VIDEOS_DIR = "videos"
 VIDEO_MANIFEST = f"{VIDEOS_DIR}/manifest.json"
+LAYOUTS_CONFIG = "layouts.json"
 
 def ensure_directories():
     """Ensure all required directories exist"""
     os.makedirs("output", exist_ok=True)
     os.makedirs("static", exist_ok=True)
     os.makedirs(VIDEOS_DIR, exist_ok=True)
+
+
+# ===== LAYOUT MANAGEMENT FUNCTIONS =====
+def load_layouts():
+    """Load saved layout configurations"""
+    if os.path.exists(LAYOUTS_CONFIG):
+        try:
+            with open(LAYOUTS_CONFIG, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+
+def save_layouts(layouts):
+    """Save layout configurations"""
+    try:
+        with open(LAYOUTS_CONFIG, 'w') as f:
+            json.dump(layouts, f, indent=2)
+        logger.info(f"✓ Saved {len(layouts)} layouts")
+    except Exception as e:
+        logger.error(f"✗ Failed to save layouts: {e}")
+        raise
+
+
+def get_layout_for_video(video_format='short'):
+    """Get current layout config for a video format from session storage"""
+    # Layouts can be passed via sessionStorage from the designer
+    # For now, return defaults
+    if video_format == 'long':
+        return {
+            'anchor_x': 0, 'anchor_y': 15, 'anchor_width': 35, 'anchor_height': 70, 'anchor_opacity': 100,
+            'media_x': 40, 'media_y': 10, 'media_width': 50, 'media_height': 80, 'media_opacity': 100,
+            'headline_y': 8, 'headline_height': 10, 'headline_color': '#dc143c', 'headline_fontsize': 50,
+            'breaking_y': 8, 'breaking_height': 10, 'breaking_color': '#dc143c', 'breaking_fontsize': 40,
+            'textbox_x': 40, 'textbox_y': 30, 'textbox_width': 50, 'textbox_height': 50,
+            'textbox_bg_opacity': 60, 'textbox_fontsize': 32, 'textbox_color': '#ffffff',
+            'overlay_opacity': 15, 'bg_blur': 'light'
+        }
+    else:  # short
+        return {
+            'anchor_x': 0, 'anchor_y': 20, 'anchor_width': 40, 'anchor_height': 60, 'anchor_opacity': 100,
+            'media_x': 50, 'media_y': 20, 'media_width': 45, 'media_height': 55, 'media_opacity': 100,
+            'headline_y': 10, 'headline_height': 8, 'headline_color': '#dc143c', 'headline_fontsize': 50,
+            'breaking_y': 10, 'breaking_height': 8, 'breaking_color': '#dc143c', 'breaking_fontsize': 40,
+            'textbox_x': 50, 'textbox_y': 35, 'textbox_width': 45, 'textbox_height': 40,
+            'textbox_bg_opacity': 60, 'textbox_fontsize': 32, 'textbox_color': '#ffffff',
+            'overlay_opacity': 15, 'bg_blur': 'light'
+        }
+
+
+def layout_to_video_params(layout_config, video_format='short'):
+    """Convert layout designer config to video generation parameters"""
+    params = {}
+    
+    # Media positioning
+    if layout_config.get('media_x') and layout_config.get('media_y'):
+        if float(layout_config.get('media_x', 0)) > 50:
+            params['layout_mediaPosition'] = 'right'
+        elif float(layout_config.get('media_x', 0)) < 30:
+            params['layout_mediaPosition'] = 'left'
+        else:
+            params['layout_mediaPosition'] = 'center'
+    
+    # Media size mapping
+    media_width = float(layout_config.get('media_width', 50))
+    if media_width >= 90:
+        params['layout_mediaSize'] = 'full'
+    elif media_width >= 60:
+        params['layout_mediaSize'] = 'large'
+    elif media_width >= 40:
+        params['layout_mediaSize'] = 'medium'
+    else:
+        params['layout_mediaSize'] = 'small'
+    
+    # Media opacity
+    params['layout_mediaOpacity'] = int(float(layout_config.get('media_opacity', 100)))
+    
+    # Text alignment
+    textbox_x = float(layout_config.get('textbox_x', 50))
+    if textbox_x < 30:
+        params['layout_textAlignment'] = 'left'
+    elif textbox_x > 60:
+        params['layout_textAlignment'] = 'right'
+    else:
+        params['layout_textAlignment'] = 'center'
+    
+    # Background blur
+    params['layout_backgroundBlur'] = layout_config.get('bg_blur', 'light')
+    
+    # Detailed layout parameters (pass through)
+    params['layout_config'] = layout_config
+    
+    return params
 
 def load_manifest():
     """Load video manifest"""
@@ -184,6 +279,59 @@ def instagram_page():
 @app.route('/videos', methods=['GET'])
 def videos_page():
     return render_template('videos.html')
+
+
+@app.route('/layout-designer', methods=['GET'])
+def layout_designer():
+    """Professional layout designer page"""
+    return render_template('layout-designer.html')
+
+
+@app.route('/api/layouts', methods=['GET'])
+def get_layouts():
+    """Get all saved layouts"""
+    layouts = load_layouts()
+    return jsonify(layouts)
+
+
+@app.route('/api/layouts', methods=['POST'])
+def save_layout():
+    """Save a new layout"""
+    try:
+        data = request.get_json()
+        layout_name = data.get('name', '').strip()
+        layout_data = data.get('data', {})
+        
+        if not layout_name:
+            return jsonify({'error': 'Layout name required'}), 400
+        
+        layouts = load_layouts()
+        layouts[layout_name] = {
+            'data': layout_data,
+            'timestamp': datetime.now().isoformat()
+        }
+        save_layouts(layouts)
+        
+        return jsonify({'status': 'saved', 'name': layout_name}), 200
+    except Exception as e:
+        logger.error(f"Failed to save layout: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/layouts/<name>', methods=['DELETE'])
+def delete_layout(name):
+    """Delete a saved layout"""
+    try:
+        layouts = load_layouts()
+        if name in layouts:
+            del layouts[name]
+            save_layouts(layouts)
+            return jsonify({'status': 'deleted', 'name': name}), 200
+        else:
+            return jsonify({'error': 'Layout not found'}), 404
+    except Exception as e:
+        logger.error(f"Failed to delete layout: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/videos', methods=['GET'])
@@ -634,6 +782,13 @@ def generate_long():
         green_screen_media = None
         stories = []
         story_media = []
+        
+        # Extract layout parameters
+        layout_mediaPosition = "right"
+        layout_mediaSize = "medium"
+        layout_mediaOpacity = 100
+        layout_textAlignment = "center"
+        layout_backgroundBlur = "light"
 
         if request.is_json:
             data = request.get_json()
@@ -641,10 +796,20 @@ def generate_long():
             title = data.get("title")
             description = data.get("description")
             language = data.get("language", "english")
+            layout_mediaPosition = data.get("layout_mediaPosition", "right")
+            layout_mediaSize = data.get("layout_mediaSize", "medium")
+            layout_mediaOpacity = int(data.get("layout_mediaOpacity", 100))
+            layout_textAlignment = data.get("layout_textAlignment", "center")
+            layout_backgroundBlur = data.get("layout_backgroundBlur", "light")
             if title and description:
                 stories = [{"headline": title, "description": description}]
         else:
             language = request.form.get("language", "english")
+            layout_mediaPosition = request.form.get("layout_mediaPosition", "right")
+            layout_mediaSize = request.form.get("layout_mediaSize", "medium")
+            layout_mediaOpacity = int(request.form.get("layout_mediaOpacity", 100))
+            layout_textAlignment = request.form.get("layout_textAlignment", "center")
+            layout_backgroundBlur = request.form.get("layout_backgroundBlur", "light")
             # Multi-story form submission (stories JSON) preferred
             if 'stories' in request.form:
                 try:
@@ -781,7 +946,12 @@ def generate_long():
                 language=language,
                 output_path=output_video_path,
                 story_medias=story_media,
-                green_screen_media=green_screen_media
+                green_screen_media=green_screen_media,
+                layout_mediaPosition=layout_mediaPosition,
+                layout_mediaSize=layout_mediaSize,
+                layout_mediaOpacity=layout_mediaOpacity,
+                layout_textAlignment=layout_textAlignment,
+                layout_backgroundBlur=layout_backgroundBlur
             )
             logger.info(f"✓ Video generated: {os.path.basename(video_path)}")
         except Exception as e:
@@ -984,6 +1154,151 @@ def post_to_wordpress():
 def wordpress_post_route():
     """HTTP endpoint wrapper for `post_to_wordpress` to accept form requests."""
     return post_to_wordpress()
+
+
+# ============ YOUTUBE AUTO-POSTER ROUTES ============
+
+@app.route('/youtube-autoposter', methods=['GET'])
+def youtube_autoposter_page():
+    """YouTube Auto-Poster control page"""
+    return render_template('youtube-autoposter.html')
+
+
+@app.route('/api/youtube/config', methods=['GET'])
+def get_youtube_config():
+    """Get YouTube auto-poster configuration"""
+    try:
+        config_file = 'youtube_config.json'
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+            return jsonify(config), 200
+        else:
+            return jsonify({'error': 'Config not found'}), 404
+    except Exception as e:
+        logger.error(f"Failed to load YouTube config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/youtube/config', methods=['POST'])
+def update_youtube_config():
+    """Update YouTube auto-poster configuration"""
+    try:
+        config = request.get_json()
+        config_file = 'youtube_config.json'
+        
+        with open(config_file, 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify({'status': 'updated'}), 200
+    except Exception as e:
+        logger.error(f"Failed to update YouTube config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/youtube/fetch', methods=['POST'])
+def fetch_youtube_videos():
+    """Fetch new videos from YouTube channel"""
+    try:
+        from youtube_fetcher import check_yt_dlp_installed, install_yt_dlp
+        
+        # Check/install yt-dlp
+        if not check_yt_dlp_installed():
+            logger.info("Installing yt-dlp...")
+            if not install_yt_dlp():
+                return jsonify({'error': 'Failed to install yt-dlp'}), 500
+        
+        from youtube_fetcher import YouTubeFetcher
+        
+        data = request.get_json()
+        channel_url = data.get('channel_url')
+        max_videos = data.get('max_videos', 5)
+        
+        if not channel_url:
+            return jsonify({'error': 'Channel URL required'}), 400
+        
+        fetcher = YouTubeFetcher()
+        videos = fetcher.get_new_videos(channel_url, max_videos)
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(videos),
+            'videos': videos
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch YouTube videos: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/youtube/post', methods=['POST'])
+def post_youtube_videos():
+    """Auto-post fetched YouTube videos to Facebook/Instagram/WordPress"""
+    try:
+        from youtube_autoposter import YouTubeAutoPoster
+        
+        data = request.get_json()
+        channel_url = data.get('channel_url')
+        max_videos = data.get('max_videos', 5)
+        post_facebook = data.get('post_facebook', True)
+        post_instagram = data.get('post_instagram', True)
+        post_wordpress = data.get('post_wordpress', True)
+        
+        if not channel_url:
+            return jsonify({'error': 'Channel URL required'}), 400
+        
+        # Initialize auto-poster
+        auto_poster = YouTubeAutoPoster()
+        auto_poster.set_config({
+            'youtube_channel': channel_url,
+            'auto_post_facebook': post_facebook,
+            'auto_post_instagram': post_instagram,
+            'auto_post_wordpress': post_wordpress,
+            'wordpress_url': data.get('wordpress_url', ''),
+            'wordpress_username': data.get('wordpress_username', ''),
+            'wordpress_app_password': data.get('wordpress_app_password', ''),
+            'wordpress_include_youtube_link': data.get('wordpress_include_youtube_link', True),
+        })
+        
+        # Fetch and post
+        posted_count = auto_poster.fetch_and_post(max_videos)
+        
+        return jsonify({
+            'status': 'success',
+            'posted_count': posted_count,
+            'message': f'Posted {posted_count} videos'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Failed to post YouTube videos: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/youtube/status', methods=['GET'])
+def get_youtube_status():
+    """Get YouTube auto-poster status"""
+    try:
+        from youtube_fetcher import YouTubeFetcher
+        
+        fetcher = YouTubeFetcher()
+        metadata_count = len(fetcher.metadata)
+        
+        posted_videos = [
+            v for v in fetcher.metadata.values() 
+            if v.get('posted')
+        ]
+        
+        return jsonify({
+            'status': 'ok',
+            'total_fetched': metadata_count,
+            'total_posted': len(posted_videos),
+            'metadata_file': fetcher.metadata_file
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Failed to get YouTube status: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 
 if __name__ == "__main__":
