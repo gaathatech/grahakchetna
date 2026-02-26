@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{% block title %}Nexora Media Manager{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            background-attachment: fixed;
+            color: #fff;
+            padding: 0;
+            min-height: 100vh;
+            font-size: clamp(14px, 3vw, 16px);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(40, 40, 60, 0.95) 100%);
+            border-bottom: 2px solid rgba(30, 144, 255, 0.2);
+            padding: 20px 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text h1 {
+            margin: 0;
+            font-size: clamp(1.2em, 4vw, 1.8em);
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            margin: 3px 0 0 0;
+            font-size: 0.75em;
+            color: #888;
+        }
+
+
+        /* ===== NAVIGATION ===== */
+        .nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav a, .nav button {
+            padding: 8px 14px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #aaa;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(30, 144, 255, 0.1);
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .nav a:hover, .nav button:hover {
+            color: #66b2ff;
+            background: rgba(30, 144, 255, 0.1);
+            border-color: rgba(30, 144, 255, 0.3);
+        }
+
+        .nav a.active {
+            background: rgba(30, 144, 255, 0.2);
+            color: #66b2ff;
+            border-color: rgba(30, 144, 255, 0.5);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main {
+            padding: 30px 15px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: clamp(15px, 5vw, 30px);
+            position: relative;
+            padding: 0;
+        }
+
+        .section {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid rgba(30, 144, 255, 0.12);
+            border-radius: 8px;
+            padding: clamp(20px, 4vw, 30px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            color: #66b2ff;
+            margin-bottom: clamp(12px, 3vw, 20px);
+            font-size: clamp(1.1em, 4vw, 1.5em);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            word-break: break-word;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #ccc;
+            font-weight: 600;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: clamp(10px, 3vw, 12px);
+            margin: 0 0 clamp(12px, 3vw, 20px) 0;
+            border-radius: 5px;
+            border: 1px solid rgba(70, 130, 180, 0.15);
+            background: rgba(40, 40, 40, 0.8);
+            color: #fff;
+            font-family: inherit;
+            font-size: 16px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        button {
+            background: linear-gradient(135deg, #66b2ff, #0066ff);
+            color: #fff;
+            border: none;
+            padding: clamp(12px, 3vw, 15px) clamp(20px, 5vw, 30px);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 144, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== STATUS MESSAGES ===== */
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+
+        .status.error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .status.loading {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            color: #ffc107;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: rgba(20, 20, 20, 0.95);
+            border-top: 1px solid rgba(30, 144, 255, 0.1);
+            padding: 30px 15px;
+            margin-top: 50px;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .footer-section h3 {
+            color: #66b2ff;
+            margin-bottom: 12px;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-section p, .footer-section a {
+            margin: 6px 0;
+            line-height: 1.6;
+        }
+
+        .footer-section a {
+            color: #66b2ff;
+            text-decoration: none;
+        }
+
+        .footer-section a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(30, 144, 255, 0.1);
+            margin-top: 20px;
+            padding-top: 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        /* ===== CREDENTIAL STATUS ===== */
+        .credentials-badge {
+            background: rgba(20, 40, 60, 0.9);
+            border: 1px solid rgba(30, 144, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .credentials-badge .label {
+            color: #888;
+            font-size: 0.85em;
+            min-width: 100%;
+            margin-bottom: 6px;
+        }
+
+        .credential-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+        }
+
+        .credential-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #888;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+
+            .nav {
+                width: 100%;
+            }
+
+            .nav a, .nav button {
+                flex: 1;
+                text-align: center;
+                min-width: 80px;
+            }
+
+            input, textarea {
+                margin-bottom: 8px;
+            }
+
+            textarea {
+                min-height: 50px;
+            }
+
+            button {
+                min-height: 36px;
+            }
+        }
+
+        /* Safe area support */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(0px, env(safe-area-inset-left));
+                padding-right: max(0px, env(safe-area-inset-right));
+                padding-top: max(0px, env(safe-area-inset-top));
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-top">
+                <div class="header-logo">
+                    <div class="logo-icon">🎬</div>
+                    <div class="logo-text">
+                        <h1>Nexora Media Manager</h1>
+                        <p>Professional AI-Powered News Video Creation</p>
+                    </div>
+                </div>
+            </div> <!-- header-top without company info -->
+
+            <!-- NAVIGATION -->
+            <div class="nav">
+                <a href="/" {% if request.endpoint == 'index' %}class="active"{% endif %}>📱 Short Video</a>
+                <a href="/long" {% if request.endpoint == 'long' %}class="active"{% endif %}>🎞️ Long Video</a>
+                <a href="/wordpress" {% if request.endpoint == 'wordpress' %}class="active"{% endif %}>📝 WordPress</a>
+                <a href="/facebook" {% if request.endpoint == 'facebook' %}class="active"{% endif %}>👍 Facebook</a>
+                <a href="/instagram" {% if request.endpoint == 'instagram' %}class="active"{% endif %}>📸 Instagram</a>
+                <a href="/videos" {% if request.endpoint == 'videos' %}class="active"{% endif %}>🎥 Videos</a>
+                <a href="/layout-guide" {% if request.endpoint == 'layout_guide' %}class="active"{% endif %}>📐 Layout Guide</a>
+                <a href="/layout-designer" {% if request.endpoint == 'layout_designer' %}class="active"{% endif %}>🎨 Layout Designer</a>
+                <a href="/rss" {% if request.endpoint == 'rss' %}class="active"{% endif %}>📰 RSS Manager</a>
+                <a href="/settings" {% if request.endpoint == 'settings_page' %}class="active"{% endif %}>⚙️ Settings</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for category, msg in messages %}
+                <div class="status show {{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        <!-- Page content goes here -->
+        {% endblock %}
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>🎬 About Nexora</h3>
+                <p>Professional AI-powered video creation platform that transforms news stories into engaging short-form and long-form videos with automated narration and stunning visuals.</p>
+            </div>
+
+            <div class="footer-section">
+                <h3>📂 Features</h3>
+                <p><a href="/long">🎞️ Long-form Videos</a> - Full-length YouTube videos</p>
+                <p><a href="/">📱 Short Videos</a> - Instagram Reels & TikTok</p>
+                <p><a href="/layout-designer">🎨 Layout Designer</a> - Customize layouts</p>
+                <p><a href="/videos">🎥 Video Archive</a> - View all generated videos</p>
+            </div>
+
+            <div class="footer-section">
+                <h3>🏢 Company Info</h3>
+                <p><strong>Grahak Chetna</strong></p>
+                <p>Developed by <strong>Hardikkumar Gajjar</strong></p>
+                <p><strong>Aidni Global LLP</strong><br>Ahmedabad, India</p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; {{ current_year }} Grahak Chetna. All rights reserved. | Developed by Hardikkumar Gajjar, Aidni Global LLP, Ahmedabad</p>
+            <p style="margin-top: 10px; font-size: 0.85em;">
+                <a href="/" style="color: #666; text-decoration: none;">Home</a> | 
+                <a href="/layout-designer" style="color: #666; text-decoration: none;">Documentation</a> |
+                <a href="/videos" style="color: #666; text-decoration: none;">Support</a>
+            </p>
+        </div>
+    </div>
+
+    {% block scripts %}
+    <!-- Page scripts go here -->
+    {% endblock %}
+</body>
+</html>

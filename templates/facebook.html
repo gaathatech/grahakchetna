@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Nexora Media Manager by Grahak Chetna - Facebook</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+{% extends "base.html" %}
+{% block title %}Share to Facebook - Grahak Chetna{% endblock %}
+{% block content %}
     <style>
         * {
             margin: 0;
@@ -27,31 +23,6 @@
             padding: 12px 8px;
             min-height: 100vh;
             font-size: clamp(14px, 3vw, 16px);
-        }
-        
-        .nav {
-            background: rgba(20, 20, 20, 0.95);
-            border: 1px solid rgba(30, 144, 255, 0.2);
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .nav a {
-            color: #66b2ff;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        
-        .nav a:hover, .nav a.active {
-            background: rgba(30, 144, 255, 0.1);
         }
         
         .container {
@@ -203,15 +174,6 @@
         
         /* Mobile optimizations */
         @media (max-width: 768px) {
-            .nav {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .nav a {
-                text-align: center;
-            }
-            
             input, textarea {
                 margin-bottom: 8px;
             }
@@ -235,20 +197,6 @@
             }
         }
     </style>
-</head>
-<body>
-    <h1>🎬 Nexora Media Manager</h1>
-    <p class="subtitle">Generate Professional News Videos with AI Narration<br><small>by Grahak Chetna – Developed by Hardikkumar Gajjar, Aidni Global LLP, Ahmedabad</small></p>
-
-    <div class="nav">
-        <a href="/">Short Video</a>
-        <a href="/long">Long Video</a>
-        <a href="/wordpress">WordPress</a>
-        <a href="/facebook" class="active">Facebook</a>
-        <a href="/instagram">Instagram</a>
-        <a href="/videos">Videos</a>
-        <a href="/rss">RSS Manager</a>
-    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -361,5 +309,4 @@
             }
         });
     </script>
-</body>
-</html>
+{% endblock %}

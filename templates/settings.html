@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Background Settings - Nexora Media Manager{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="section" style="grid-column: 1 / -1;">
+        <h2>🎨 Background Settings</h2>
+        <p style="color: #aaa; margin-bottom: 20px; font-size: 0.95em;">
+            Upload custom backgrounds or select from defaults. These backgrounds will be used in video generation.
+        </p>
+    </div>
+
+    <!-- ===== CURRENT BACKGROUND ===== -->
+    <div class="section">
+        <h2>📸 Current Background</h2>
+        <div style="background: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 8px; border: 2px solid rgba(30, 144, 255, 0.2);">
+            <img id="currentBgPreview" src="/static/newsroom-studio-bg.svg" alt="Current Background" style="max-width: 100%; max-height: 400px; border-radius: 6px; display: block; margin: 0 auto;">
+            <p style="color: #888; text-align: center; margin-top: 12px; font-size: 0.9em;">
+                <strong id="currentBgName">Default: Newsroom Studio</strong><br>
+                <span style="font-size: 0.85em;">Professional broadcast-style background</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- ===== DEFAULT BACKGROUNDS ===== -->
+    <div class="section">
+        <h2>🖼️ Default Backgrounds</h2>
+        <p style="color: #aaa; margin-bottom: 20px; font-size: 0.9em;">Click to select a default background</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <!-- Newsroom Studio -->
+            <div class="bg-card" onclick="selectBackground('newsroom', '/static/newsroom-studio-bg.svg', 'Newsroom Studio')" style="cursor: pointer; padding: 15px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(30, 144, 255, 0.2); border-radius: 8px; transition: all 0.3s; text-align: center;">
+                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #66b2ff; font-size: 3em;">🎬</div>
+                <p style="font-weight: bold; color: #fff; margin-bottom: 6px;">Newsroom Studio</p>
+                <p style="color: #888; font-size: 0.85em;">Professional broadcast studio with lighting effects</p>
+            </div>
+
+            <!-- Dark Minimalist -->
+            <div class="bg-card" onclick="selectBackground('dark', 'custom', 'Dark Minimalist')" style="cursor: pointer; padding: 15px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(30, 144, 255, 0.2); border-radius: 8px; transition: all 0.3s; text-align: center;">
+                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #66b2ff; font-size: 3em;">🌑</div>
+                <p style="font-weight: bold; color: #fff; margin-bottom: 6px;">Dark Minimalist</p>
+                <p style="color: #888; font-size: 0.85em;">Clean, distraction-free dark background</p>
+            </div>
+
+            <!-- Gradient Blue -->
+            <div class="bg-card" onclick="selectBackground('blue', 'custom', 'Gradient Blue')" style="cursor: pointer; padding: 15px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(30, 144, 255, 0.2); border-radius: 8px; transition: all 0.3s; text-align: center;">
+                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #0066ff 0%, #66b2ff 100%); border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 3em;">🔷</div>
+                <p style="font-weight: bold; color: #fff; margin-bottom: 6px;">Gradient Blue</p>
+                <p style="color: #888; font-size: 0.85em;">Modern blue gradient design</p>
+            </div>
+
+            <!-- Corporate Red -->
+            <div class="bg-card" onclick="selectBackground('red', 'custom', 'Corporate Red')" style="cursor: pointer; padding: 15px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(30, 144, 255, 0.2); border-radius: 8px; transition: all 0.3s; text-align: center;">
+                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #DC143C 0%, #8B0000 100%); border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 3em;">🔴</div>
+                <p style="font-weight: bold; color: #fff; margin-bottom: 6px;">Corporate Red</p>
+                <p style="color: #888; font-size: 0.85em;">Bold red corporate branding style</p>
+            </div>
+
+            <!-- Abstract Tech -->
+            <div class="bg-card" onclick="selectBackground('tech', 'custom', 'Abstract Tech')" style="cursor: pointer; padding: 15px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(30, 144, 255, 0.2); border-radius: 8px; transition: all 0.3s; text-align: center;">
+                <div style="width: 100%; height: 150px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #66b2ff; font-size: 3em;">⚡</div>
+                <p style="font-weight: bold; color: #fff; margin-bottom: 6px;">Abstract Tech</p>
+                <p style="color: #888; font-size: 0.85em;">Modern tech-inspired gradient</p>
+            </div>
+
+            <!-- News Network -->
+            <div class="bg-card" onclick="selectBackground('news', 'custom', 'News Network')" style="cursor: pointer; padding: 15px; background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(30, 144, 255, 0.2); border-radius: 8px; transition: all 0.3s; text-align: center;">
+                <div style="width: 100%; height: 150px; background: linear-gradient(180deg, #000000 0%, #1a1a1a 50%, #2d2d2d 100%); border: 2px solid #DC143C; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #DC143C; font-size: 3em;">📺</div>
+                <p style="font-weight: bold; color: #fff; margin-bottom: 6px;">News Network</p>
+                <p style="color: #888; font-size: 0.85em;">Professional news broadcast style</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== UPLOAD CUSTOM BACKGROUND ===== -->
+    <div class="section">
+        <h2>📤 Upload Custom Background</h2>
+        <p style="color: #aaa; margin-bottom: 20px; font-size: 0.9em;">
+            Upload your own background image or video. Supported formats: JPEG, PNG, MP4, WebM (max 50MB)
+        </p>
+
+        <form id="uploadBackgroundForm" enctype="multipart/form-data" style="background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label for="bgName">Background Name</label>
+                    <input type="text" id="bgName" name="bgName" placeholder="e.g., My Custom Background" required>
+
+                    <label for="bgFile">Upload File</label>
+                    <input type="file" id="bgFile" name="bgFile" accept="image/jpeg,image/png,video/mp4,video/webm" required>
+                </div>
+
+                <div>
+                    <label for="bgDescription">Description (optional)</label>
+                    <textarea id="bgDescription" name="bgDescription" placeholder="Describe your background..." style="height: 60px;"></textarea>
+
+                    <label style="margin-top: 12px;">
+                        <input type="checkbox" id="makeDefault" name="makeDefault" style="width: auto; margin-right: 8px;">
+                        <span style="color: #ccc;">Set as default background</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="uploadPreview" style="margin-top: 20px; display: none;">
+                <p style="color: #66b2ff; font-weight: 600; margin-bottom: 12px;">Preview</p>
+                <img id="uploadPreviewImg" src="" alt="Preview" style="max-width: 100%; max-height: 300px; border-radius: 6px; display: none;">
+                <video id="uploadPreviewVideo" src="" style="max-width: 100%; max-height: 300px; border-radius: 6px; display: none;" controls></video>
+            </div>
+
+            <button type="submit" style="margin-top: 20px;">📤 Upload Background</button>
+            <div id="uploadStatus" class="status"></div>
+        </form>
+    </div>
+
+    <!-- ===== SAVED BACKGROUNDS ===== -->
+    <div class="section">
+        <h2>💾 Saved Backgrounds</h2>
+        <p style="color: #aaa; margin-bottom: 20px; font-size: 0.9em;">Your uploaded backgrounds</p>
+        
+        <div id="savedBackgroundsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+            <p style="color: #888; grid-column: 1 / -1;">No custom backgrounds saved yet</p>
+        </div>
+    </div>
+
+    <!-- ===== BACKGROUND INFO ===== -->
+    <div class="section">
+        <h2>ℹ️ About Backgrounds</h2>
+        <div style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 6px; border-left: 4px solid #66b2ff;">
+            <p style="color: #aaa; margin-bottom: 12px; font-size: 0.9em; line-height: 1.6;">
+                <strong>Default Background:</strong> The comprehensive newsroom studio background is used by default for all video generation. It provides a professional broadcast studio aesthetic with lighting effects and control room elements.
+            </p>
+            <p style="color: #aaa; margin-bottom: 12px; font-size: 0.9em; line-height: 1.6;">
+                <strong>Custom Backgrounds:</strong> You can upload images (JPEG, PNG) or videos (MP4, WebM) to use as backgrounds in your videos. They will be automatically resized and looped to match video duration.
+            </p>
+            <p style="color: #aaa; font-size: 0.9em; line-height: 1.6;">
+                <strong>Recommended Specs:</strong> For best quality, use images at 1920×1080 resolution for long videos or 1080×1920 for short videos. Videos should be in H.264 format for compatibility.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-card:hover {
+        border-color: rgba(30, 144, 255, 0.5) !important;
+        background: rgba(30, 144, 255, 0.1) !important;
+    }
+</style>
+
+<script>
+    // Load saved backgrounds on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadSavedBackgrounds();
+    });
+
+    function selectBackground(bgType, bgPath, bgName) {
+        document.getElementById('currentBgPreview').src = bgPath || '/static/newsroom-studio-bg.svg';
+        document.getElementById('currentBgName').textContent = bgName;
+        
+        // Save to localStorage
+        localStorage.setItem('selectedBackground', JSON.stringify({
+            type: bgType,
+            path: bgPath,
+            name: bgName,
+            timestamp: new Date().toISOString()
+        }));
+        
+        showStatus('✓ Background selected: ' + bgName, 'success');
+    }
+
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('uploadStatus');
+        statusDiv.innerHTML = message;
+        statusDiv.className = `status show ${type}`;
+        setTimeout(() => statusDiv.classList.remove('show'), 5000);
+    }
+
+    // File preview on upload
+    document.getElementById('bgFile').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const previewDiv = document.getElementById('uploadPreview');
+        const previewImg = document.getElementById('uploadPreviewImg');
+        const previewVideo = document.getElementById('uploadPreviewVideo');
+
+        if (file) {
+            const url = URL.createObjectURL(file);
+            previewDiv.style.display = 'block';
+            
+            if (file.type.startsWith('image/')) {
+                previewImg.src = url;
+                previewImg.style.display = 'block';
+                previewVideo.style.display = 'none';
+            } else if (file.type.startsWith('video/')) {
+                previewVideo.src = url;
+                previewVideo.style.display = 'block';
+                previewImg.style.display = 'none';
+            }
+        } else {
+            previewDiv.style.display = 'none';
+        }
+    });
+
+    // Upload form submission
+    document.getElementById('uploadBackgroundForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('bgName', document.getElementById('bgName').value);
+        formData.append('bgDescription', document.getElementById('bgDescription').value);
+        formData.append('bgFile', document.getElementById('bgFile').files[0]);
+        formData.append('makeDefault', document.getElementById('makeDefault').checked);
+
+        try {
+            showStatus('<span class="spinner"></span> Uploading...', 'loading');
+            
+            const response = await fetch('/upload-background', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showStatus('✓ Background uploaded successfully!', 'success');
+                document.getElementById('uploadBackgroundForm').reset();
+                document.getElementById('uploadPreview').style.display = 'none';
+                await loadSavedBackgrounds();
+                
+                if (data.makeDefault) {
+                    selectBackground('custom', data.filePath, data.bgName);
+                }
+            } else {
+                showStatus('✗ ' + (data.error || 'Upload failed'), 'error');
+            }
+        } catch (error) {
+            showStatus('✗ Error: ' + error.message, 'error');
+        }
+    });
+
+    async function loadSavedBackgrounds() {
+        try {
+            const response = await fetch('/get-backgrounds');
+            const data = await response.json();
+
+            const savedList = document.getElementById('savedBackgroundsList');
+            if (data.backgrounds && data.backgrounds.length > 0) {
+                savedList.innerHTML = data.backgrounds.map(bg => `
+                    <div style="background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 8px; border: 1px solid rgba(30, 144, 255, 0.2); text-align: center; cursor: pointer;" onclick="selectBackground('custom', '${bg.path}', '${bg.name}')">
+                        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); height: 100px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+                            <span style="font-size: 2em;">📷</span>
+                        </div>
+                        <p style="font-weight: bold; color: #fff; margin-bottom: 4px; word-break: break-word;">${bg.name}</p>
+                        <p style="color: #888; font-size: 0.85em;">Uploaded ${new Date(bg.uploadedAt).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('Failed to load backgrounds:', error);
+        }
+    }
+</script>
+{% endblock %}

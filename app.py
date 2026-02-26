@@ -9,6 +9,7 @@ from wordpress_uploader import publish_video_as_post, WordPressUploadError
 import os
 import json
 import logging
+import uuid
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -287,6 +288,12 @@ def layout_designer():
     return render_template('layout-designer.html')
 
 
+@app.route('/settings', methods=['GET'])
+def settings_page():
+    """Background and UI configuration"""
+    return render_template('settings.html')
+
+
 @app.route('/api/layouts', methods=['GET'])
 def get_layouts():
     """Get all saved layouts"""
@@ -354,6 +361,83 @@ def long_ui_root():
 @app.route('/videos_ui', methods=['GET'])
 def videos_ui_root():
     return render_template('videos_ui.html')
+
+
+# make current year available in templates
+@app.context_processor
+ def inject_year():
+     return {'current_year': datetime.now().year}
+
+# Background management storage helpers
+BACKGROUND_FOLDER = os.path.join(os.getcwd(), 'static', 'backgrounds')
+BACKGROUND_DB = os.path.join(os.getcwd(), 'backgrounds.json')
+
+def ensure_bg_storage():
+    os.makedirs(BACKGROUND_FOLDER, exist_ok=True)
+    if not os.path.exists(BACKGROUND_DB):
+        with open(BACKGROUND_DB, 'w') as f:
+            json.dump([], f)
+
+def load_backgrounds():
+    ensure_bg_storage()
+    try:
+        with open(BACKGROUND_DB, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_backgrounds(bg_list):
+    with open(BACKGROUND_DB, 'w') as f:
+        json.dump(bg_list, f)
+
+
+@app.route('/upload-background', methods=['POST'])
+def upload_background():
+    ensure_bg_storage()
+    file = request.files.get('bgFile')
+    name = request.form.get('bgName', '').strip()
+    description = request.form.get('bgDescription', '').strip()
+    make_default = request.form.get('makeDefault', 'false').lower() in ['true', '1', 'on']
+
+    if not file or file.filename == '' or not name:
+        return jsonify({'error': 'Name and file required'}), 400
+
+    allowed = ['jpg', 'jpeg', 'png', 'mp4', 'webm']
+    ext = file.filename.rsplit('.', 1)[-1].lower()
+    if ext not in allowed:
+        return jsonify({'error': 'Unsupported file type'}), 400
+
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    save_path = os.path.join(BACKGROUND_FOLDER, filename)
+    try:
+        file.save(save_path)
+    except Exception as e:
+        logger.error(f"Background upload failed: {e}")
+        return jsonify({'error': 'Failed to save file'}), 500
+
+    bg_list = load_backgrounds()
+    if make_default:
+        for bg in bg_list:
+            bg['default'] = False
+
+    entry = {
+        'id': uuid.uuid4().hex,
+        'name': name,
+        'description': description,
+        'path': '/' + os.path.relpath(save_path, start=os.getcwd()).replace(os.path.sep, '/'),
+        'uploadedAt': datetime.now().isoformat(),
+        'default': make_default
+    }
+    bg_list.append(entry)
+    save_backgrounds(bg_list)
+
+    return jsonify({'status': 'ok', 'filePath': entry['path'], 'bgName': entry['name'], 'makeDefault': make_default})
+
+
+@app.route('/get-backgrounds', methods=['GET'])
+def get_backgrounds():
+    bg_list = load_backgrounds()
+    return jsonify({'backgrounds': bg_list})
 
 
 @app.route('/fetch_rss', methods=['POST'])

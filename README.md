@@ -119,6 +119,10 @@ Open http://localhost:5002 in a browser.
 - `GET /video/<filename>` – Download a specific video
 - `DELETE /video/<filename>` – Delete a video and update manifest
 
+### Backgrounds
+- `POST /upload-background` – Upload a custom background image/video. Accepts form-data (`bgName`, `bgFile`, `bgDescription`, `makeDefault`). Returns JSON with `filePath` and metadata.
+- `GET /get-backgrounds` – Retrieve list of stored backgrounds with details (path, name, uploadedAt, default flag).
+
 ## Examples
 
 ### Generate a short-form vertical video
@@ -147,18 +151,117 @@ curl http://localhost:5002/test-long
 
 ## Files & Architecture
 
+**Backend:**
 - `app.py` — Flask app with all endpoints
 - `script_service.py` — Short-form script generation (headline + description)
 - `long_script_service.py` — Long-form script generation (1000–1500 words, structured sections)
 - `tts_service.py` — TTS orchestration and caching (multi-backend fallback)
-- `video_service.py` — Short-form video composition (1080x1920 vertical)
-- `long_video_service.py` — Long-form video composition (1920x1080 horizontal)
+- `video_service.py` — Short-form video composition (1080x1920 vertical) & Long-form composition (1920x1080 horizontal)
+- `long_video_service.py` — Long-form video wrapper/orchestration
 - `facebook_uploader.py` — Facebook Reel upload helper
-- `templates/index.html` — Web UI
-- `assets/` — Background video (`bg.mp4`) and music (`music.mp3`)
-- `static/` — Logo (`logo.jpg`) and anchor overlay (`anchor.png`)
+- `instagram_uploader.py` — Instagram content upload helper
+- `wordpress_uploader.py` — WordPress post publishing helper
 
-## Long-form Video Workflow
+**Frontend Templates:**
+- `templates/base.html` — Master template with global header, navigation, footer, and company branding
+- `templates/index.html` — Short video generation UI
+- `templates/long.html` — Long video generation UI (simplified form)
+- `templates/layout-guide.html` — Comprehensive layout documentation and reference guide
+- `templates/layout-designer.html` — Interactive layout visualization and design tool
+- `templates/facebook.html` — Facebook posting interface
+- `templates/instagram.html` — Instagram posting interface
+- `templates/wordpress.html` — WordPress publishing interface
+- `templates/rss.html` — RSS feed manager
+- `templates/videos.html` — Video archive and management
+
+**Assets:**
+- `assets/bg.mp4` — Background video for all video types
+- `assets/music.mp3` — Background music (used in long-form videos at 10% volume)
+- `static/logo.jpg` — Logo/branding overlay
+- `static/anchor.png` — Anchor image for short-form videos
+- `static/newsroom-studio-bg.svg` — Professional newsroom studio background (for branding/reference)
+
+## UI & Templates
+
+### Master Template (`base.html`)
+All pages inherit from a unified base template featuring:
+- **Global Header** with company branding and logo
+- **Main Navigation** with links to all major sections:
+  - 📱 Short Video, 🎞️ Long Video, 📝 WordPress, 👍 Facebook, 📸 Instagram
+  - 🎥 Videos (archive), 🎨 Layout Designer, 📰 RSS Manager
+- **Company Information** prominently displayed:
+  - **Grahak Chetna** (primary brand)
+  - Developed by **Hardikkumar Gajjar**
+  - **Aidni Global LLP**, Ahmedabad
+- **Responsive Footer** with company details, features, and support links
+- **Safe Area Support** for mobile devices with notches
+
+### Layout Guide & Documentation (`layout-guide.html`)
+Comprehensive reference for video layout specifications:
+- **Dimension Breakdown:**
+  - **SHORT Videos** (1080×1920 vertical):
+    - Description box: **500px width × 700px height**
+    - Font size: 40px
+    - Optimized for Instagram Reels, TikTok, YouTube Shorts
+  - **LONG Videos** (1920×1080 horizontal):
+    - Description box: **800px width × 600px height** (1.6x proportional scaling)
+    - Font size: 40px
+    - Optimized for YouTube standard upload
+- **Color Palette** with hex codes and usage guidelines
+- **Visual Previews** showing layout structure for both formats
+- **Design Best Practices** (Do's & Don'ts)
+- **Technical Specifications** (codecs, fonts, frame rates)
+- **Responsive Considerations** with safe areas for notched devices
+
+### Layout Designer (`layout-designer.html`)
+Interactive tool for customizing and previewing video layouts with:
+- Real-time layout preview (16:9 aspect ratio)
+- Customizable layout presets (Default, Cinema, Split, Focus)
+- 📐 Complete documentation and color reference
+- 🔄 Professional broadcast-standard design
+
+### Video Generation UI Simplification
+**Long Video Page** (`long.html`):
+- Streamlined form (headline, description, language, voice provider)
+- Removed embedded layout customization controls
+- Layout settings now managed via `/layout-designer` page
+- Focus on video generation parameters only
+
+## Video Layout Specifications
+
+### Short Videos (1080×1920 Vertical)
+| Component | Width | Height | Position | Details |
+|-----------|-------|--------|----------|---------|
+| Logo | Auto | 100px | Top center | Brand identification |
+| Headline Bar | 1080px | 120px | Top section | Scrolling red ticker (50px font) |
+| Anchor Image | Auto | 750px | Left side | Centered vertically |
+| Description Box | **500px** | **700px** | Right side | White text, scrolls if overflow |
+| Breaking Bar | 1080px | 130px | Bottom | Red (130px height, centered) |
+
+### Long Videos (1920×1080 Horizontal)
+| Component | Width | Height | Position | Details |
+|-----------|-------|--------|----------|---------|
+| Logo | Auto | 100px | Top right | Brand identification |
+| Headline Bar | 1920px | 120px | Top section | Scrolling red ticker (50px font) |
+| Anchor Image | Auto | 750px | Left side | Centered vertically |
+| Description Box | **800px** | **600px** | Right side | White text, scrolls if overflow |
+| Breaking Bar | 1920px | 130px | Bottom | Red (130px height, centered) |
+
+**Color Scheme:**
+- **Headline & Breaking Bars:** #DC143C (Crimson Red)
+- **Text & Accents:** #FFFFFF (White) with black shadow
+- **Background Overlays:** 60% opacity black for contrast
+- **UI Elements:** #66b2ff (Bright Blue) accents
+
+## UI Navigation Structure
+
+**Main Pages & Entry Points:**
+- `/` — Main dashboard with tabbed interface (Short Video, Long Video, WordPress, Facebook, Instagram, Videos, Layout Designer, RSS Manager)
+- `/layout-guide` — Detailed layout documentation and specifications
+- `/layout-designer` — Interactive layout preview and customization tool
+- `/videos_ui` — Video archive and management
+- `/wordpress`, `/facebook`, `/instagram` — Platform-specific posting interfaces
+- `/rss` — RSS feed manager and trend fetcher
 
 1. **Script Generation** (`long_script_service.py`)
    - Groq LLM generates 1000–1500 word script
@@ -267,6 +370,16 @@ This repository contains internal code and assets — follow your project's lice
 
 ## Recent Changes (Feb 2026)
 
+**UI Enhancements:**
+- ✨ **New Base Template** (`base.html`): Unified header, navigation, and footer across all pages with company branding
+- 📖 **Layout Guide** (`layout-guide.html`): Comprehensive documentation of video dimensions, colors, and design specifications
+- 🎨 **Professional Background**: Added newsroom studio background SVG (`static/newsroom-studio-bg.svg`) for branded aesthetics
+- 🧹 **Simplified Long Video Form**: Removed embedded layout customization UI; moved to dedicated Layout Designer page
+- 📐 **Text Box Dimensions**:
+  - SHORT videos: 500×700px description box (fixed)
+  - LONG videos: 800×600px description box (proportional scaling)
+
+**Previous Changes:**
 - UI: extracted an independent RSS manager page at `/rss` and added lightweight per-feature entry pages that open the corresponding UI tab:
   - `/wordpress`, `/facebook`, `/instagram`, `/short_ui`, `/long_ui`, `/videos_ui` (these redirect to the in-app tab views)
 - TTS: removed Azure TTS provider; fallback chain is now: `Edge TTS` → `ElevenLabs` → `gTTS` → `pyttsx3`. Set `ELEVENLABS_API_KEY` in `.env` to enable ElevenLabs.
@@ -275,13 +388,33 @@ This repository contains internal code and assets — follow your project's lice
 
 ## How to access per-feature UI pages
 
-- Main UI (all tabs): `/` or `/` (renders `templates/index.html`)
-- Short video UI (standalone entry): `/short_ui` (redirects to short tab)
-- Long video UI (standalone entry): `/long_ui` (redirects to long tab)
-- WordPress UI (standalone entry): `/wordpress` (redirects to WordPress tab)
-- Facebook UI (standalone entry): `/facebook` (redirects to Facebook tab)
-- Instagram UI (standalone entry): `/instagram` (redirects to Instagram tab)
-- Videos library: `/videos_ui` (redirects to videos tab)
+- **Main Dashboard**: `/` or `/index` (all tabs in tabbed interface)
+- **Short Video UI**: `/` (Short Video tab) — 1080×1920 vertical format
+- **Long Video UI**: `/long` (Long Video tab) — 1920×1080 horizontal format with simplified form
+- **Layout Guide & Documentation**: `/layout-guide` — Detailed specifications and best practices
+- **Layout Designer**: `/layout-designer` — Interactive layout preview and customization tool
+- **WordPress Publishing**: `/wordpress` — WordPress post/page creation interface
+- **Facebook Posting**: `/facebook` — Facebook Reel upload interface
+- **Instagram Posting**: `/instagram` — Instagram content posting interface
+- **Videos Archive**: `/videos_ui` (Videos tab) — Video library and management
 
-These lightweight pages make it easier to open a single feature from bookmarks or external links. They currently redirect to the existing tabbed UI but can be extended to host feature-specific templates in the future.
+**Mobile & Accessibility:**
+- All pages use responsive design with mobile-first approach
+- Safe area support for notched devices (iPhone X, etc.)
+- Keyboard navigation support
+- Dark theme optimized for readability and reduced eye strain
+
+## Company & Attribution
+
+**Grahak Chetna**
+- Professional AI-powered news video creation platform
+- Developed by **Hardikkumar Gajjar**
+- **Aidni Global LLP**, Ahmedabad, India
+
+**Technology Stack:**
+- Backend: Flask (Python), MoviePy for video composition
+- Frontend: HTML5, CSS3, Vanilla JavaScript (no external JS framework dependencies)
+- TTS: Multi-backend pipeline (Edge TTS, ElevenLabs, gTTS, pyttsx3)
+- LLM: Groq API for script generation
+- Media: FFmpeg for video encoding
 ```

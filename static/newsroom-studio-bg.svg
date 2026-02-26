@@ -1,0 +1,93 @@
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+  <!-- Define gradients -->
+  <defs>
+    <!-- Studio lighting gradient -->
+    <radialGradient id="studioLight1" cx="20%" cy="30%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0" />
+    </radialGradient>
+    
+    <radialGradient id="studioLight2" cx="80%" cy="20%">
+      <stop offset="0%" style="stop-color:#66b2ff;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0" />
+    </radialGradient>
+
+    <linearGradient id="wallGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2d2d2d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="floorGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1f1f1f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f0f0f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Back wall -->
+  <rect width="1920" height="700" fill="url(#wallGradient)" />
+
+  <!-- Studio lighting effects -->
+  <ellipse cx="384" cy="324" rx="600" ry="400" fill="url(#studioLight1)" />
+  <ellipse cx="1536" cy="216" rx="500" ry="350" fill="url(#studioLight2)" />
+
+  <!-- Accent lines on wall (news studio design elements) -->
+  <line x1="0" y1="650" x2="1920" y2="650" stroke="#66b2ff" stroke-width="4" opacity="0.1" />
+  <line x1="0" y1="670" x2="1920" y2="670" stroke="#0066ff" stroke-width="2" opacity="0.15" />
+
+  <!-- Left side panels (studio lights mounted) -->
+  <rect x="50" y="150" width="120" height="400" fill="#151515" opacity="0.8" />
+  <circle cx="110" cy="200" r="35" fill="#FF6B00" opacity="0.6" />
+  <circle cx="110" cy="320" r="35" fill="#FF6B00" opacity="0.5" />
+  <circle cx="110" cy="440" r="35" fill="#FF6B00" opacity="0.4" />
+
+  <!-- Right side panels (studio equipment) -->
+  <rect x="1750" y="100" width="120" height="500" fill="#151515" opacity="0.8" />
+  <rect x="1765" y="120" width="30" height="450" fill="#0066ff" opacity="0.3" />
+  <rect x="1810" y="120" width="30" height="450" fill="#66b2ff" opacity="0.2" />
+
+  <!-- Center focus area (where anchor would stand) -->
+  <ellipse cx="960" cy="600" rx="400" ry="150" fill="#ffffff" opacity="0.05" />
+
+  <!-- Floor with perspective -->
+  <polygon points="0,700 0,1080 1920,1080 1920,700" fill="url(#floorGradient)" />
+
+  <!-- Floor tiles pattern (subtle) -->
+  <g opacity="0.08" stroke="#66b2ff" stroke-width="2" fill="none">
+    <line x1="0" y1="750" x2="1920" y2="750" />
+    <line x1="0" y1="810" x2="1920" y2="810" />
+    <line x1="0" y1="870" x2="1920" y2="870" />
+    <line x1="0" y1="930" x2="1920" y2="930" />
+    <line x1="0" y1="990" x2="1920" y2="990" />
+  </g>
+
+  <!-- Depth lines on floor -->
+  <line x1="400" y1="700" x2="350" y2="1080" stroke="#66b2ff" stroke-width="2" opacity="0.1" />
+  <line x1="960" y1="700" x2="960" y2="1080" stroke="#66b2ff" stroke-width="2" opacity="0.1" />
+  <line x1="1520" y1="700" x2="1570" y2="1080" stroke="#66b2ff" stroke-width="2" opacity="0.1" />
+
+  <!-- Bottom accent bar (news ticker area reference) -->
+  <rect x="0" y="950" width="1920" height="130" fill="#1a1a1a" opacity="0.5" />
+  <line x1="0" y1="950" x2="1920" y2="950" stroke="#DC143C" stroke-width="3" opacity="0.3" />
+
+  <!-- Corner monitors (screens visible in newsroom) -->
+  <rect x="80" y="400" width="150" height="120" fill="#000000" stroke="#66b2ff" stroke-width="2" rx="5" opacity="0.6" />
+  <polygon points="80,520 80,540 230,540 230,520" fill="#2d2d2d" opacity="0.6" />
+
+  <rect x="1690" y="370" width="160" height="130" fill="#000000" stroke="#66b2ff" stroke-width="2" rx="5" opacity="0.6" />
+  <polygon points="1690,500 1690,525 1850,525 1850,500" fill="#2d2d2d" opacity="0.6" />
+
+  <!-- Top banner area (where logo/branding would appear) -->
+  <rect x="0" y="0" width="1920" height="80" fill="#DC143C" opacity="0.08" />
+  <line x1="0" y1="80" x2="1920" y2="80" stroke="#DC143C" stroke-width="2" opacity="0.2" />
+
+  <!-- Spotlight effects (animated beams suggestion) -->
+  <ellipse cx="300" cy="400" rx="200" ry="300" fill="#66b2ff" opacity="0.03" />
+  <ellipse cx="1620" cy="350" rx="180" ry="280" fill="#0066ff" opacity="0.02" />
+
+  <!-- Subtle center highlight -->
+  <ellipse cx="960" cy="400" rx="300" ry="200" fill="#ffffff" opacity="0.02" />
+
+  <!-- Text overlay (professional newsroom branding) -->
+  <text x="960" y="550" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#66b2ff" opacity="0.1">PROFESSIONAL NEWSROOM STUDIO</text>
+</svg>

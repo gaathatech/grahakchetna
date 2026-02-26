@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Grahak RSS Manager</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <style>
+{% extends "base.html" %}
+
+{% block title %}RSS Manager - Grahak Chetna{% endblock %}
+
+{% block content %}
+<style>
         /* Reuse minimal styles from main UI for consistent look */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg,#1a1a1a,#2d2d2d); color:#fff; padding:12px; }
         .section { background: rgba(20,20,20,0.9); border-radius:8px; padding:16px; border:1px solid rgba(30,144,255,0.12); }
@@ -13,10 +11,8 @@
         button { background: linear-gradient(135deg,#66b2ff,#0066ff); border:none; cursor:pointer; }
         .status { margin-top:8px; display:none; }
         .status.show { display:block; }
-        .status.loading { background: rgba(100,150,255,0.12); padding:10px; border-radius:6px; }
     </style>
-</head>
-<body>
+
     <h1>📰 RSS Manager</h1>
     <p style="color:#ccc; margin-bottom:12px;">Fetch RSS feeds and post to WordPress</p>
 
@@ -169,5 +165,4 @@
         })();
     </script>
 
-</body>
-</html>
+{% endblock %}

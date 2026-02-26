@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Nexora Media Manager by Grahak Chetna</title>
-    <style>
+{% extends "base.html" %}
+
+{% block title %}Nexora Media Manager{% endblock %}
+
+{% block content %}
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -708,27 +707,13 @@
                 min-height: 36px;
             }
         }
-
-        /* Safe area support for notch devices */
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: max(6px, env(safe-area-inset-left));
-                padding-right: max(6px, env(safe-area-inset-right));
-                padding-top: max(6px, env(safe-area-inset-top));
-                padding-bottom: max(6px, env(safe-area-inset-bottom));
-            }
-        }
     </style>
 
-</head>
-<body>
     <script>
         // initial tab to open when index rendered via route
         var initialTab = "{{ open_tab|default('create-short') }}";
     </script>
 
-    <h1>🎬 Nexora Media Manager</h1>
-    <p class="subtitle">Generate Professional News Videos with AI Narration<br><small>by Grahak Chetna – Developed by Hardikkumar Gajjar, Aidni Global LLP, Ahmedabad</small></p>
     <div id="sslWarning" style="display:none; background:#ff4444; color:#fff; padding:10px; border-radius:6px; margin:8px 0; font-weight:700;">Warning: WordPress SSL verification is disabled — connections are insecure.</div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -2026,5 +2011,4 @@
         </div>
     </div>
 
-</body>
-</html>
+{% endblock %}
