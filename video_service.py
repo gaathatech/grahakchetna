@@ -9,6 +9,8 @@ import json
 import logging
 from datetime import datetime
 import subprocess
+import numpy as np
+
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
 
@@ -239,15 +241,27 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
     except:
         font = ImageFont.load_default()
     
-    # Wrap text using actual pixel measurements
+    # For Gujarati/Hindi, try to find working font if default fails
+    if language in ["gujarati", "hindi"]:
+        try:
+            test_char = text[0] if text else "\u0aa0"  # test gujarati char
+            font.getbbox(test_char)
+        except Exception:
+            working_font = _find_working_font_for_text(text, fontsize, INDIC_FONT_PATHS + FONT_PATHS)
+            if working_font:
+                font = working_font
     lines = []
     words = text.split()
     current_line = ""
     
     for word in words:
         test_line = current_line + word + " "
-        bbox = font.getbbox(test_line)
-        line_width = bbox[2] - bbox[0]
+        try:
+            bbox = font.getbbox(test_line)
+            line_width = bbox[2] - bbox[0]
+        except Exception:
+            # fallback estimate if font can't render this text
+            line_width = len(test_line) * fontsize * 0.6
         
         if line_width > max_width and current_line:
             lines.append(current_line.strip())
@@ -257,6 +271,7 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
     
     if current_line:
         lines.append(current_line.strip())
+
     
     # Calculate image size with proper spacing
     line_height = fontsize + 10
@@ -271,9 +286,12 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
     # Draw text with shadow
     y = 10
     for line in lines:
-        if add_shadow:
-            draw.text((10 + shadow_offset, y + shadow_offset), line, font=font, fill=(*COLOR_SHADOW, 180))
-        draw.text((10, y), line, font=font, fill=(*color, 255))
+        try:
+            if add_shadow:
+                draw.text((10 + shadow_offset, y + shadow_offset), line, font=font, fill=(*COLOR_SHADOW, 180))
+            draw.text((10, y), line, font=font, fill=(*color, 255))
+        except Exception as e:
+            logger.warning(f"Failed to draw line in create_text_image: {e}")
         y += line_height
     
     # Save to temp file
@@ -442,6 +460,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     Returns:
         Path to generated video file
     """
+
     if output_path is None:
         output_path = "static/final_video.mp4"
     
@@ -612,8 +631,9 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         bottom_limit = breaking_bar_y - 20
         # Separate widths and heights for short (1080x1920) and long (1920x1080) videos
         if WIDTH == 1080:
-            desc_width = 500      # Short video: vertical 1080x1920
-            desc_box_height = 700
+            # Short video adjustments: narrower width, taller height
+            desc_width = 450      # reduced width to pull box away from right side
+            desc_box_height = 800 # increased height to extend further toward bottom
         else:
             desc_width = 800      # Long video: horizontal 1920x1080 (proportional 1.6x)
             desc_box_height = 600
@@ -690,30 +710,37 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
-    breaking_text_img_path, _ = create_text_image(
-        "BREAKING NEWS",
-        fontsize=55,
+    # compose full breaking-news ticker text from provided multiline string
+    breaking_raw = (
+        "अगर आपके इलाके में कोई घटना हो रही हो और आप उसे रिपोर्ट करना चाहते हैं, "
+        "तो कृपया हमें WhatsApp करें: +91 9825728291 "
+        "Grahak Chetna: हर खबर, आपकी खबर। जुड़े रहिए हमारे साथ। "
+        "हमसे जुड़ें: Email: info@grahakchetna.in web : www.grahakchetna.in "
+        "Editor-in-Chief: Hardik Gajjar "
+        "For more videos, visit our Channel - Click here to Subscribe and stay Updated - "
+        "Website : www.grahakchetna.in YouTube : https://www.youtube.com/@GrahakChetna "
+        "X (Twitter)  : www.x.com/grahakchetna Facebook : www.facebook.com/grahakchetnanews "
+        "Instagram : www.instagram.com/grahak.chetna"
+    )
+    # create ticker-style image like headline bar
+    breaking_text_img_path, breaking_text_height = create_ticker_text_image(
+        breaking_raw,
+        fontsize=40,
         color=(255, 255, 255),
-        bold=True,
-        max_width=WIDTH - 100
+        bold=False,
+        language="gujarati"
     )
-    breaking_text_img = ImageClip(breaking_text_img_path)
-    breaking_text_width = breaking_text_img.w
-    
-    # Create ticker animation - text moves from right to left
+    breaking_text_img = ImageClip(breaking_text_img_path).set_duration(duration)
+    # animation matching headline ticker
     def breaking_ticker_position(t):
-        # Ticker duration matches video duration for continuous loop
-        ticker_duration = 8.0  # Time for one complete scroll
-        cycle_time = t % ticker_duration
-        # Start from right (WIDTH) and move to left (-breaking_text_width)
-        x_pos = WIDTH - (cycle_time / ticker_duration) * (WIDTH + breaking_text_width)
-        return (x_pos, breaking_bar_y + 25)
-    
-    breaking_text = (
-        breaking_text_img
-        .set_duration(duration)
-        .set_position(breaking_ticker_position)
-    )
+        scroll_speed = WIDTH + 4500
+        x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
+        # vertically center inside breaking bar (height 130)
+        y_center = int(breaking_bar_y + (130 - breaking_text_height) / 2)
+        return (x_pos, y_center)
+    breaking_text = breaking_text_img.set_position(breaking_ticker_position)
+
+    breaking_desc_text = None
 
     # AI label
     ai_label_img_path, _ = create_text_image(
@@ -759,6 +786,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         breaking_bar,
         breaking_bar_border,
         breaking_text,
+        breaking_desc_text if 'breaking_desc_text' in locals() else None,
         ai_label,
     ]
 
