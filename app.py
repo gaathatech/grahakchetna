@@ -365,8 +365,8 @@ def videos_ui_root():
 
 # make current year available in templates
 @app.context_processor
- def inject_year():
-     return {'current_year': datetime.now().year}
+def inject_year():
+    return {'current_year': datetime.now().year}
 
 # Background management storage helpers
 BACKGROUND_FOLDER = os.path.join(os.getcwd(), 'static', 'backgrounds')
