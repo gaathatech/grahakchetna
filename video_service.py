@@ -656,7 +656,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         if WIDTH == 1080:
             # Short video adjustments: narrower width, taller height
             desc_width = 450      # reduced width to pull box away from right side
-            desc_box_height = 900 # increased height to extend further toward bottom
+            desc_box_height = 1200 # increased height to extend further toward bottom
         else:
             desc_width = 850      # Long video: horizontal 1920x1080 (proportional 1.6x)
             desc_box_height = 550
