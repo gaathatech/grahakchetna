@@ -482,7 +482,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     duration = voice.duration
 
     # Try to use shorts background image if available, otherwise fall back to bg.mp4
-    shorts_bg_path = "shorts background.png"  # In root directory
+    shorts_bg_path = "shortbg.png"  # In root directory
     
     # Background
     try:
@@ -656,10 +656,10 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         if WIDTH == 1080:
             # Short video adjustments: narrower width, taller height
             desc_width = 450      # reduced width to pull box away from right side
-            desc_box_height = 800 # increased height to extend further toward bottom
+            desc_box_height = 900 # increased height to extend further toward bottom
         else:
-            desc_width = 800      # Long video: horizontal 1920x1080 (proportional 1.6x)
-            desc_box_height = 600
+            desc_width = 850      # Long video: horizontal 1920x1080 (proportional 1.6x)
+            desc_box_height = 550
 
         # Create description text clipped to box
         desc_img_path, desc_height = create_boxed_text_image(
@@ -735,10 +735,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     # compose full breaking-news ticker text from provided multiline string
     breaking_raw = (
-        "अगर आपके इलाके में कोई घटना हो रही हो और आप उसे रिपोर्ट करना चाहते हैं, "
-        "तो कृपया हमें WhatsApp करें: +91 9825728291 "
-        "Grahak Chetna: हर खबर, आपकी खबर। जुड़े रहिए हमारे साथ। "
-        "हमसे जुड़ें: Email: info@grahakchetna.in web : www.grahakchetna.in "
+        "Grahak Chetna । "
+        "Email: info@grahakchetna.in web : www.grahakchetna.in "
         "Editor-in-Chief: Hardik Gajjar "
         "For more videos, visit our Channel - Click here to Subscribe and stay Updated - "
         "Website : www.grahakchetna.in YouTube : https://www.youtube.com/@GrahakChetna "
