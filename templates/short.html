@@ -155,23 +155,6 @@
     {% endwith %}
 
     <div class="container">
-        <!-- CREDENTIAL STATUS BADGE -->
-        <div style="background: rgba(20, 40, 60, 0.9); border: 1px solid rgba(30, 144, 255, 0.2); border-radius: 8px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px;">
-            <span style="color: #888; font-size: 0.85em; min-width: 100%;">Platform Status:</span>
-            <div id="fb-status-badge" style="display: flex; align-items: center; gap: 6px; font-size: 0.85em;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #888;"></span>
-                <span>Facebook</span>
-            </div>
-            <div id="ig-status-badge" style="display: flex; align-items: center; gap: 6px; font-size: 0.85em;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #888;"></span>
-                <span>Instagram</span>
-            </div>
-            <div id="wp-status-badge" style="display: flex; align-items: center; gap: 6px; font-size: 0.85em;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #888;"></span>
-                <span>WordPress</span>
-            </div>
-        </div>
-
         <!-- SHORT VIDEO FORM -->
         <div class="section">
             <h2>⏱ Create Short Video (15 seconds)</h2>
@@ -257,60 +240,6 @@
         document.addEventListener('DOMContentLoaded', function(){
             populateModels('auto');
             document.getElementById('voice_provider').addEventListener('change', (e) => populateModels(e.target.value));
-            
-            // Check credentials
-            fetch('/config/credentials')
-                .then(res => res.json())
-                .then(creds => {
-                    // Facebook
-                    const fbBadge = document.getElementById('fb-status-badge');
-                    if (fbBadge) {
-                        const fbDot = fbBadge.querySelector('span:first-child');
-                        const fbText = fbBadge.querySelector('span:last-child');
-                        if (creds.facebook.configured) {
-                            fbDot.style.background = '#4CAF50';
-                            fbText.textContent = '✓ Facebook';
-                            fbText.style.color = '#4CAF50';
-                        } else {
-                            fbDot.style.background = '#FF9800';
-                            fbText.textContent = '⚠ Facebook (not configured)';
-                            fbText.style.color = '#FF9800';
-                        }
-                    }
-
-                    // Instagram
-                    const igBadge = document.getElementById('ig-status-badge');
-                    if (igBadge) {
-                        const igDot = igBadge.querySelector('span:first-child');
-                        const igText = igBadge.querySelector('span:last-child');
-                        if (creds.instagram.configured) {
-                            igDot.style.background = '#4CAF50';
-                            igText.textContent = '✓ Instagram';
-                            igText.style.color = '#4CAF50';
-                        } else {
-                            igDot.style.background = '#FF9800';
-                            igText.textContent = '⚠ Instagram (not configured)';
-                            igText.style.color = '#FF9800';
-                        }
-                    }
-
-                    // WordPress
-                    const wpBadge = document.getElementById('wp-status-badge');
-                    if (wpBadge) {
-                        const wpDot = wpBadge.querySelector('span:first-child');
-                        const wpText = wpBadge.querySelector('span:last-child');
-                        if (creds.wordpress.configured) {
-                            wpDot.style.background = '#4CAF50';
-                            wpText.textContent = '✓ WordPress';
-                            wpText.style.color = '#4CAF50';
-                        } else {
-                            wpDot.style.background = '#FF9800';
-                            wpText.textContent = '⚠ WordPress (not configured)';
-                            wpText.style.color = '#FF9800';
-                        }
-                    }
-                })
-                .catch(err => console.error('Failed to check credentials:', err));
         });
 
         // Form submission

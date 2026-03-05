@@ -1,0 +1,358 @@
+# Grahakchetna (Nexora Media Manager) - Comprehensive Application Description
+
+## Overview
+Grahakchetna is a sophisticated AI-powered video content creation and social media management platform developed by Hardikkumar Gajjar of Aidni Global LLP, Ahmedabad. It's a Flask-based web application that automates the creation of professional news videos in multiple formats and facilitates their distribution across various social media platforms.
+
+## Core Functionality
+
+### Video Generation Capabilities
+The application generates two primary types of videos:
+
+1. **Short-Form Videos (Vertical Format)**
+   - Resolution: 1080×1920 (9:16 aspect ratio)
+   - Duration: 15-60 seconds
+   - Optimized for: Instagram Reels, TikTok, YouTube Shorts
+   - Features: Anchor overlay, logo branding, scrolling ticker, breaking news bar
+
+2. **Long-Form Videos (Horizontal Format)**
+   - Resolution: 1920×1080 (16:9 aspect ratio)
+   - Duration: 8-12 minutes
+   - Optimized for: YouTube, professional broadcasting
+   - Features: Structured narrative, section markers, background music, professional branding
+
+### AI-Powered Content Pipeline
+
+#### 1. Script Generation
+- **Short Scripts**: Headline + description based content
+- **Long Scripts**: 1000-1500 word structured narratives with 6 sections:
+  - Hook (Introduction)
+  - Background (Context)
+  - What Happened (Main events)
+  - Why It Matters (Impact)
+  - Future Implications (Outlook)
+  - Closing (Summary)
+
+#### 2. Text-to-Speech (TTS) System
+Multi-backend TTS pipeline with automatic fallback:
+- **Primary**: ElevenLabs (premium voices)
+- **Secondary**: Edge TTS (Microsoft)
+- **Tertiary**: gTTS (Google)
+- **Fallback**: pyttsx3 (system TTS)
+
+#### 3. Video Composition Engine
+- **Framework**: MoviePy for video editing
+- **Backgrounds**: Looping video assets with automatic trimming
+- **Overlays**: Logo, anchor images, text boxes, tickers
+- **Audio Mixing**: Background music at 10% volume for long-form videos
+- **Transitions**: Smooth crossfades between sections
+
+## Technical Architecture
+
+### Backend (Flask Application)
+- **Main App**: `app.py` - Core Flask application with all endpoints
+- **Services**:
+  - `script_service.py` - Short-form script generation
+  - `long_script_service.py` - Long-form script generation
+  - `tts_service.py` - TTS orchestration and caching
+  - `video_service.py` - Short-form video composition
+  - `long_video_service.py` - Long-form video composition
+  - `news_service.py` - News content fetching
+  - `trend_fetcher.py` - Trend analysis
+  - `seo_service.py` - SEO optimization
+  - `thumbnail_service.py` - Video thumbnail generation
+
+### Frontend (Jinja2 Templates)
+- **Base Template**: `templates/base.html` - Unified UI with company branding
+- **Core Pages**:
+  - `index.html` - Short video generation
+  - `long.html` - Long video generation
+  - `videos.html` - Video archive management
+  - `layout-designer.html` - Interactive layout customization
+  - `layout-guide.html` - Documentation and specifications
+
+### Social Media Integration
+- **Facebook**: Reel upload with 3-phase process (START/UPLOAD/FINISH)
+- **Instagram**: Content posting capabilities
+- **WordPress**: Automated blog post creation with video embedding
+- **YouTube**: Video upload and management
+- **RSS**: Feed management and automated posting
+
+### API Endpoints
+
+#### Video Generation
+- `POST /generate` - Create short-form vertical video
+- `POST /generate-long` - Create long-form horizontal video
+- `POST /generate-and-post` - Generate and auto-post to Facebook
+- `GET /test-long` - Test long-form generation with sample content
+
+#### Video Management
+- `GET /videos` - List all generated videos with metadata
+- `GET /video/<filename>` - Download specific video
+- `DELETE /video/<filename>` - Delete video and update manifest
+
+#### Background Management
+- `POST /upload-background` - Upload custom background assets
+- `GET /get-backgrounds` - Retrieve available backgrounds
+
+#### Social Media
+- `POST /facebook/upload-reel` - Upload to Facebook
+- `POST /wordpress/post` - Publish to WordPress
+- `POST /instagram/post` - Upload to Instagram
+
+## Visual Design System
+
+### Color Palette
+- **Primary Red**: #DC143C (Crimson) - Headlines, breaking bars
+- **Secondary Red**: #8B0000 (Dark Red) - Borders, accents
+- **Text**: #FFFFFF (White) - Main content
+- **Shadows**: #000000 (Black) - Text shadows
+- **UI Accents**: #66b2ff (Bright Blue) - Interface elements
+
+### Layout Specifications
+
+#### Short Videos (1080×1920)
+| Component | Dimensions | Position | Details |
+|-----------|------------|----------|---------|
+| Logo | Auto × 100px | Top center | Brand identification |
+| Headline Bar | 1080px × 120px | Top | Scrolling red ticker |
+| Anchor Image | Auto × 750px | Left side | News presenter |
+| Description Box | 500px × 700px | Right side | Scrolling white text |
+| Breaking Bar | 1080px × 130px | Bottom | Red branding bar |
+
+#### Long Videos (1920×1080)
+| Component | Dimensions | Position | Details |
+|-----------|------------|----------|---------|
+| Logo | Auto × 100px | Top right | Brand identification |
+| Headline Bar | 1920px × 120px | Top | Scrolling red ticker |
+| Anchor Image | Auto × 750px | Left side | News presenter |
+| Description Box | 800px × 600px | Right side | Scrolling white text |
+| Breaking Bar | 1920px × 130px | Bottom | Red branding bar |
+
+## Data Management
+
+### Video Manifest System
+- **File**: `videos/manifest.json`
+- **Tracks**: Filename, size, creation timestamp, language, metadata
+- **Storage**: Organized in `videos/` and `videos/long/` directories
+- **Persistence**: Videos preserved until manually deleted
+
+### Background Assets
+- **File**: `backgrounds.json`
+- **Supports**: Images and videos
+- **Features**: Default background selection, metadata storage
+- **Upload**: Via `/upload-background` endpoint
+
+### Layout Configurations
+- **File**: `layouts.json`
+- **Features**: Customizable presets (Default, Cinema, Split, Focus)
+- **Tool**: Interactive layout designer at `/layout-designer`
+
+## Dependencies & Requirements
+
+### Python Packages
+```
+Flask==2.3.3              # Web framework
+Werkzeug==2.3.7           # WSGI utility
+edge-tts==6.1.3           # Microsoft TTS
+gtts==2.4.0               # Google TTS
+pyttsx3==2.90             # System TTS
+moviepy==1.0.3            # Video editing
+Pillow==10.0.0            # Image processing
+requests==2.31.0          # HTTP client
+feedparser==6.0.10        # RSS parsing
+python-dotenv==1.0.0      # Environment variables
+google-api-python-client==2.86.0  # YouTube API
+```
+
+### System Requirements
+- **Python**: 3.8+
+- **FFmpeg**: Required for video encoding
+- **Storage**: Sufficient space for video assets and generated content
+
+### Environment Variables
+```bash
+# Required
+GROQ_API_KEY=your_groq_api_key
+
+# Optional TTS
+ELEVENLABS_API_KEY=your_elevenlabs_key
+
+# Social Media
+PAGE_ID=your_facebook_page_id
+PAGE_ACCESS_TOKEN=your_facebook_page_access_token
+NEWSAPI_KEY=your_newsapi_key
+
+# WordPress
+WORDPRESS_URL=https://your-wordpress-site.com
+WORDPRESS_USERNAME=your_user
+WORDPRESS_APP_PASSWORD=your_app_password
+```
+
+## Key Features & Capabilities
+
+### AI Integration
+- **Groq API**: For script generation using advanced LLMs
+- **Multi-language Support**: English, Hindi, Gujarati, and more
+- **Content Optimization**: SEO-friendly scripts with proper structure
+
+### Professional Production Quality
+- **Broadcast Standards**: Professional color schemes and typography
+- **Responsive Design**: Works on desktop and mobile devices
+- **Safe Area Support**: Compatible with notched mobile devices
+
+### Automation Features
+- **Batch Processing**: Generate multiple videos
+- **Scheduled Posting**: RSS feed automation
+- **Cross-Platform Distribution**: Single video, multiple platforms
+
+### Content Management
+- **Video Archive**: Complete library with metadata
+- **Background Library**: Customizable visual assets
+- **Layout Presets**: Multiple professional templates
+
+## Usage Examples
+
+### Generate Short Video
+```bash
+curl -X POST http://localhost:5002/generate \
+  -F "headline=Major Breaking News" \
+  -F "description=Detailed news description" \
+  -F "language=english"
+```
+
+### Generate Long Video
+```bash
+curl -X POST http://localhost:5002/generate-long \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Comprehensive News Analysis",
+    "description": "In-depth coverage of current events",
+    "language": "english"
+  }'
+```
+
+### Upload to Social Media
+```bash
+# Facebook Reel
+curl -X POST http://localhost:5002/facebook/upload-reel \
+  -F "video=@generated_video.mp4" \
+  -F "description=News update"
+
+# WordPress Post
+curl -X POST http://localhost:5002/wordpress/post \
+  -F "title=News Article" \
+  -F "content=Full article content" \
+  -F "video=@video.mp4"
+```
+
+## File Structure
+```
+/workspaces/grahakchetna/
+├── app.py                          # Main Flask application
+├── requirements.txt                # Python dependencies
+├── .env                           # Environment variables
+├── README.md                      # Documentation
+├──
+├── services/
+│   ├── script_service.py          # Short script generation
+│   ├── long_script_service.py     # Long script generation
+│   ├── tts_service.py             # Text-to-speech
+│   ├── video_service.py           # Short video composition
+│   ├── long_video_service.py      # Long video composition
+│   ├── news_service.py            # News fetching
+│   ├── trend_fetcher.py           # Trend analysis
+│   ├── seo_service.py             # SEO optimization
+│   └── thumbnail_service.py       # Thumbnail generation
+├──
+├── uploaders/
+│   ├── facebook_uploader.py       # Facebook integration
+│   ├── instagram_uploader.py      # Instagram integration
+│   ├── wordpress_uploader.py      # WordPress integration
+│   └── youtube_uploader.py        # YouTube integration
+├──
+├── blueprints/
+│   ├── facebook_blueprint.py      # Facebook routes
+│   ├── instagram_blueprint.py     # Instagram routes
+│   ├── wordpress_blueprint.py     # WordPress routes
+│   └── youtube_blueprint.py       # YouTube routes
+├──
+├── templates/                     # HTML templates
+│   ├── base.html                  # Master template
+│   ├── index.html                 # Short video UI
+│   ├── long.html                  # Long video UI
+│   ├── videos.html                # Video management
+│   ├── layout-designer.html       # Layout customization
+│   └── [other platform UIs]
+├──
+├── static/                        # Static assets
+│   ├── logo.jpg                   # Company logo
+│   ├── anchor.png                 # News presenter image
+│   └── newsroom-studio-bg.svg     # Background graphics
+├──
+├── assets/                        # Media assets
+│   ├── bg.mp4                     # Background video
+│   └── music.mp3                  # Background music
+├──
+├── videos/                        # Generated content
+│   ├── manifest.json              # Video metadata
+│   └── [generated videos]
+├──
+└── output/                        # Temporary files
+```
+
+## Development & Deployment
+
+### Local Development
+1. Clone repository
+2. Create virtual environment: `python -m venv .venv`
+3. Activate: `source .venv/bin/activate`
+4. Install dependencies: `pip install -r requirements.txt`
+5. Create `.env` file with required API keys
+6. Run: `python app.py`
+7. Access: http://localhost:5002
+
+### Production Deployment
+- Configure environment variables
+- Set up proper file permissions
+- Ensure FFmpeg installation
+- Configure web server (nginx/apache)
+- Set up SSL certificates
+- Monitor disk space for video storage
+
+## Security Considerations
+- API keys stored in environment variables
+- Input validation on all endpoints
+- File upload restrictions
+- SSL/TLS encryption for production
+- Regular credential rotation (see CREDENTIAL_ROTATION.md)
+
+## Performance Optimization
+- TTS caching system
+- Background video looping
+- Asynchronous video processing
+- CDN integration for media delivery
+- Database optimization for metadata
+
+## Future Enhancements
+- Additional TTS providers
+- Advanced AI content analysis
+- Multi-language expansion
+- Custom branding options
+- Analytics dashboard
+- API rate limiting
+- Video editing tools
+
+## Support & Maintenance
+- Comprehensive logging system
+- Error handling and recovery
+- Regular dependency updates
+- Performance monitoring
+- Backup strategies for generated content
+
+---
+
+**Developed by:** Hardikkumar Gajjar
+**Company:** Aidni Global LLP, Ahmedabad
+**Version:** Latest (February 2026)
+**Status:** Production Ready</content>
+<parameter name="filePath">/workspaces/grahakchetna/app_detailed_description.txt

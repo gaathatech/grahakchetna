@@ -311,9 +311,6 @@
                         <div class="video-actions">
                             <button class="download-btn" onclick="downloadVideo('${video.filename}', '${escapeHtml(video.headline)}')">⬇ Download</button>
                             <button class="delete-btn" onclick="deleteVideo('${video.filename}')">🗑 Delete</button>
-                            <button class="share-fb" onclick="shareFacebook('${video.filename}', '${escapeHtml(video.headline)}')">f Share</button>
-                            <button class="share-ig" onclick="shareInstagram('${video.filename}', '${escapeHtml(video.headline)}')">📸 IG</button>
-                            <button class="share-wp" onclick="shareWordpress('${video.filename}', '${escapeHtml(video.headline)}')">W Publish</button>
                         </div>
                         <div class="post-info" id="post-info-${video.filename}"></div>
                     </div>
@@ -356,19 +353,6 @@
                 console.error('Error deleting video:', error);
                 alert('Error deleting video');
             }
-        }
-
-        async function shareFacebook(filename, headline) {
-            // This would open a modal or redirect to Facebook posting page
-            window.location.href = `/facebook?video=${filename}&headline=${encodeURIComponent(headline)}`;
-        }
-
-        async function shareInstagram(filename, headline) {
-            window.location.href = `/instagram?video=${filename}&headline=${encodeURIComponent(headline)}`;
-        }
-
-        async function shareWordpress(filename, headline) {
-            window.location.href = `/wordpress?video=${filename}&headline=${encodeURIComponent(headline)}`;
         }
 
         // Load videos on page load

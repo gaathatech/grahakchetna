@@ -739,9 +739,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         "Email: info@grahakchetna.in web : www.grahakchetna.in "
         "Editor-in-Chief: Hardik Gajjar "
         "For more videos, visit our Channel - Click here to Subscribe and stay Updated - "
-        "Website : www.grahakchetna.in YouTube : https://www.youtube.com/@GrahakChetna "
-        "X (Twitter)  : www.x.com/grahakchetna Facebook : www.facebook.com/grahakchetnanews "
-        "Instagram : www.instagram.com/grahak.chetna"
+        "Website : www.grahakchetna.in YouTube : https://www.youtube.com/@GrahakChetna"
     )
     # create ticker-style image like headline bar
     breaking_text_img_path, breaking_text_height = create_ticker_text_image(

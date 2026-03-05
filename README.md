@@ -1,15 +1,18 @@
 ```markdown
-# Nexora Media Manager by Grahak Chetna
+# Grahakchetna AI Video Engine
 
 *Developed by Hardikkumar Gajjar, Aidni Global LLP – Ahmedabad*
 
+Grahakchetna is a lightweight Flask-based AI video generation engine that creates professional news videos in two formats:
 
-Grahakchetna is a lightweight Flask-based service that generates AI-powered news videos in two formats:
+1. **Shorts** (1080x1920 vertical) – Quick, engaging news clips optimized for social media
+2. **Long-form** (1920x1080 horizontal) – 8–12 minute videos with structured narrative for professional broadcasting
 
-1. **Shorts** (1080x1920 vertical) – Quick, engaging news clips for Instagram Reels and TikTok
-2. **Long-form** (1920x1080 horizontal) – 8–12 minute YouTube videos with structured narrative
+It composes narration via script-generation API, synthesizes speech via multiple TTS backends, then renders videos using MoviePy and provided media assets. Generated videos are tracked in a manifest for easy management and download.
 
-It composes narration via script-generation API, synthesizes speech via multiple TTS backends, then renders videos using MoviePy and provided media assets. Generated videos are tracked in a manifest and can be downloaded or (optionally) posted to social platforms.
+**Social media distribution is handled externally by PostPilot.**
+
+## Features
 
 ## Features
 
@@ -21,8 +24,9 @@ It composes narration via script-generation API, synthesizes speech via multiple
   - **Long-form**: 1920x1080 horizontal format with section titles, smooth transitions, background music
 - Long-form scripts: 1000–1500 words with structured sections (Hook, Background, What Happened, Why It Matters, Future Implications, Closing)
 - Store generated video metadata in `videos/manifest.json`
-- Optional Facebook Reel upload flow (3-phase START/UPLOAD/FINISH)
-- Basic trend fetching and RSS helpers for topic discovery
+- Background asset management and upload
+- Professional layout designer with customizable presets
+- Video archive and management system
 
 **Video synthesis:**
 - Automatic background video looping/trimming
@@ -46,8 +50,6 @@ pip install -r requirements.txt
 ```
 GROQ_API_KEY=your_groq_api_key
 ELEVENLABS_API_KEY=your_elevenlabs_key
-PAGE_ID=your_facebook_page_id
-PAGE_ACCESS_TOKEN=your_facebook_page_access_token
 NEWSAPI_KEY=your_newsapi_key
 ```
 
@@ -74,16 +76,6 @@ Open http://localhost:5002 in a browser.
   }
   ```
   Returns: `{"status": "success", "video": {...}, "download_url": "..."}`
-
-- `POST /generate-and-post` – Generate video and auto-post to Facebook
-  ```json
-  {
-    "headline": "Breaking news title",
-    "description": "Video description",
-    "language": "english",
-    "auto_post": true
-  }
-  ```
 
 ### Long-form videos (1920x1080 horizontal for YouTube)
 - `POST /generate-long` – Generate an 8–12 minute YouTube video
@@ -158,9 +150,10 @@ curl http://localhost:5002/test-long
 - `tts_service.py` — TTS orchestration and caching (multi-backend fallback)
 - `video_service.py` — Short-form video composition (1080x1920 vertical) & Long-form composition (1920x1080 horizontal)
 - `long_video_service.py` — Long-form video wrapper/orchestration
-- `facebook_uploader.py` — Facebook Reel upload helper
-- `instagram_uploader.py` — Instagram content upload helper
-- `wordpress_uploader.py` — WordPress post publishing helper
+- `news_service.py` — News content fetching and processing
+- `trend_fetcher.py` — Trend analysis and discovery
+- `seo_service.py` — SEO optimization for content
+- `thumbnail_service.py` — Video thumbnail generation
 
 **Frontend Templates:**
 - `templates/base.html` — Master template with global header, navigation, footer, and company branding
@@ -168,11 +161,9 @@ curl http://localhost:5002/test-long
 - `templates/long.html` — Long video generation UI (simplified form)
 - `templates/layout-guide.html` — Comprehensive layout documentation and reference guide
 - `templates/layout-designer.html` — Interactive layout visualization and design tool
-- `templates/facebook.html` — Facebook posting interface
-- `templates/instagram.html` — Instagram posting interface
-- `templates/wordpress.html` — WordPress publishing interface
 - `templates/rss.html` — RSS feed manager
 - `templates/videos.html` — Video archive and management
+- `templates/settings.html` — Background and UI configuration
 
 **Assets:**
 - `assets/bg.mp4` — Background video for all video types
@@ -320,15 +311,8 @@ GROQ_API_KEY=your_groq_api_key
 # Optional (for additional TTS backends)
 ELEVENLABS_API_KEY=your_elevenlabs_key
 
-# Optional (for social media posting)
-PAGE_ID=your_facebook_page_id
-PAGE_ACCESS_TOKEN=your_facebook_page_access_token
+# Optional (for news content)
 NEWSAPI_KEY=your_newsapi_key
-
-# Optional (for WordPress publishing)
-WORDPRESS_URL=https://your-wordpress-site.com
-WORDPRESS_USERNAME=your_user
-WORDPRESS_APP_PASSWORD=your_app_password
 ```
 
 ## Notes
@@ -340,14 +324,13 @@ WORDPRESS_APP_PASSWORD=your_app_password
 ### Short-form videos
 - Output format: 1080×1920 vertical (9:16 aspect ratio)
 - Typical duration: 15–60 seconds
-- Optimal for: Instagram Reels, TikTok, YouTube Shorts
-- Facebook upload feature requires `PAGE_ID` and `PAGE_ACCESS_TOKEN` environment variables
+- Optimal for: Social media platforms (Instagram Reels, TikTok, YouTube Shorts)
 - Uses existing anchor overlay and logo branding
 
 ### Long-form videos
 - Output format: 1920×1080 horizontal (16:9 aspect ratio)
 - Typical duration: 8–12 minutes (~1000–1500 words of narration)
-- Optimal for: YouTube standard uploads, documentaries
+- Optimal for: YouTube standard uploads, professional broadcasting
 - Script generation creates structured narrative with 6 key sections
 - Background video is automatically looped if shorter than audio duration
 - Section markers appear at approximately: 5%, 15%, 35%, 55%, 75%, and 90% points
