@@ -329,7 +329,7 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
     img_height = fontsize + 30
     # Use the video WIDTH to size ticker appropriately; fall back to 1200
     try:
-        base_width = max(1200, int(getattr(__import__("video_service"), 'WIDTH', 1080) * 1.2))
+        base_width = max(1200, int(WIDTH * 1.2))
     except Exception:
         base_width = 1400
     img_width = max(base_width, len(text) * 25)
@@ -735,11 +735,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
 
     # compose full breaking-news ticker text from provided multiline string
     breaking_raw = (
-        "Grahak Chetna । "
-        "Email: info@grahakchetna.in web : www.grahakchetna.in "
-        "Editor-in-Chief: Hardik Gajjar "
-        "For more videos, visit our Channel - Click here to Subscribe and stay Updated - "
-        "Website : www.grahakchetna.in YouTube : https://www.youtube.com/@GrahakChetna"
+        "Grahak Chetna । Editor-in-Chief: Hardik Gajjar For more videos, visit our Channel - Subscribe and stay Updated - Grahak Chetna"
     )
     # create ticker-style image like headline bar
     breaking_text_img_path, breaking_text_height = create_ticker_text_image(
@@ -747,7 +743,6 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         fontsize=40,
         color=(255, 255, 255),
         bold=False,
-        language="gujarati"
     )
     breaking_text_img = ImageClip(breaking_text_img_path).set_duration(duration)
     # animation matching headline ticker
@@ -821,7 +816,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     )
 
     ending_text_img_path, _ = create_text_image(
-        "Presented by\nGrahak Chetna",
+        "Presented by\n Hardik Gajjar, Grahak Chetna",
         fontsize=75,
         color=(255, 255, 255),
         bold=True,
