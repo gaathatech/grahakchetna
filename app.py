@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, jsonify, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, jsonify
 from script_service import generate_script
 from long_script_service import generate_long_script
 from tts_service import generate_voice
@@ -10,7 +10,6 @@ import logging
 import uuid
 import shutil
 from datetime import datetime
-from pathlib import Path
 from dotenv import load_dotenv
 import traceback
 
@@ -43,7 +42,7 @@ def load_layouts():
         try:
             with open(LAYOUTS_CONFIG, 'r') as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
     return {}
 
@@ -135,7 +134,7 @@ def load_manifest():
         try:
             with open(VIDEO_MANIFEST, 'r') as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {"videos": []}
     return {"videos": []}
 
@@ -510,9 +509,6 @@ def generate():
     headline = request.form["headline"]
     description = request.form["description"]
     language = request.form["language"]
-    voice_provider = request.form.get("voice_provider", "auto")
-    voice_model = request.form.get("voice_model", "auto")
-    video_length = request.form.get("video_length", "full")
 
     # 1️⃣ Generate Script
     script = generate_script(headline, description, language)
@@ -786,7 +782,7 @@ def generate_long():
                 "video_path": video_path
             }), 500
         
-        logger.info(f"✅ Long-form video complete!")
+        logger.info("✅ Long-form video complete!")
         logger.info(f"   Word count: {word_count}")
         logger.info(f"   Duration: {_get_video_duration(video_path):.1f}s")
         logger.info(f"   Size: {entry.get('size_mb', 0):.1f} MB")
@@ -831,19 +827,6 @@ def test_long():
     test_description = "Hungary blocks EU sanctions package against Russia before war anniversary."
     
     try:
-        # Forward to /generate-long as a full JSON request
-        test_data = {
-            "title": test_headline,
-            "description": test_description,
-            "language": "english"
-        }
-        
-        # Create a test request
-        import json as json_lib
-        test_request = type('obj', (object,), {
-            'get_json': lambda: test_data
-        })()
-        
         # Call generate_long directly
         logger.info(f"Test case: {test_headline}")
         

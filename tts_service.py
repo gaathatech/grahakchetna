@@ -3,13 +3,10 @@ import asyncio
 import logging
 import os
 import hashlib
-import time
-import unicodedata
 from typing import Optional, Tuple, Dict, List
 from pathlib import Path
 from threading import Lock
 from dataclasses import dataclass
-from enum import Enum
 
 import edge_tts
 
@@ -97,7 +94,7 @@ def _get_async_lock():
     global _ASYNC_EDGE_TTS_LOCK
     if _ASYNC_EDGE_TTS_LOCK is None:
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             _ASYNC_EDGE_TTS_LOCK = asyncio.Lock()
         except RuntimeError:
             # No running loop, will be created later
@@ -452,7 +449,7 @@ async def _edge_tts_with_smart_retry(
     # Acquire async lock to prevent parallel Edge TTS requests
     async_lock = None
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         async_lock = asyncio.Lock()
         logger.debug("Event loop found, using async lock")
     except RuntimeError:
@@ -496,11 +493,11 @@ async def _edge_tts_with_smart_retry(
                 logger.warning(f"  ✗ [Attempt {attempt_num}] Output file not created")
                 raise Exception("Output file was not created")
                 
-        except Exception as e:
+        except Exception:
             if os.path.exists(output_path):
                 try:
                     os.remove(output_path)
-                except:
+                except Exception:
                     pass
             raise
     
@@ -698,9 +695,9 @@ async def generate_voice_async(
     # =========================================
     # STEP 1: Validate and preprocess input text
     # =========================================
-    logger.info(f"=" * 60)
+    logger.info("=" * 60)
     logger.info(f"TTS REQUEST: Input text length: {len(text) if text else 0} characters")
-    logger.info(f"=" * 60)
+    logger.info("=" * 60)
     
     if not text or not isinstance(text, str):
         error_msg = f"Invalid text input: type={type(text)}, empty={not text}"
@@ -938,7 +935,7 @@ def generate_voice(
     
     # Acquire thread-safe lock
     with EDGE_TTS_LOCK:
-        logger.info(f"Acquired EDGE_TTS_LOCK - starting TTS generation")
+        logger.info("Acquired EDGE_TTS_LOCK - starting TTS generation")
         logger.info(f"  voice={voice}, output_path={output_path}")
         
         try:

@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
-import os
 
 def create_thumbnail(headline):
     img = Image.new("RGB", (1280, 720), color=(0, 0, 0))

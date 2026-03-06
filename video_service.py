@@ -1,15 +1,18 @@
-from moviepy.editor import *
+from moviepy.editor import (
+    AudioFileClip,
+    ColorClip,
+    CompositeAudioClip,
+    CompositeVideoClip,
+    ImageClip,
+    VideoFileClip,
+)
 from moviepy.audio.fx import all as afx
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from PIL import Image, ImageDraw, ImageFont
-import textwrap
 import tempfile
 import os
-import json
 import logging
-from datetime import datetime
 import subprocess
-import numpy as np
 
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -75,7 +78,7 @@ def get_font(bold=False, language="default"):
     # If not found, try system font listing via fc-list (if available)
     try:
         fc_list = subprocess.check_output(["fc-list", "--format", "%{file}\n"]).decode(errors="ignore")
-        lines = [l.strip() for l in fc_list.splitlines() if l.strip()]
+        lines = [font_file.strip() for font_file in fc_list.splitlines() if font_file.strip()]
 
         # Language-specific keywords to look for in font file paths
         keywords = []
@@ -87,12 +90,12 @@ def get_font(bold=False, language="default"):
         else:
             keywords = ["noto", "dejavu", "liberation", "freefont"]
 
-        for l in lines:
-            low = l.lower()
+        for font_file in lines:
+            low = font_file.lower()
             for kw in keywords:
                 if kw in low:
-                    if os.path.exists(l):
-                        return l
+                    if os.path.exists(font_file):
+                        return font_file
     except Exception:
         # fc-list not available or failed — ignore
         pass
@@ -238,7 +241,7 @@ def create_text_image(text, fontsize=65, color=(255, 255, 255), bold=False, max_
             font = ImageFont.truetype(font_path, fontsize)
         else:
             font = ImageFont.load_default()
-    except:
+    except Exception:
         font = ImageFont.load_default()
     
     # For Gujarati/Hindi, try to find working font if default fails
