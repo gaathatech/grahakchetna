@@ -187,6 +187,46 @@
                     <option value="auto">Auto</option>
                 </select>
 
+
+                <hr style="margin:14px 0; border-color: rgba(255,255,255,0.12);">
+                <h3 style="margin:0 0 8px 0; font-size:1em; color:#66b2ff;">Layout Controls</h3>
+
+                <label for="layout_mediaPosition">Media Position</label>
+                <select id="layout_mediaPosition" name="layout_mediaPosition">
+                    <option value="right" selected>Right</option>
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                </select>
+
+                <label for="layout_mediaSize">Media Size</label>
+                <select id="layout_mediaSize" name="layout_mediaSize">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="large">Large</option>
+                    <option value="full">Full</option>
+                </select>
+
+                <label for="layout_mediaOpacity">Media Opacity (%)</label>
+                <input type="range" id="layout_mediaOpacity" name="layout_mediaOpacity" min="20" max="100" value="100">
+                <div style="font-size:0.85em; color:#9cc; margin:-6px 0 8px 0;">
+                    <span id="layout_mediaOpacity_val">100</span>%
+                </div>
+
+                <label for="layout_textAlignment">Text Alignment</label>
+                <select id="layout_textAlignment" name="layout_textAlignment">
+                    <option value="left">Left</option>
+                    <option value="center" selected>Center</option>
+                    <option value="right">Right</option>
+                </select>
+
+                <label for="layout_backgroundBlur">Background Overlay</label>
+                <select id="layout_backgroundBlur" name="layout_backgroundBlur">
+                    <option value="none">None</option>
+                    <option value="light" selected>Light</option>
+                    <option value="medium">Medium</option>
+                    <option value="heavy">Heavy</option>
+                </select>
+
                 <button type="submit" id="submitBtn">Generate Video</button>
                 
                 <div id="status" class="status"></div>
@@ -239,6 +279,16 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function(){
             populateModels('auto');
+
+        // Layout opacity preview
+        const layoutOpacity = document.getElementById('layout_mediaOpacity');
+        const layoutOpacityVal = document.getElementById('layout_mediaOpacity_val');
+        if (layoutOpacity && layoutOpacityVal) {
+            const syncLayoutOpacity = () => { layoutOpacityVal.textContent = layoutOpacity.value; };
+            layoutOpacity.addEventListener('input', syncLayoutOpacity);
+            syncLayoutOpacity();
+        }
+
             document.getElementById('voice_provider').addEventListener('change', (e) => populateModels(e.target.value));
         });
 
