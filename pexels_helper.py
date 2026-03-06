@@ -23,7 +23,12 @@ def fetch_image_from_pexels(headline, dimension=800):
 
         headers = {"Authorization": pexels_api_key, "User-Agent": "GrahakChetna/1.0"}
         params = {"query": keywords, "per_page": 1, "page": 1}
-        resp = requests.get("https://api.pexels.com/v1/search", headers=headers, params=params, timeout=10)
+        resp = requests.get(
+            "https://api.pexels.com/v1/search",
+            headers=headers,
+            params=params,
+            timeout=10,
+        )
         if resp.status_code != 200:
             logger.warning(f"Pexels API returned {resp.status_code}")
             return None
@@ -35,7 +40,9 @@ def fetch_image_from_pexels(headline, dimension=800):
 
         photo = photos[0]
         # prefer 'original' if present, else large
-        image_url = photo.get("src", {}).get("original") or photo.get("src", {}).get("large")
+        image_url = photo.get("src", {}).get("original") or photo.get("src", {}).get(
+            "large"
+        )
         if not image_url:
             return None
 
@@ -45,7 +52,12 @@ def fetch_image_from_pexels(headline, dimension=800):
         basename = f"pexels_{ts}_{photo.get('id')}.jpg"
         outpath = os.path.join("uploads", basename)
 
-        with requests.get(image_url, headers={"User-Agent": "GrahakChetna/1.0"}, stream=True, timeout=15) as r:
+        with requests.get(
+            image_url,
+            headers={"User-Agent": "GrahakChetna/1.0"},
+            stream=True,
+            timeout=15,
+        ) as r:
             if r.status_code != 200:
                 logger.warning(f"Failed to download Pexels image: {r.status_code}")
                 return None

@@ -18,15 +18,16 @@ logger = logging.getLogger(__name__)
 
 API_KEY = os.getenv("GROQ_API_KEY")
 
+
 def generate_long_script(headline, description, language="english"):
     """
     Generate a long-form YouTube script (1000-1500 words).
-    
+
     Args:
         headline: Main news headline
         description: Short summary of the story
         language: Script language (english, gujarati, hindi)
-    
+
     Returns:
         dict: {
             "success": bool,
@@ -35,7 +36,7 @@ def generate_long_script(headline, description, language="english"):
             "sections": dict with breakdown
         }
     """
-    
+
     if language.lower() == "gujarati":
         lang_instruction = "Write the entire script in Gujarati language."
     elif language.lower() == "hindi":
@@ -89,14 +90,14 @@ Do not include section headers in the output - write it as a flowing narrative.
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
-        
+
         data = {
             "model": "llama-3.3-70b-versatile",
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 3000,
-            "temperature": 0.7
+            "temperature": 0.7,
         }
 
         logger.info("Generating long-form script via Groq API...")
@@ -108,16 +109,16 @@ Do not include section headers in the output - write it as a flowing narrative.
                 "success": False,
                 "error": f"Groq API error: {response.status_code}",
                 "script": None,
-                "word_count": 0
+                "word_count": 0,
             }
 
         script_text = response.json()["choices"][0]["message"]["content"].strip()
-        
+
         # Count words
         word_count = len(script_text.split())
-        
+
         logger.info(f"✓ Long-form script generated successfully ({word_count} words)")
-        
+
         return {
             "success": True,
             "script": script_text,
@@ -129,8 +130,8 @@ Do not include section headers in the output - write it as a flowing narrative.
                 "what_happened": "Variable",
                 "why_it_matters": "Variable",
                 "future_implications": "Variable",
-                "closing": "Variable"
-            }
+                "closing": "Variable",
+            },
         }
 
     except requests.exceptions.Timeout:
@@ -139,29 +140,28 @@ Do not include section headers in the output - write it as a flowing narrative.
             "success": False,
             "error": "Script generation timeout",
             "script": None,
-            "word_count": 0
+            "word_count": 0,
         }
     except Exception as e:
         logger.error(f"Script generation error: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "script": None,
-            "word_count": 0
-        }
+        return {"success": False, "error": str(e), "script": None, "word_count": 0}
 
 
 if __name__ == "__main__":
     # Test the long script generator
     logging.basicConfig(level=logging.INFO)
-    
+
     test_headline = "Why Hungary Blocked EU Sanctions"
-    test_description = "Hungary blocks EU sanctions package against Russia before war anniversary."
-    
+    test_description = (
+        "Hungary blocks EU sanctions package against Russia before war anniversary."
+    )
+
     result = generate_long_script(test_headline, test_description)
     print(f"\nStatus: {result['success']}")
-    if result['success']:
+    if result["success"]:
         print(f"Word Count: {result['word_count']}")
-        print(f"\n--- SCRIPT PREVIEW (first 500 chars) ---\n{result['script'][:500]}...")
+        print(
+            f"\n--- SCRIPT PREVIEW (first 500 chars) ---\n{result['script'][:500]}..."
+        )
     else:
         print(f"Error: {result['error']}")

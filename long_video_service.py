@@ -21,9 +21,22 @@ VIDEOS_DIR = "videos"
 LONG_VIDEOS_DIR = os.path.join(VIDEOS_DIR, "long")
 
 
-def generate_long_video(stories, audio_path, language="en", output_path=None, max_duration=None, story_medias=None, media_path=None, green_screen_media=None, 
-                       layout_mediaPosition="right", layout_mediaSize="medium", layout_mediaOpacity=100, 
-                       layout_textAlignment="center", layout_backgroundBlur="light", **kwargs):
+def generate_long_video(
+    stories,
+    audio_path,
+    language="en",
+    output_path=None,
+    max_duration=None,
+    story_medias=None,
+    media_path=None,
+    green_screen_media=None,
+    layout_mediaPosition="right",
+    layout_mediaSize="medium",
+    layout_mediaOpacity=100,
+    layout_textAlignment="center",
+    layout_backgroundBlur="light",
+    **kwargs,
+):
     """Generate a horizontal long-form video using the short-video layout.
 
     Args:
@@ -53,8 +66,15 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
     description = ""
     try:
         if stories and isinstance(stories, list) and len(stories) > 0:
-            title = ' | '.join([s.get('headline', '') for s in stories if s.get('headline')]) or title
-            description = '\n\n'.join([s.get('description', '') for s in stories if s.get('description')])
+            title = (
+                " | ".join(
+                    [s.get("headline", "") for s in stories if s.get("headline")]
+                )
+                or title
+            )
+            description = "\n\n".join(
+                [s.get("description", "") for s in stories if s.get("description")]
+            )
     except Exception:
         pass
 
@@ -80,18 +100,18 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
 
         logger.info("Generating long video using short layout (1920x1080)")
         video_service.generate_video(
-            title, 
-            description, 
-            audio_path, 
-            language=language, 
-            output_path=output_path, 
+            title,
+            description,
+            audio_path,
+            language=language,
+            output_path=output_path,
             max_duration=max_duration,
             media_path=effective_media_path,
             layout_mediaPosition=layout_mediaPosition,
             layout_mediaSize=layout_mediaSize,
             layout_mediaOpacity=layout_mediaOpacity,
             layout_textAlignment=layout_textAlignment,
-            layout_backgroundBlur=layout_backgroundBlur
+            layout_backgroundBlur=layout_backgroundBlur,
         )
 
     finally:
@@ -108,6 +128,7 @@ def generate_long_video(stories, audio_path, language="en", output_path=None, ma
 if __name__ == "__main__":
     # Quick smoke test (requires a real audio file path argument)
     import sys
+
     if len(sys.argv) > 1:
         audio = sys.argv[1]
         if os.path.exists(audio):
