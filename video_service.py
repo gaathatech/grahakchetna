@@ -619,23 +619,46 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     if has_media:
         logger.info(f"Media available: {media_path} - displaying media on right side")
         try:
+            # FORCE fixed long-video media lane (same as text box geometry)
+            # Long: 850x550 at right side; Short keeps existing behavior.
+            if WIDTH == 1080:
+                forced_w = right_content_width
+                forced_h = int(1200)  # short lane-style height
+                lane_y = headline_bar_y + headline_bar_height + 10
+            else:
+                forced_w = 850
+                forced_h = 550
+                right_content_x = WIDTH - forced_w
+                lane_y = headline_bar_y + headline_bar_height + 10
+
             if media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
                 media_clip = VideoFileClip(media_path)
-                media_clip = media_clip.resize((right_content_width, int(right_content_width * media_clip.h / media_clip.w)))
                 media_clip = media_clip.subclip(0, min(media_clip.duration, duration))
                 if media_clip.duration < duration:
                     media_clip = concatenate_videoclips([media_clip] * int(duration / media_clip.duration + 1)).subclip(0, duration)
             else:
-                media_img = ImageClip(media_path)
-                media_aspect = media_img.w / media_img.h if media_img.h > 0 else 1
-                media_height = int(right_content_width / media_aspect)
-                media_clip = media_img.resize((right_content_width, media_height)).set_duration(duration)
+                media_clip = ImageClip(media_path).set_duration(duration)
 
-            media_height = media_clip.h
-            right_content_y = int((HEIGHT - media_height) / 2)
-            media_clip = media_clip.set_position((right_content_x, right_content_y))
-            media_clip = media_clip.set_opacity(layout_mediaOpacity / 100.0)
-            right_content_clip = media_clip
+            # Fit inside forced box without stretching (contain)
+            scale_ratio = min(forced_w / max(1, media_clip.w), forced_h / max(1, media_clip.h))
+            fit_w = max(1, int(media_clip.w * scale_ratio))
+            fit_h = max(1, int(media_clip.h * scale_ratio))
+            media_clip = media_clip.resize((fit_w, fit_h))
+
+            # Center inside forced lane
+            px = right_content_x + int((forced_w - fit_w) / 2)
+            py = lane_y + int((forced_h - fit_h) / 2)
+
+            # Dark lane background (same visual behavior as text lane)
+            media_bg = (
+                ColorClip((forced_w, forced_h), color=(0, 0, 0))
+                .set_opacity(0.45)
+                .set_position((right_content_x, lane_y))
+                .set_duration(duration)
+            )
+
+            media_clip = media_clip.set_position((px, py)).set_opacity(layout_mediaOpacity / 100.0)
+            right_content_clip = CompositeVideoClip([media_bg, media_clip], size=(WIDTH, HEIGHT)).set_duration(duration)
             right_bg_box = None
             use_text_box = False
         except Exception as e:
@@ -736,16 +759,18 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
-    # compose full breaking-news ticker text from provided multiline string
-    breaking_raw = (
-        "Grahak Chetna । Editor-in-Chief: Hardik Gajjar For more videos, visit our Channel - Subscribe and stay Updated - Grahak Chetna"
-    )
-    # create ticker-style image like headline bar
+    # BREAKING bar ticker should run description
+    breaking_raw = (description or "").strip()
+    if not breaking_raw:
+        breaking_raw = "Breaking update"
+
+    # create ticker-style image for breaking bar
     breaking_text_img_path, breaking_text_height = create_ticker_text_image(
         breaking_raw,
         fontsize=40,
         color=(255, 255, 255),
         bold=False,
+        language=language
     )
     breaking_text_img = ImageClip(breaking_text_img_path).set_duration(duration)
     # animation matching headline ticker
@@ -757,7 +782,39 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         return (x_pos, y_center)
     breaking_text = breaking_text_img.set_position(breaking_ticker_position)
 
-    breaking_desc_text = None
+    # ============= UNDER BREAKING BAR TICKER (HEADLINE/TITLE) =============
+    under_breaking_bar_height = 80
+    under_breaking_bar_y = breaking_bar_y + 130  # just below breaking bar
+
+    under_breaking_bar = (
+        ColorClip((WIDTH, under_breaking_bar_height), color=(20, 20, 20))
+        .set_opacity(0.95)
+        .set_position(("center", under_breaking_bar_y))
+        .set_duration(duration)
+    )
+
+    under_breaking_border = (
+        ColorClip((WIDTH, 2), color=COLOR_ACCENT_DARK_RED)
+        .set_position(("center", under_breaking_bar_y))
+        .set_duration(duration)
+    )
+
+    under_text_img_path, under_text_h = create_ticker_text_image(
+        title if title else "Headline",
+        fontsize=34,
+        color=(255, 255, 255),
+        bold=False,
+        language=language
+    )
+    under_text_img = ImageClip(under_text_img_path).set_duration(duration)
+
+    def under_ticker_position(t):
+        scroll_speed = WIDTH + 3500
+        x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
+        y_center = int(under_breaking_bar_y + (under_breaking_bar_height - under_text_h) / 2)
+        return (x_pos, y_center)
+
+    breaking_desc_text = under_text_img.set_position(under_ticker_position)
 
     # AI label
     ai_label_img_path, _ = create_text_image(
@@ -803,6 +860,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         breaking_bar,
         breaking_bar_border,
         breaking_text,
+        under_breaking_bar if 'under_breaking_bar' in locals() else None,
+        under_breaking_border if 'under_breaking_border' in locals() else None,
         breaking_desc_text if 'breaking_desc_text' in locals() else None,
         ai_label,
     ]
