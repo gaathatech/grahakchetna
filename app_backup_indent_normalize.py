@@ -3,19 +3,6 @@
 # =========================================================
 # VIDEO PATH RESOLVER + MANIFEST CLEANUP PATCH
 # =========================================================
-import traceback
-from dotenv import load_dotenv
-from datetime import datetime
-import shutil
-import uuid
-import logging
-import json
-from long_video_service import generate_long_video
-from video_service import generate_video
-from tts_service import generate_voice
-from long_script_service import generate_long_script
-from script_service import generate_script
-from flask import Flask, render_template, request, send_file, jsonify
 import os
 from pathlib import Path
 
@@ -65,6 +52,21 @@ def _prune_missing_manifest_entries(manifest):
     return manifest
 
 
+from flask import Flask, render_template, request, send_file, jsonify
+from script_service import generate_script
+from long_script_service import generate_long_script
+from tts_service import generate_voice
+from video_service import generate_video
+from long_video_service import generate_long_video
+import os
+import json
+import logging
+import uuid
+import shutil
+from datetime import datetime
+from dotenv import load_dotenv
+import traceback
+
 # Load environment variables
 load_dotenv()
 
@@ -80,7 +82,6 @@ VIDEOS_DIR = "videos"
 VIDEO_MANIFEST = f"{VIDEOS_DIR}/manifest.json"
 LAYOUTS_CONFIG = "layouts.json"
 
-
 def ensure_directories():
     """Ensure all required directories exist"""
     os.makedirs("output", exist_ok=True)
@@ -92,18 +93,15 @@ def ensure_directories():
 def load_layouts():
     """Load saved layout configurations"""
     if os.path.exists(LAYOUTS_CONFIG):
-        try:
             with open(LAYOUTS_CONFIG, 'r') as f:
                 return json.load(f)
         except Exception:
             return {}
     return {}
-    return {}
 
 
 def save_layouts(layouts):
     """Save layout configurations"""
-    try:
         with open(LAYOUTS_CONFIG, 'w') as f:
             json.dump(layouts, f, indent=2)
         logger.info(f"✓ Saved {len(layouts)} layouts")
@@ -141,7 +139,7 @@ def get_layout_for_video(video_format='short'):
 def layout_to_video_params(layout_config, video_format='short'):
     """Convert layout designer config to video generation parameters"""
     params = {}
-
+    
     # Media positioning
     if layout_config.get('media_x') and layout_config.get('media_y'):
         if float(layout_config.get('media_x', 0)) > 50:
@@ -150,7 +148,7 @@ def layout_to_video_params(layout_config, video_format='short'):
             params['layout_mediaPosition'] = 'left'
         else:
             params['layout_mediaPosition'] = 'center'
-
+    
     # Media size mapping
     media_width = float(layout_config.get('media_width', 50))
     if media_width >= 90:
@@ -161,11 +159,10 @@ def layout_to_video_params(layout_config, video_format='short'):
         params['layout_mediaSize'] = 'medium'
     else:
         params['layout_mediaSize'] = 'small'
-
+    
     # Media opacity
-    params['layout_mediaOpacity'] = int(
-        float(layout_config.get('media_opacity', 100)))
-
+    params['layout_mediaOpacity'] = int(float(layout_config.get('media_opacity', 100)))
+    
     # Text alignment
     textbox_x = float(layout_config.get('textbox_x', 50))
     if textbox_x < 30:
@@ -174,67 +171,38 @@ def layout_to_video_params(layout_config, video_format='short'):
         params['layout_textAlignment'] = 'right'
     else:
         params['layout_textAlignment'] = 'center'
-
+    
     # Background blur
     params['layout_backgroundBlur'] = layout_config.get('bg_blur', 'light')
-
+    
     # Detailed layout parameters (pass through)
     params['layout_config'] = layout_config
-
+    
     return params
-
-
 
 def load_manifest():
     """Load video manifest"""
     if os.path.exists(VIDEO_MANIFEST):
-        try:
             with open(VIDEO_MANIFEST, 'r') as f:
                 return json.load(f)
         except Exception:
             return {"videos": []}
     return {"videos": []}
 
-
 def save_manifest(manifest):
     """Save video manifest"""
-    try:
+        # Ensure directory exists
         os.makedirs(VIDEOS_DIR, exist_ok=True)
-
+        # Write to temp file first, then move (atomic write)
         temp_path = f"{VIDEO_MANIFEST}.tmp"
         with open(temp_path, 'w') as f:
             json.dump(manifest, f, indent=2)
-
+        # Atomic rename
         shutil.move(temp_path, VIDEO_MANIFEST)
-
         logger.info(f"✓ Manifest saved successfully ({len(manifest.get('videos', []))} videos)")
     except Exception as e:
         logger.error(f"✗ Failed to save manifest: {e}")
         raise
-
-
-def add_to_manifest(video_path, headline, description, language):
-    """Add video entry to manifest"""
-    if not os.path.exists(video_path):
-        logger.error(f"✗ Video file not found: {video_path}")
-        raise FileNotFoundError(f"Video file not found: {video_path}")
-
-    manifest = load_manifest()
-
-    entry = {
-        "filename": os.path.basename(video_path),
-        "path": video_path,
-        "headline": headline,
-        "description": description,
-        "language": language,
-        "created": datetime.utcnow().isoformat()
-    }
-
-    manifest.setdefault("videos", []).append(entry)
-    save_manifest(manifest)
-
-    return entry
-
 
 def add_to_manifest(video_path, headline, description, language):
     """Add video entry to manifest"""
@@ -242,15 +210,15 @@ def add_to_manifest(video_path, headline, description, language):
         if not os.path.exists(video_path):
             logger.error(f"✗ Video file not found: {video_path}")
             raise FileNotFoundError(f"Video file not found: {video_path}")
-
+        
         manifest = load_manifest()
-
+        
         # Get file size with error handling
             file_size_mb = round(os.path.getsize(video_path) / (1024*1024), 2)
         except Exception as e:
             logger.warning(f"⚠️ Could not get file size for {video_path}: {e}")
             file_size_mb = 0
-
+        
         entry = {
             "id": datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3],
             "filename": os.path.basename(video_path),
@@ -333,17 +301,17 @@ def save_layout():
         data = request.get_json()
         layout_name = data.get('name', '').strip()
         layout_data = data.get('data', {})
-
+        
         if not layout_name:
             return jsonify({'error': 'Layout name required'}), 400
-
+        
         layouts = load_layouts()
         layouts[layout_name] = {
             'data': layout_data,
             'timestamp': datetime.now().isoformat()
         }
         save_layouts(layouts)
-
+        
         return jsonify({'status': 'saved', 'name': layout_name}), 200
     except Exception as e:
         logger.error(f"Failed to save layout: {e}")
@@ -500,26 +468,26 @@ def get_video(filename):
         return jsonify({"error": "Video not found"}), 404
 
     return send_file(path, mimetype="video/mp4", conditional=True)
-
+    
     # First check if video exists in manifest and use the full path from there
     manifest = load_manifest()
     video_entry = next((v for v in manifest["videos"] if v["filename"] == filename), None)
-
+    
     if video_entry:
         video_path = video_entry["path"]
         if os.path.exists(video_path):
             return send_file(
-                video_path,
+                video_path, 
                 as_attachment=True,
                 download_name=filename,
                 mimetype='video/mp4'
             )
-
+    
     # Fallback to old location for backwards compatibility
     video_path = os.path.join(VIDEOS_DIR, filename)
     if os.path.exists(video_path):
         return send_file(
-            video_path,
+            video_path, 
             as_attachment=True,
             download_name=filename,
             mimetype='video/mp4'
@@ -555,7 +523,7 @@ def get_video(filename):
         return jsonify({"error": "Video not found"}), 404
 
     return send_file(path, mimetype="video/mp4", conditional=True)
-
+    
     # Fallback to old location for backwards compatibility
     video_path = os.path.join(VIDEOS_DIR, filename)
     if os.path.exists(video_path):
@@ -591,7 +559,7 @@ def generate():
             "error_type": tts_result.get("error_type"),
             "attempted_providers": tts_result.get("attempted_providers", [])
         }), 400
-
+    
     audio_path = tts_result.get("path")
     if not audio_path:
         return jsonify({"error": "Voice generation succeeded but no file path returned"}), 400
@@ -600,7 +568,7 @@ def generate():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
     video_filename = f"video_{timestamp}.mp4"
     output_video_path = os.path.join(VIDEOS_DIR, video_filename)
-
+    
     # 4️⃣ Generate Video with custom output path
     # Do not force-trim audio here — let the video length follow the generated audio.
     # If a caller wants to cap duration, they can pass a value; by default use None.
@@ -620,7 +588,7 @@ def generate():
             "details": str(e),
             "video_path": video_path
         }), 500
-
+    
     return jsonify({
         "status": "success",
         "video": entry,
@@ -632,7 +600,7 @@ def generate():
 def generate_long():
     """
     Generate a long-form YouTube video (8-12 minutes, 1920x1080).
-
+    
     Expects JSON or form data input:
     JSON:
     {
@@ -640,7 +608,7 @@ def generate_long():
         "description": "Short summary",
         "language": "english" (optional)
     }
-
+    
     Form data also accepts:
     - green_screen: File upload (image or video for green screen overlay)
     """
@@ -649,7 +617,7 @@ def generate_long():
         green_screen_media = None
         stories = []
         story_media = []
-
+        
         # Extract layout parameters
         layout_mediaPosition = "right"
         layout_mediaSize = "medium"
@@ -732,13 +700,13 @@ def generate_long():
 
         if not stories:
             return jsonify({"error": "title and description required (or provide stories)"}), 400
-
+        
         # Log high-level start (headline set later after combining stories)
             preview_headline = stories[0].get('headline') if stories and len(stories) > 0 else 'Long Video'
         except Exception:
             preview_headline = 'Long Video'
         logger.info(f"🎬 Starting long-form video generation: {preview_headline} (stories={len(stories)})")
-
+        
         # 1️⃣ Generate Long Script(s) for each story and concatenate
         logger.info('📝 Step 1: Generating long-form script for stories...')
         combined_scripts = []
@@ -771,11 +739,11 @@ def generate_long():
         except Exception:
             headline = stories[0].get('headline') if stories else 'Long Video'
             description = stories[0].get('description') if stories else ''
-
+        
         # 2️⃣ Generate TTS Audio using existing tts_service
         logger.info("🎤 Step 2: Generating voice narration...")
         tts_result = generate_voice(script_text)
-
+        
         if not tts_result.get("success"):
             error_msg = tts_result.get("error", "Voice generation failed")
             logger.error(f"TTS error: {error_msg}")
@@ -785,7 +753,7 @@ def generate_long():
                 "error": error_msg,
                 "attempted_providers": tts_result.get("attempted_providers", [])
             }), 400
-
+        
         audio_path = tts_result.get("path")
         if not audio_path:
             return jsonify({
@@ -793,9 +761,9 @@ def generate_long():
                 "stage": "tts_generation",
                 "error": "Voice generation succeeded but no file path returned"
             }), 400
-
+        
         logger.info(f"✓ Voice generated: {os.path.basename(audio_path)}")
-
+        
         # 3️⃣ Generate Horizontal Video (1920x1080) with Green Screen
         logger.info("🎥 Step 3: Creating long-form video...")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -822,7 +790,7 @@ def generate_long():
                 "stage": "video_generation",
                 "error": str(e)
             }), 400
-
+        
         # 4️⃣ Add to manifest
         logger.info("📋 Step 4: Saving metadata...")
             entry = add_to_manifest(video_path, headline, description, language)
@@ -835,12 +803,12 @@ def generate_long():
                 "details": str(e),
                 "video_path": video_path
             }), 500
-
+        
         logger.info("✅ Long-form video complete!")
         logger.info(f"   Word count: {word_count}")
         logger.info(f"   Duration: {_get_video_duration(video_path):.1f}s")
         logger.info(f"   Size: {entry.get('size_mb', 0):.1f} MB")
-
+        
         # 5️⃣ Return response
         return jsonify({
             "status": "success",
@@ -855,7 +823,7 @@ def generate_long():
                 "word_count": word_count
             }
         }), 200
-
+    
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"Long-form generation failed: {str(e)}\n{tb}")
@@ -870,50 +838,50 @@ def generate_long():
 def test_long():
     """
     Test endpoint: Generate a sample long-form video.
-
+    
     Uses:
     - Title: "Why Hungary Blocked EU Sanctions"
     - Description: "Hungary blocks EU sanctions package against Russia before war anniversary."
     """
     logger.info("🧪 Running long-form video test...")
-
+    
     test_headline = "Why Hungary Blocked EU Sanctions"
     test_description = "Hungary blocks EU sanctions package against Russia before war anniversary."
         # Call generate_long directly
         logger.info(f"Test case: {test_headline}")
-
+        
         # 1️⃣ Generate script
         logger.info("Generating test script...")
         script_result = generate_long_script(test_headline, test_description)
-
+        
         if not script_result.get("success"):
             return jsonify({
                 "status": "test_failed",
                 "stage": "script",
                 "error": script_result.get("error")
             }), 400
-
+        
         script_text = script_result.get("script")
         word_count = script_result.get("word_count", 0)
-
+        
         # 2️⃣ Generate voice
         logger.info("Generating test voice...")
         tts_result = generate_voice(script_text)
-
+        
         if not tts_result.get("success"):
             return jsonify({
                 "status": "test_failed",
                 "stage": "tts",
                 "error": tts_result.get("error")
             }), 400
-
+        
         audio_path = tts_result.get("path")
-
+        
         # 3️⃣ Generate video
         logger.info("Generating test video...")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         test_video_path = os.path.join(VIDEOS_DIR, "long", f"TEST_long_video_{timestamp}.mp4")
-
+        
         video_path = generate_long_video(
             headline=test_headline,
             description=test_description,
@@ -930,9 +898,9 @@ def test_long():
                 "video_path": video_path,
                 "error": str(e)
             }), 500
-
+        
         logger.info("✅ Test completed successfully!")
-
+        
         return jsonify({
             "status": "success",
             "test_name": "Long-form video generation test",
@@ -944,7 +912,7 @@ def test_long():
             "video": entry,
             "message": "Test long-form video generated successfully. Check /videos/long/ folder."
         }), 200
-
+    
     except Exception as e:
         logger.error(f"Test failed: {str(e)}")
         return jsonify({

@@ -184,57 +184,29 @@ def layout_to_video_params(layout_config, video_format='short'):
     return params
 
 
-
 def load_manifest():
     """Load video manifest"""
     if os.path.exists(VIDEO_MANIFEST):
-        try:
             with open(VIDEO_MANIFEST, 'r') as f:
                 return json.load(f)
         except Exception:
             return {"videos": []}
     return {"videos": []}
 
-
 def save_manifest(manifest):
     """Save video manifest"""
-    try:
+        # Ensure directory exists
         os.makedirs(VIDEOS_DIR, exist_ok=True)
-
+        # Write to temp file first, then move (atomic write)
         temp_path = f"{VIDEO_MANIFEST}.tmp"
         with open(temp_path, 'w') as f:
             json.dump(manifest, f, indent=2)
-
+        # Atomic rename
         shutil.move(temp_path, VIDEO_MANIFEST)
-
         logger.info(f"✓ Manifest saved successfully ({len(manifest.get('videos', []))} videos)")
     except Exception as e:
         logger.error(f"✗ Failed to save manifest: {e}")
         raise
-
-
-def add_to_manifest(video_path, headline, description, language):
-    """Add video entry to manifest"""
-    if not os.path.exists(video_path):
-        logger.error(f"✗ Video file not found: {video_path}")
-        raise FileNotFoundError(f"Video file not found: {video_path}")
-
-    manifest = load_manifest()
-
-    entry = {
-        "filename": os.path.basename(video_path),
-        "path": video_path,
-        "headline": headline,
-        "description": description,
-        "language": language,
-        "created": datetime.utcnow().isoformat()
-    }
-
-    manifest.setdefault("videos", []).append(entry)
-    save_manifest(manifest)
-
-    return entry
-
 
 def add_to_manifest(video_path, headline, description, language):
     """Add video entry to manifest"""

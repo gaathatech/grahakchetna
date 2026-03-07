@@ -3,19 +3,6 @@
 # =========================================================
 # VIDEO PATH RESOLVER + MANIFEST CLEANUP PATCH
 # =========================================================
-import traceback
-from dotenv import load_dotenv
-from datetime import datetime
-import shutil
-import uuid
-import logging
-import json
-from long_video_service import generate_long_video
-from video_service import generate_video
-from tts_service import generate_voice
-from long_script_service import generate_long_script
-from script_service import generate_script
-from flask import Flask, render_template, request, send_file, jsonify
 import os
 from pathlib import Path
 
@@ -65,6 +52,21 @@ def _prune_missing_manifest_entries(manifest):
     return manifest
 
 
+from flask import Flask, render_template, request, send_file, jsonify
+from script_service import generate_script
+from long_script_service import generate_long_script
+from tts_service import generate_voice
+from video_service import generate_video
+from long_video_service import generate_long_video
+import os
+import json
+import logging
+import uuid
+import shutil
+from datetime import datetime
+from dotenv import load_dotenv
+import traceback
+
 # Load environment variables
 load_dotenv()
 
@@ -79,7 +81,6 @@ logger = logging.getLogger(__name__)
 VIDEOS_DIR = "videos"
 VIDEO_MANIFEST = f"{VIDEOS_DIR}/manifest.json"
 LAYOUTS_CONFIG = "layouts.json"
-
 
 def ensure_directories():
     """Ensure all required directories exist"""
@@ -163,8 +164,7 @@ def layout_to_video_params(layout_config, video_format='short'):
         params['layout_mediaSize'] = 'small'
 
     # Media opacity
-    params['layout_mediaOpacity'] = int(
-        float(layout_config.get('media_opacity', 100)))
+    params['layout_mediaOpacity'] = int(float(layout_config.get('media_opacity', 100)))
 
     # Text alignment
     textbox_x = float(layout_config.get('textbox_x', 50))
@@ -183,58 +183,29 @@ def layout_to_video_params(layout_config, video_format='short'):
 
     return params
 
-
-
 def load_manifest():
     """Load video manifest"""
     if os.path.exists(VIDEO_MANIFEST):
-        try:
             with open(VIDEO_MANIFEST, 'r') as f:
                 return json.load(f)
         except Exception:
             return {"videos": []}
     return {"videos": []}
 
-
 def save_manifest(manifest):
     """Save video manifest"""
-    try:
+        # Ensure directory exists
         os.makedirs(VIDEOS_DIR, exist_ok=True)
-
+        # Write to temp file first, then move (atomic write)
         temp_path = f"{VIDEO_MANIFEST}.tmp"
         with open(temp_path, 'w') as f:
             json.dump(manifest, f, indent=2)
-
+        # Atomic rename
         shutil.move(temp_path, VIDEO_MANIFEST)
-
         logger.info(f"✓ Manifest saved successfully ({len(manifest.get('videos', []))} videos)")
     except Exception as e:
         logger.error(f"✗ Failed to save manifest: {e}")
         raise
-
-
-def add_to_manifest(video_path, headline, description, language):
-    """Add video entry to manifest"""
-    if not os.path.exists(video_path):
-        logger.error(f"✗ Video file not found: {video_path}")
-        raise FileNotFoundError(f"Video file not found: {video_path}")
-
-    manifest = load_manifest()
-
-    entry = {
-        "filename": os.path.basename(video_path),
-        "path": video_path,
-        "headline": headline,
-        "description": description,
-        "language": language,
-        "created": datetime.utcnow().isoformat()
-    }
-
-    manifest.setdefault("videos", []).append(entry)
-    save_manifest(manifest)
-
-    return entry
-
 
 def add_to_manifest(video_path, headline, description, language):
     """Add video entry to manifest"""
