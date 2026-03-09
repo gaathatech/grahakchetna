@@ -13,6 +13,7 @@ import tempfile
 import os
 import logging
 import subprocess
+import re
 
 
 Image.ANTIALIAS = Image.Resampling.LANCZOS
@@ -355,6 +356,33 @@ def create_ticker_text_image(text, fontsize=50, color=(255, 255, 255), bold=True
     return temp_file.name, img_height
 
 
+def split_ticker_lines(text, max_chars=70):
+    """Split paragraph text into sentence/line chunks for line-by-line ticker display."""
+    cleaned = " ".join((text or "").replace("\n", " ").split())
+    if not cleaned:
+        return ["Breaking update"]
+
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?।])\s+", cleaned) if s.strip()]
+    if not sentences:
+        sentences = [cleaned]
+
+    lines = []
+    for sentence in sentences:
+        words = sentence.split()
+        current = ""
+        for word in words:
+            trial = f"{current} {word}".strip()
+            if len(trial) <= max_chars:
+                current = trial
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+    return lines or ["Breaking update"]
+
+
 def create_right_content_box(text, fontsize=32, color=(255, 255, 255), bold=True, language="en"):
     """Create a right-side content box with headline text.
     
@@ -613,10 +641,117 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     # between the headline bar and breaking bar to avoid overlap and provide
     # consistent scrolling behavior for long descriptions.
 
-    # Check for media first (images/videos). If media exists we show it as before.
+    # Check for media first (images/videos)
     has_media = media_path and os.path.exists(media_path)
 
-    if has_media:
+    # Short video: force two right-side boxes (media + text)
+    if WIDTH == 1080:
+        right_lane_x = int(WIDTH * 0.58)
+        lane_width = WIDTH - right_lane_x - 20
+        lane_top_y = headline_bar_y + headline_bar_height + 10
+        lane_gap = 20
+        media_box_h = 560
+        text_box_h = 620
+
+        media_lane_bg = (
+            ColorClip((lane_width, media_box_h), color=(0, 0, 0))
+            .set_opacity(0.45)
+            .set_position((right_lane_x, lane_top_y))
+            .set_duration(duration)
+        )
+
+        media_visual = None
+        if has_media:
+            try:
+                if media_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.webm')):
+                    media_clip = VideoFileClip(media_path)
+                    media_clip = media_clip.subclip(0, min(media_clip.duration, duration))
+                    if media_clip.duration < duration:
+                        media_clip = concatenate_videoclips([media_clip] * int(duration / media_clip.duration + 1)).subclip(0, duration)
+                else:
+                    media_clip = ImageClip(media_path).set_duration(duration)
+
+                scale_ratio = min(lane_width / max(1, media_clip.w), media_box_h / max(1, media_clip.h))
+                fit_w = max(1, int(media_clip.w * scale_ratio))
+                fit_h = max(1, int(media_clip.h * scale_ratio))
+                media_clip = media_clip.resize((fit_w, fit_h))
+                px = right_lane_x + int((lane_width - fit_w) / 2)
+                py = lane_top_y + int((media_box_h - fit_h) / 2)
+                media_visual = media_clip.set_position((px, py)).set_opacity(layout_mediaOpacity / 100.0)
+            except Exception as e:
+                logger.warning(f"Failed to load short media {media_path}: {e}")
+
+        if media_visual is None:
+            placeholder_img_path, _ = create_text_image(
+                "Media required in this box",
+                fontsize=36,
+                color=(255, 255, 255),
+                bold=False,
+                max_width=lane_width - 30,
+            )
+            media_visual = (
+                ImageClip(placeholder_img_path)
+                .set_duration(duration)
+                .set_position((right_lane_x + 15, lane_top_y + int((media_box_h - 80) / 2)))
+            )
+
+        text_y = lane_top_y + media_box_h + lane_gap
+        desc_img_path, desc_height = create_boxed_text_image(
+            description,
+            fontsize=40,
+            color=(255, 255, 255),
+            bold=False,
+            box_width=lane_width,
+            box_height=text_box_h,
+            language=language
+        )
+
+        desc_bg_box = (
+            ColorClip((lane_width, text_box_h), color=(0, 0, 0))
+            .set_opacity(0.6 * (layout_mediaOpacity / 100.0))
+            .set_position((right_lane_x, text_y))
+            .set_duration(duration)
+        )
+        desc_border = (
+            ColorClip((lane_width, 3), color=(255, 215, 0))
+            .set_position((right_lane_x, text_y))
+            .set_duration(duration)
+        )
+
+        if desc_height > text_box_h:
+            from PIL import Image as PILImage
+            import numpy as np
+            from moviepy.video.VideoClip import VideoClip
+
+            full_img = PILImage.open(desc_img_path)
+
+            def desc_make_frame(t):
+                scroll_duration = duration * 0.35
+                if t < scroll_duration:
+                    scroll_distance = desc_height - text_box_h
+                    y_scroll = int((t / scroll_duration) * scroll_distance)
+                else:
+                    y_scroll = int(desc_height - text_box_h)
+
+                cropped = full_img.crop((0, y_scroll, lane_width, y_scroll + text_box_h))
+                if cropped.mode == 'RGBA':
+                    cropped = cropped.convert('RGB')
+                return np.array(cropped)
+
+            desc_clip = VideoClip(make_frame=desc_make_frame, duration=duration)
+            desc_clip = desc_clip.set_position((right_lane_x, text_y))
+        else:
+            desc_clip = ImageClip(desc_img_path).set_duration(duration)
+            desc_clip = desc_clip.set_position((right_lane_x, text_y))
+
+        right_content_clip = CompositeVideoClip(
+            [media_lane_bg, media_visual, desc_bg_box, desc_border, desc_clip],
+            size=(WIDTH, HEIGHT)
+        ).set_duration(duration)
+        right_bg_box = None
+        use_text_box = False
+
+    elif has_media:
         logger.info(f"Media available: {media_path} - displaying media on right side")
         try:
             # FORCE fixed long-video media lane (same as text box geometry)
@@ -764,23 +899,49 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     if not breaking_raw:
         breaking_raw = "Breaking update"
 
-    # create ticker-style image for breaking bar
-    breaking_text_img_path, breaking_text_height = create_ticker_text_image(
-        breaking_raw,
-        fontsize=40,
-        color=(255, 255, 255),
-        bold=False,
-        language=language
-    )
-    breaking_text_img = ImageClip(breaking_text_img_path).set_duration(duration)
-    # animation matching headline ticker
-    def breaking_ticker_position(t):
-        scroll_speed = WIDTH + 4500
-        x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
-        # vertically center inside breaking bar (height 130)
-        y_center = int(breaking_bar_y + (130 - breaking_text_height) / 2)
-        return (x_pos, y_center)
-    breaking_text = breaking_text_img.set_position(breaking_ticker_position)
+    if WIDTH == 1080:
+        # Short: keep scrolling ticker in breaking bar
+        breaking_text_img_path, breaking_text_height = create_ticker_text_image(
+            breaking_raw,
+            fontsize=40,
+            color=(255, 255, 255),
+            bold=False,
+            language=language
+        )
+        breaking_text_img = ImageClip(breaking_text_img_path).set_duration(duration)
+
+        def breaking_ticker_position(t):
+            scroll_speed = WIDTH + 4500
+            x_pos = WIDTH - (t % duration) * (scroll_speed / duration)
+            y_center = int(breaking_bar_y + (130 - breaking_text_height) / 2)
+            return (x_pos, y_center)
+
+        breaking_text = breaking_text_img.set_position(breaking_ticker_position)
+    else:
+        # Long: show line-by-line text instead of a scrolling paragraph
+        lines = split_ticker_lines(breaking_raw, max_chars=85)
+        line_duration = max(2.2, duration / max(1, len(lines)))
+        breaking_line_clips = []
+        for idx, line in enumerate(lines):
+            line_img_path, line_h = create_text_image(
+                line,
+                fontsize=38,
+                color=(255, 255, 255),
+                bold=False,
+                max_width=WIDTH - 120,
+                language=language,
+            )
+            start_t = idx * line_duration
+            visible_for = min(line_duration, max(0.1, duration - start_t))
+            line_clip = (
+                ImageClip(line_img_path)
+                .set_start(start_t)
+                .set_duration(visible_for)
+                .set_position((60, int(breaking_bar_y + (130 - line_h) / 2)))
+            )
+            breaking_line_clips.append(line_clip)
+
+        breaking_text = CompositeVideoClip(breaking_line_clips, size=(WIDTH, HEIGHT)).set_duration(duration)
 
     # ============= UNDER BREAKING BAR TICKER (HEADLINE/TITLE) =============
     under_breaking_bar_height = 80

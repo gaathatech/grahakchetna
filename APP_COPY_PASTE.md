@@ -1,57 +1,12 @@
+# app.py copy-paste block
 
+Use the block below in Codespaces terminal to fully replace `app.py`. It starts with `set +H` to prevent `bash: !... event not found` errors.
 
-# =========================================================
-# VIDEO PATH RESOLVER + MANIFEST CLEANUP PATCH
-# =========================================================
-import os
-from pathlib import Path
+Safer alternative: run `bash restore_all_files.sh` from repo root to rewrite all key files in non-interactive mode.
 
-BASE_DIR = Path(__file__).parent
-VIDEOS_DIR = BASE_DIR / "videos"
-MANIFEST_PATH = VIDEOS_DIR / "manifest.json"
-
-
-def _resolve_video_path(filename):
-    """Resolve video path from multiple possible locations."""
-
-    if not filename:
-        return None
-
-    direct = Path(filename)
-    if direct.exists():
-        return direct
-
-    legacy = VIDEOS_DIR / filename
-    if legacy.exists():
-        return legacy
-
-    for root, _, files in os.walk(VIDEOS_DIR):
-        if filename in files:
-            return Path(root) / filename
-
-    return None
-
-
-def _prune_missing_manifest_entries(manifest):
-    """Remove entries for videos that no longer exist."""
-
-    if not manifest:
-        return manifest
-
-    videos = manifest.get("videos", [])
-    cleaned = []
-
-    for v in videos:
-        path = v.get("path") or v.get("filename")
-        resolved = _resolve_video_path(path)
-
-        if resolved and resolved.exists():
-            cleaned.append(v)
-
-    manifest["videos"] = cleaned
-    return manifest
-
-
+```bash
+set +H  # disable history expansion so ! in JS/regex is pasted safely
+cat > app.py <<'PY'
 from flask import Flask, render_template, request, send_file, jsonify
 from script_service import generate_script
 from long_script_service import generate_long_script
@@ -93,6 +48,7 @@ def ensure_directories():
 def load_layouts():
     """Load saved layout configurations"""
     if os.path.exists(LAYOUTS_CONFIG):
+        try:
             with open(LAYOUTS_CONFIG, 'r') as f:
                 return json.load(f)
         except Exception:
@@ -102,6 +58,7 @@ def load_layouts():
 
 def save_layouts(layouts):
     """Save layout configurations"""
+    try:
         with open(LAYOUTS_CONFIG, 'w') as f:
             json.dump(layouts, f, indent=2)
         logger.info(f"✓ Saved {len(layouts)} layouts")
@@ -183,6 +140,7 @@ def layout_to_video_params(layout_config, video_format='short'):
 def load_manifest():
     """Load video manifest"""
     if os.path.exists(VIDEO_MANIFEST):
+        try:
             with open(VIDEO_MANIFEST, 'r') as f:
                 return json.load(f)
         except Exception:
@@ -191,6 +149,7 @@ def load_manifest():
 
 def save_manifest(manifest):
     """Save video manifest"""
+    try:
         # Ensure directory exists
         os.makedirs(VIDEOS_DIR, exist_ok=True)
         # Write to temp file first, then move (atomic write)
@@ -206,6 +165,7 @@ def save_manifest(manifest):
 
 def add_to_manifest(video_path, headline, description, language):
     """Add video entry to manifest"""
+    try:
         # Verify video file exists
         if not os.path.exists(video_path):
             logger.error(f"✗ Video file not found: {video_path}")
@@ -214,6 +174,7 @@ def add_to_manifest(video_path, headline, description, language):
         manifest = load_manifest()
         
         # Get file size with error handling
+        try:
             file_size_mb = round(os.path.getsize(video_path) / (1024*1024), 2)
         except Exception as e:
             logger.warning(f"⚠️ Could not get file size for {video_path}: {e}")
@@ -240,6 +201,7 @@ def add_to_manifest(video_path, headline, description, language):
 
 def _get_video_duration(video_path):
     """Get video duration in seconds"""
+    try:
         from moviepy.editor import VideoFileClip
         clip = VideoFileClip(video_path)
         duration = clip.duration
@@ -298,6 +260,7 @@ def get_layouts():
 @app.route('/api/layouts', methods=['POST'])
 def save_layout():
     """Save a new layout"""
+    try:
         data = request.get_json()
         layout_name = data.get('name', '').strip()
         layout_data = data.get('data', {})
@@ -321,6 +284,7 @@ def save_layout():
 @app.route('/api/layouts/<name>', methods=['DELETE'])
 def delete_layout(name):
     """Delete a saved layout"""
+    try:
         layouts = load_layouts()
         if name in layouts:
             del layouts[name]
@@ -372,6 +336,7 @@ def ensure_bg_storage():
 
 def load_backgrounds():
     ensure_bg_storage()
+    try:
         with open(BACKGROUND_DB, 'r') as f:
             return json.load(f)
     except Exception:
@@ -400,6 +365,7 @@ def upload_background():
 
     filename = f"{uuid.uuid4().hex}.{ext}"
     save_path = os.path.join(BACKGROUND_FOLDER, filename)
+    try:
         file.save(save_path)
     except Exception as e:
         logger.error(f"Background upload failed: {e}")
@@ -432,6 +398,7 @@ def get_backgrounds():
 
 @app.route('/rss_get_mapping', methods=['GET'])
 def rss_get_mapping():
+    try:
         from rss_service import _load_category_map
         return jsonify(_load_category_map())
     except Exception as e:
@@ -441,6 +408,7 @@ def rss_get_mapping():
 
 @app.route('/rss_save_mapping', methods=['POST'])
 def rss_save_mapping():
+    try:
         data = None
         if request.is_json:
             data = request.get_json()
@@ -460,14 +428,12 @@ def rss_save_mapping():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route("/video/<filename>")
+@app.route("/video/<filename>", methods=["GET"])
 def get_video(filename):
-    path = _resolve_video_path(filename)
-
-    if not path or not path.exists():
-        return jsonify({"error": "Video not found"}), 404
-
-    return send_file(path, mimetype="video/mp4", conditional=True)
+    """Download a specific video"""
+    # Validate filename to prevent path traversal
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return jsonify({"error": "Invalid filename"}), 400
     
     # First check if video exists in manifest and use the full path from there
     manifest = load_manifest()
@@ -495,14 +461,11 @@ def get_video(filename):
     return jsonify({"error": "Video not found"}), 404
 
 
-@app.route("/preview/<filename>")
+@app.route("/preview/<filename>", methods=["GET"])
 def preview_video(filename):
-    path = _resolve_video_path(filename)
-
-    if not path or not path.exists():
-        return jsonify({"error": "Video not found"}), 404
-
-    return send_file(path, mimetype="video/mp4", conditional=True)
+    """Serve video inline for quick preview in browser."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return jsonify({"error": "Invalid filename"}), 400
 
     manifest = load_manifest()
     video_entry = next((v for v in manifest["videos"] if v["filename"] == filename), None)
@@ -515,23 +478,38 @@ def preview_video(filename):
 
     return jsonify({"error": "Video not found"}), 404
 
-@app.route("/video/<filename>")
-def get_video(filename):
-    path = _resolve_video_path(filename)
-
-    if not path or not path.exists():
-        return jsonify({"error": "Video not found"}), 404
-
-    return send_file(path, mimetype="video/mp4", conditional=True)
+@app.route("/video/<filename>", methods=["DELETE"])
+def delete_video(filename):
+    """Delete a specific video"""
+    # First check if video exists in manifest and use the full path from there
+    manifest = load_manifest()
+    video_entry = next((v for v in manifest["videos"] if v["filename"] == filename), None)
+    
+    if video_entry:
+        video_path = video_entry["path"]
+        if os.path.exists(video_path):
+            try:
+                os.remove(video_path)
+                # Update manifest
+                manifest["videos"] = [v for v in manifest["videos"] if v["filename"] != filename]
+                save_manifest(manifest)
+                return jsonify({"status": "deleted", "filename": filename})
+            except Exception as e:
+                logger.warning(f"Failed to delete video {filename}: {e}")
+                return jsonify({"error": f"Failed to delete: {str(e)}"}), 500
     
     # Fallback to old location for backwards compatibility
     video_path = os.path.join(VIDEOS_DIR, filename)
     if os.path.exists(video_path):
+        try:
             os.remove(video_path)
             # Update manifest
             manifest["videos"] = [v for v in manifest["videos"] if v["filename"] != filename]
             save_manifest(manifest)
             return jsonify({"status": "deleted", "filename": filename})
+        except Exception as e:
+            logger.warning(f"Failed to delete video {filename}: {e}")
+            return jsonify({"error": f"Failed to delete: {str(e)}"}), 500
     return jsonify({"error": "Video not found"}), 404
 
 @app.route("/generate", methods=["POST"])
@@ -580,6 +558,7 @@ def generate():
         return jsonify({"error": "Video generation failed"}), 400
 
     # 5️⃣ Add to manifest
+    try:
         entry = add_to_manifest(video_path, headline, description, language)
     except Exception as e:
         logger.error(f"Failed to add video to manifest: {e}")
@@ -612,6 +591,7 @@ def generate_long():
     Form data also accepts:
     - green_screen: File upload (image or video for green screen overlay)
     """
+    try:
         # Support both JSON/form multi-story and legacy single-story form
         language = "english"
         green_screen_media = None
@@ -647,6 +627,7 @@ def generate_long():
             layout_backgroundBlur = request.form.get("layout_backgroundBlur", "light")
             # Multi-story form submission (stories JSON) preferred
             if 'stories' in request.form:
+                try:
                     import json as _json
                     stories = _json.loads(request.form.get('stories') or '[]')
                 except Exception as e:
@@ -670,6 +651,7 @@ def generate_long():
                     break
                 f = request.files.get(key)
                 if f and getattr(f, 'filename', None):
+                    try:
                         filename = secure_filename(f.filename)
                         ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
                         outname = f'story_{i}_{ts}_{filename}'
@@ -702,6 +684,7 @@ def generate_long():
             return jsonify({"error": "title and description required (or provide stories)"}), 400
         
         # Log high-level start (headline set later after combining stories)
+        try:
             preview_headline = stories[0].get('headline') if stories and len(stories) > 0 else 'Long Video'
         except Exception:
             preview_headline = 'Long Video'
@@ -734,6 +717,7 @@ def generate_long():
         logger.info(f'✓ Combined script generated ({word_count} words total)')
 
         # Prepare combined metadata for video (use joined headlines/descriptions)
+        try:
             headline = ' | '.join([s.get('headline','') for s in stories if s.get('headline')])
             description = '\n\n'.join([s.get('description','') for s in stories if s.get('description')])
         except Exception:
@@ -769,6 +753,8 @@ def generate_long():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         video_filename = f"long_video_{timestamp}.mp4"
         output_video_path = os.path.join(VIDEOS_DIR, "long", video_filename)
+        
+        try:
             video_path = generate_long_video(
                 stories=stories,
                 audio_path=audio_path,
@@ -793,6 +779,7 @@ def generate_long():
         
         # 4️⃣ Add to manifest
         logger.info("📋 Step 4: Saving metadata...")
+        try:
             entry = add_to_manifest(video_path, headline, description, language)
         except Exception as e:
             logger.error(f"Failed to add video to manifest: {e}")
@@ -847,6 +834,8 @@ def test_long():
     
     test_headline = "Why Hungary Blocked EU Sanctions"
     test_description = "Hungary blocks EU sanctions package against Russia before war anniversary."
+    
+    try:
         # Call generate_long directly
         logger.info(f"Test case: {test_headline}")
         
@@ -889,6 +878,8 @@ def test_long():
             language="english",
             output_path=test_video_path
         )
+        
+        try:
             entry = add_to_manifest(video_path, test_headline, test_description, "english")
         except Exception as e:
             logger.error(f"Failed to add test video to manifest: {e}")
@@ -925,7 +916,10 @@ if __name__ == "__main__":
     ensure_directories()
     ensure_directories()
     # Allow overriding port via PORT or FLASK_PORT environment variables for testing
+    try:
         port = int(os.getenv('PORT') or os.getenv('FLASK_PORT') or 5002)
     except Exception:
         port = 5002
     app.run(host="0.0.0.0", port=port, debug=False)
+PY
+```
