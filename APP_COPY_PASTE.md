@@ -517,6 +517,7 @@ def generate():
 
     headline = request.form["headline"]
     description = request.form["description"]
+    subtitle = request.form.get("subtitle", "").strip()
     language = request.form["language"]
 
     # 1️⃣ Generate Script
@@ -542,6 +543,22 @@ def generate():
     if not audio_path:
         return jsonify({"error": "Voice generation succeeded but no file path returned"}), 400
 
+    # Optional short-form media upload (image/video) for right-side media box
+    uploaded_media_path = None
+    media_file = request.files.get("story_file_0")
+    if media_file and media_file.filename:
+        try:
+            os.makedirs("uploads", exist_ok=True)
+            ext = os.path.splitext(media_file.filename)[1].lower()
+            safe_ext = ext if ext in [".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".avi", ".mkv", ".webm"] else ".bin"
+            media_name = f"short_media_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]}{safe_ext}"
+            uploaded_media_path = os.path.join("uploads", media_name)
+            media_file.save(uploaded_media_path)
+            logger.info(f"Saved short-form media upload: {uploaded_media_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save short-form media upload: {e}")
+            uploaded_media_path = None
+
     # 3️⃣ Generate unique video filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
     video_filename = f"video_{timestamp}.mp4"
@@ -552,7 +569,16 @@ def generate():
     # If a caller wants to cap duration, they can pass a value; by default use None.
     max_duration = None
 
-    video_path = generate_video(headline, description, audio_path, language=language, output_path=output_video_path, max_duration=max_duration)
+    video_path = generate_video(
+        headline,
+        description,
+        audio_path,
+        language=language,
+        output_path=output_video_path,
+        max_duration=max_duration,
+        media_path=uploaded_media_path,
+        subtitle=subtitle,
+    )
 
     if not video_path:
         return jsonify({"error": "Video generation failed"}), 400
@@ -610,6 +636,7 @@ def generate_long():
             # Accept {title, description} as single story
             title = data.get("title")
             description = data.get("description")
+            subtitle = (data.get("subtitle") or "").strip()
             language = data.get("language", "english")
             layout_mediaPosition = data.get("layout_mediaPosition", "right")
             layout_mediaSize = data.get("layout_mediaSize", "medium")
@@ -617,7 +644,7 @@ def generate_long():
             layout_textAlignment = data.get("layout_textAlignment", "center")
             layout_backgroundBlur = data.get("layout_backgroundBlur", "light")
             if title and description:
-                stories = [{"headline": title, "description": description}]
+                stories = [{"headline": title, "description": description, "subtitle": subtitle}]
         else:
             language = request.form.get("language", "english")
             layout_mediaPosition = request.form.get("layout_mediaPosition", "right")
@@ -637,8 +664,9 @@ def generate_long():
                 # Legacy single-story form fields (accept either 'title' or 'headline')
                 title = request.form.get('title') or request.form.get('headline')
                 description = request.form.get('description')
+                subtitle = (request.form.get('subtitle') or '').strip()
                 if title and description:
-                    stories = [{"headline": title, "description": description}]
+                    stories = [{"headline": title, "description": description, "subtitle": subtitle}]
 
             # Handle per-story file uploads: story_file_0, story_file_1, ...
             from werkzeug.utils import secure_filename
@@ -755,6 +783,7 @@ def generate_long():
         output_video_path = os.path.join(VIDEOS_DIR, "long", video_filename)
         
         try:
+            long_subtitle = stories[0].get('subtitle', '') if stories else ''
             video_path = generate_long_video(
                 stories=stories,
                 audio_path=audio_path,
@@ -762,6 +791,7 @@ def generate_long():
                 output_path=output_video_path,
                 story_medias=story_media,
                 green_screen_media=green_screen_media,
+                subtitle=long_subtitle,
                 layout_mediaPosition=layout_mediaPosition,
                 layout_mediaSize=layout_mediaSize,
                 layout_mediaOpacity=layout_mediaOpacity,
@@ -921,5 +951,6 @@ if __name__ == "__main__":
     except Exception:
         port = 5002
     app.run(host="0.0.0.0", port=port, debug=False)
+
 PY
 ```

@@ -165,6 +165,9 @@
                 <label for="description">Description</label>
                 <textarea id="description" name="description" placeholder="Provide detailed description of the news story..." required></textarea>
 
+                <label for="subtitle">Subtitle (for bottom breaking bar)</label>
+                <input type="text" id="subtitle" name="subtitle" placeholder="Optional subtitle for bottom ticker...">
+
                 <label for="language">Language</label>
                 <select id="language" name="language" required>
                     <option value="english">🇬🇧 English</option>
@@ -189,7 +192,12 @@
 
                 <label for="story_file_0">Upload Image or Video (optional)</label>
                 <input type="file" id="story_file_0" name="story_file_0" accept="image/*,video/*">
-                
+
+                <div id="mediaPreviewWrap" style="margin-bottom:12px; display:none;">
+                    <img id="mediaPreviewImg" src="" alt="preview" style="max-width:100%; display:none; border-radius:8px;" />
+                    <video id="mediaPreviewVideo" src="" style="max-width:100%; display:none; border-radius:8px;" autoplay muted loop playsinline></video>
+                </div>
+
                 <button type="submit" id="submitBtn">Generate Video</button>
                 
                 <div id="status" class="status"></div>
@@ -244,6 +252,44 @@
             populateModels('auto');
 
             document.getElementById('voice_provider').addEventListener('change', (e) => populateModels(e.target.value));
+
+            const fileInput = document.getElementById('story_file_0');
+            const previewWrap = document.getElementById('mediaPreviewWrap');
+            const previewImg = document.getElementById('mediaPreviewImg');
+            const previewVideo = document.getElementById('mediaPreviewVideo');
+            if (fileInput) {
+                fileInput.addEventListener('change', (ev) => {
+                    const f = ev.target.files && ev.target.files[0];
+                    if (!f) {
+                        previewWrap.style.display = 'none';
+                        previewImg.style.display = 'none';
+                        previewVideo.style.display = 'none';
+                        previewImg.src = '';
+                        previewVideo.src = '';
+                        return;
+                    }
+
+                    const url = URL.createObjectURL(f);
+                    previewWrap.style.display = 'block';
+                    if (f.type && f.type.indexOf('video') === 0) {
+                        previewImg.style.display = 'none';
+                        previewImg.src = '';
+                        previewVideo.src = url;
+                        previewVideo.style.display = 'block';
+                        previewVideo.play().catch(() => {});
+                    } else {
+                        previewVideo.pause();
+                        previewVideo.style.display = 'none';
+                        previewVideo.src = '';
+                        previewImg.src = url;
+                        previewImg.style.display = 'block';
+                    }
+
+                    previewVideo.onloadeddata = previewImg.onload = () => {
+                        setTimeout(() => { try { URL.revokeObjectURL(url); } catch(e){} }, 60000);
+                    };
+                });
+            }
         });
 
         // Form submission
@@ -252,6 +298,7 @@
             
             const headline = document.getElementById('headline').value;
             const description = document.getElementById('description').value;
+            const subtitle = document.getElementById('subtitle').value;
             const language = document.getElementById('language').value;
 
             if (!headline.trim()) {
@@ -272,10 +319,16 @@
                 const formData = new FormData();
                 formData.append('headline', headline);
                 formData.append('description', description);
+                formData.append('subtitle', subtitle);
                 formData.append('language', language);
                 formData.append('voice_provider', document.getElementById('voice_provider').value);
                 formData.append('voice_model', document.getElementById('voice_model').value);
                 formData.append('video_length', document.getElementById('video_length').value);
+
+                const uploadInput = document.getElementById('story_file_0');
+                if (uploadInput && uploadInput.files && uploadInput.files[0]) {
+                    formData.append('story_file_0', uploadInput.files[0]);
+                }
 
                 const response = await fetch('/generate', {
                     method: 'POST',

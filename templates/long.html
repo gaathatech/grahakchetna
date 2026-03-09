@@ -236,6 +236,9 @@
                 <label for="description">Description</label>
                 <textarea id="description" name="description" placeholder="Provide detailed description of the news story..." required></textarea>
 
+                <label for="subtitle">Subtitle (for bottom breaking bar)</label>
+                <input type="text" id="subtitle" name="subtitle" placeholder="Optional subtitle for bottom ticker...">
+
                 <label for="language">Language</label>
                 <select id="language" name="language" required>
                     <option value="english">🇬🇧 English</option>
@@ -370,6 +373,7 @@
             
             const headline = document.getElementById('headline').value;
             const description = document.getElementById('description').value;
+            const subtitle = document.getElementById('subtitle').value;
             const language = document.getElementById('language').value;
 
             if (!headline.trim()) {
@@ -390,6 +394,7 @@
                 const formData = new FormData();
                 formData.append('headline', headline);
                 formData.append('description', description);
+                formData.append('subtitle', subtitle);
                 formData.append('language', language);
                 formData.append('voice_provider', document.getElementById('voice_provider').value);
                 formData.append('voice_model', document.getElementById('voice_model').value);

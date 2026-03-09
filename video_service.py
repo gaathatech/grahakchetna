@@ -474,7 +474,7 @@ def create_right_content_box(text, fontsize=32, color=(255, 255, 255), bold=True
     return temp_file.name, img_width, img_height
 
 
-def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None, media_path=None, 
+def generate_video(title, description, audio_path, language="en", use_female_anchor=True, output_path=None, max_duration=None, media_path=None, subtitle=None,
                   layout_mediaPosition="right", layout_mediaSize="medium", layout_mediaOpacity=100, 
                   layout_textAlignment="center", layout_backgroundBlur="light"):
     """Generate a video from provided audio and assets.
@@ -482,6 +482,7 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
     Args:
         title: Headline text (used for ticker and right content box if no media)
         description: Description text (used for description box on right side if media unavailable)
+        subtitle: Subtitle text for bottom breaking bar ticker (falls back to description)
         audio_path: Path to narration audio file
         language: Language for text rendering ("en", "gujarati", "hindi")
         use_female_anchor: Whether to use female anchor
@@ -894,8 +895,8 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
-    # BREAKING bar ticker should run description
-    breaking_raw = (description or "").strip()
+    # BREAKING bar ticker runs subtitle (fallback: description)
+    breaking_raw = (subtitle or description or "").strip()
     if not breaking_raw:
         breaking_raw = "Breaking update"
 
@@ -960,8 +961,15 @@ def generate_video(title, description, audio_path, language="en", use_female_anc
         .set_duration(duration)
     )
 
+    promo_text = (
+        "For more videos, visit our Channel - Click here to Subscribe and stay Updated - "
+        "DailyMotion : @grahakchetna Grahak Chetna Website: https://www.grahakchetna.in "
+        "YouTube : @grahakchetna X (Twitter) : @grahakchetna Facebook : @grahakchetnanews "
+        "Instagram : @grahak.chetna"
+    )
+
     under_text_img_path, under_text_h = create_ticker_text_image(
-        title if title else "Headline",
+        promo_text,
         fontsize=34,
         color=(255, 255, 255),
         bold=False,
